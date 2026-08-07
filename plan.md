@@ -1,5 +1,10 @@
 # Scholara — Project Plan
 
+> **Active workflow redesign:** See [onboarding-redesign.md](./onboarding-redesign.md)
+> for the approved Persona -> Study Toolkit -> Weekly Plan implementation plan.
+> That document supersedes conflicting route, profile, scheduling, and AI-tuning
+> details below until this file is fully consolidated.
+
 > **Scholara** = *scholar* + *persona*.
 > A study-habit builder that turns who you are into how you should study.
 
