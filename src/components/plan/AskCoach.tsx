@@ -5,7 +5,7 @@ import { MessageCircleQuestion } from "lucide-react";
 import { coachingPayload } from "@/lib/ai/payload";
 import { ASK_PROMPTS, type AskTopic } from "@/lib/ai/topics";
 import type { LearnerProfile } from "@/lib/types";
-import { Card, cn } from "@/components/ui";
+import { Badge, Card, cn } from "@/components/ui";
 
 const TOPICS = Object.keys(ASK_PROMPTS) as AskTopic[];
 
@@ -17,11 +17,13 @@ const TOPICS = Object.keys(ASK_PROMPTS) as AskTopic[];
 export function AskCoach({ profile }: { profile: LearnerProfile }) {
   const [active, setActive] = useState<AskTopic | null>(null);
   const [answer, setAnswer] = useState<string | null>(null);
+  const [source, setSource] = useState<"ai" | "fallback" | null>(null);
   const [busy, setBusy] = useState(false);
 
   const ask = async (topic: AskTopic) => {
     setActive(topic);
     setAnswer(null);
+    setSource(null);
     setBusy(true);
     try {
       const response = await fetch("/api/ask", {
@@ -30,12 +32,14 @@ export function AskCoach({ profile }: { profile: LearnerProfile }) {
         body: JSON.stringify({ topic, ...coachingPayload(profile) }),
       });
       const data = response.ok ? await response.json() : null;
+      setSource(data?.source === "ai" ? "ai" : "fallback");
       setAnswer(
         typeof data?.message === "string"
           ? data.message
           : "That didn't go through. Try again in a moment — your plan is unchanged.",
       );
     } catch {
+      setSource("fallback");
       setAnswer(
         "That didn't go through. Try again in a moment — your plan is unchanged.",
       );
@@ -79,9 +83,16 @@ export function AskCoach({ profile }: { profile: LearnerProfile }) {
         {busy && <p className="text-sm text-ink-faint">Thinking it through…</p>}
         {!busy && answer && (
           <div className="rounded-xl border border-line bg-line-soft/60 p-5">
-            <p className="text-sm font-medium text-ink-faint">
-              {active ? ASK_PROMPTS[active].label : ""}
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-medium text-ink-faint">
+                {active ? ASK_PROMPTS[active].label : ""}
+              </p>
+              {source && (
+                <Badge tone={source === "ai" ? "brand" : "neutral"}>
+                  {source === "ai" ? "AI personalized" : "Built-in guidance"}
+                </Badge>
+              )}
+            </div>
             <p className="mt-2 leading-relaxed whitespace-pre-line">{answer}</p>
           </div>
         )}

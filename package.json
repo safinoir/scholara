@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:ai": "node --env-file=.env.local ./node_modules/vitest/vitest.mjs run tests/ai.integration.test.ts",
     "test:watch": "vitest"
   },
   "dependencies": {

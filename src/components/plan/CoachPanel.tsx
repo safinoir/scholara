@@ -50,9 +50,9 @@ export function CoachPanel({
           Your coach on this week
         </h2>
         <div className="no-print flex items-center gap-2">
-          {coaching.source === "fallback" && (
-            <Badge tone="neutral">Built-in guidance</Badge>
-          )}
+          <Badge tone={coaching.source === "ai" ? "brand" : "neutral"}>
+            {coaching.source === "ai" ? "AI personalized" : "Built-in guidance"}
+          </Badge>
           <Button
             variant="quiet"
             size="sm"
