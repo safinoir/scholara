@@ -11,7 +11,7 @@ export function coachingPayload(profile: LearnerProfile) {
     context: profile.context,
     primary: profile.match.primary,
     secondary: profile.match.secondary,
-    techniqueIds: profile.techniqueIds,
+    techniqueIds: profile.recommendedTechniqueIds,
     plan: profile.plan,
     week: profile.weekContext,
   };

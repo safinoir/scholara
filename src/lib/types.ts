@@ -374,17 +374,30 @@ export type CareerTrack = {
 // The profile
 // ---------------------------------------------------------------------------
 
-export const PROFILE_VERSION = 1;
+export const PROFILE_VERSION = 2;
+
+export const ONBOARDING_STAGES = [
+  "persona",
+  "toolkit",
+  "schedule",
+  "complete",
+] as const;
+
+export type OnboardingStage = (typeof ONBOARDING_STAGES)[number];
 
 export type LearnerProfile = {
-  version: number;
+  version: typeof PROFILE_VERSION;
   createdAt: string;
   axes: AxisScores;
   frictions: Friction[];
   context: LearnerContext;
   match: ArchetypeMatch;
   /** Ids of the recommended techniques, in rank order. */
-  techniqueIds: string[];
+  recommendedTechniqueIds: string[];
+  /** The 1-3 methods the learner explicitly confirms in Study Toolkit. */
+  selectedTechniqueIds: string[];
+  /** The next guided workflow step the learner needs to complete. */
+  onboardingStage: OnboardingStage;
   /** Why each technique was chosen, keyed by technique id. */
   reasons: Record<string, string[]>;
   plan: WeekPlan;

@@ -1,12 +1,15 @@
 import { z } from "zod";
+import { TECHNIQUE_BY_ID } from "@/lib/data/techniques";
 import {
   ARCHETYPE_IDS,
   AXES,
   DAYS,
   ENERGY_LEVELS,
   FRICTIONS,
+  ONBOARDING_STAGES,
   PROFILE_VERSION,
   WEEK_LOADS,
+  type LearnerProfile,
 } from "@/lib/types";
 
 const axisScoresSchema = z.object(
@@ -67,23 +70,62 @@ const coachingSchema = z.object({
   generatedAt: z.string(),
 });
 
-export const profileSchema = z.object({
-  version: z.number(),
+const matchSchema = z.object({
+  primary: z.enum(ARCHETYPE_IDS),
+  secondary: z.enum(ARCHETYPE_IDS),
+  confidence: z.number().min(0).max(1),
+});
+
+const sharedProfileShape = {
   createdAt: z.string(),
   axes: axisScoresSchema,
   frictions: z.array(z.enum(FRICTIONS)),
   context: contextSchema,
-  match: z.object({
-    primary: z.enum(ARCHETYPE_IDS),
-    secondary: z.enum(ARCHETYPE_IDS),
-    confidence: z.number().min(0).max(1),
-  }),
-  techniqueIds: z.array(z.string()),
+  match: matchSchema,
   reasons: z.record(z.string(), z.array(z.string())),
   plan: weekPlanSchema,
   resourceIds: z.array(z.string()),
   weekContext: weekContextSchema.optional(),
   coaching: coachingSchema.optional(),
+};
+
+const techniqueIdSchema = z
+  .string()
+  .refine((id) => id in TECHNIQUE_BY_ID, "Unknown technique id");
+
+function uniqueTechniqueIds(max: number) {
+  return z
+    .array(techniqueIdSchema)
+    .max(max)
+    .refine((ids) => new Set(ids).size === ids.length, "Technique ids must be unique");
+}
+
+export const profileSchema = z
+  .object({
+    version: z.literal(PROFILE_VERSION),
+    ...sharedProfileShape,
+    recommendedTechniqueIds: uniqueTechniqueIds(5),
+    selectedTechniqueIds: uniqueTechniqueIds(3),
+    onboardingStage: z.enum(ONBOARDING_STAGES),
+  })
+  .superRefine((profile, context) => {
+    const toolkitConfirmed =
+      profile.onboardingStage === "schedule" ||
+      profile.onboardingStage === "complete";
+
+    if (toolkitConfirmed && profile.selectedTechniqueIds.length === 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["selectedTechniqueIds"],
+        message: "A confirmed toolkit needs at least one selected technique",
+      });
+    }
+  });
+
+export const legacyProfileSchema = z.object({
+  version: z.literal(1),
+  ...sharedProfileShape,
+  techniqueIds: z.array(z.string()),
 });
 
 export const habitLogSchema = z.object({
@@ -96,13 +138,30 @@ export const trackerSchema = z.object({
   logs: z.array(habitLogSchema),
 });
 
-/**
- * Anything that fails validation or predates the current version is discarded
- * rather than migrated — v1 has no shipped predecessors to preserve.
- */
-export function parseProfile(raw: unknown) {
-  const result = profileSchema.safeParse(raw);
-  if (!result.success) return null;
-  if (result.data.version !== PROFILE_VERSION) return null;
-  return result.data;
+function cleanTechniqueIds(ids: string[], max: number): string[] {
+  return [...new Set(ids)]
+    .filter((id) => id in TECHNIQUE_BY_ID)
+    .slice(0, max);
+}
+
+export function migrateProfileV1(raw: unknown): LearnerProfile | null {
+  const legacy = legacyProfileSchema.safeParse(raw);
+  if (!legacy.success) return null;
+
+  const { techniqueIds, ...rest } = legacy.data;
+  const migrated = profileSchema.safeParse({
+    ...rest,
+    version: PROFILE_VERSION,
+    recommendedTechniqueIds: cleanTechniqueIds(techniqueIds, 5),
+    selectedTechniqueIds: [],
+    onboardingStage: "toolkit",
+  });
+
+  return migrated.success ? migrated.data : null;
+}
+
+export function parseProfile(raw: unknown): LearnerProfile | null {
+  const current = profileSchema.safeParse(raw);
+  if (current.success) return current.data;
+  return migrateProfileV1(raw);
 }

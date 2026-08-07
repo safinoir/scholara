@@ -22,7 +22,7 @@ export function CoachNote({ profile }: { profile: LearnerProfile }) {
       body: JSON.stringify({
         primary: profile.match.primary,
         frictions: profile.frictions,
-        techniqueIds: profile.techniqueIds,
+        techniqueIds: profile.recommendedTechniqueIds,
         hoursPerWeek: profile.context.hoursPerWeek,
         courseLoad: profile.context.courseLoad,
       }),

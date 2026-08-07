@@ -450,7 +450,7 @@ describe("generateProfile", () => {
       context: CONTEXT,
     });
     expect(profile.resourceIds.length).toBeGreaterThan(0);
-    for (const id of profile.techniqueIds) {
+    for (const id of profile.recommendedTechniqueIds) {
       expect(profile.reasons[id]).toBeDefined();
     }
   });

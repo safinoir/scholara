@@ -23,7 +23,7 @@ export function ResultsView() {
   const secondary = ARCHETYPE_BY_ID[profile.match.secondary];
   const blended = profile.match.confidence < 0.35;
 
-  const techniques = profile.techniqueIds
+  const techniques = profile.recommendedTechniqueIds
     .map((id) => TECHNIQUE_BY_ID[id])
     .filter(Boolean);
 

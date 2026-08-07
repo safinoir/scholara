@@ -2,7 +2,8 @@ import { parseProfile } from "@/lib/schema";
 import type { LearnerProfile, QuizAnswers } from "@/lib/types";
 
 export const KEYS = {
-  profile: "scholara:profile:v1",
+  profile: "scholara:profile:v2",
+  legacyProfile: "scholara:profile:v1",
   quizDraft: "scholara:quiz-draft:v1",
   tracker: "scholara:tracker:v1",
 } as const;
@@ -36,7 +37,14 @@ function remove(key: string): void {
 }
 
 export function loadProfile(): LearnerProfile | null {
-  return parseProfile(read(KEYS.profile));
+  const current = parseProfile(read(KEYS.profile));
+  if (current) return current;
+
+  const migrated = parseProfile(read(KEYS.legacyProfile));
+  if (!migrated) return null;
+
+  write(KEYS.profile, migrated);
+  return migrated;
 }
 
 export function saveProfile(profile: LearnerProfile): void {
@@ -45,6 +53,7 @@ export function saveProfile(profile: LearnerProfile): void {
 
 export function clearProfile(): void {
   remove(KEYS.profile);
+  remove(KEYS.legacyProfile);
   remove(KEYS.quizDraft);
 }
 
