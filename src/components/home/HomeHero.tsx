@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Clock, Lock, WalletMinimal } from "lucide-react";
+import { ArrowRight, Clock, Lock, Trash2, WalletMinimal } from "lucide-react";
 import { ButtonLink } from "@/components/ui";
 import { useProfile } from "@/hooks/useProfile";
 import { ARCHETYPE_BY_ID } from "@/lib/data/archetypes";
@@ -39,7 +39,7 @@ export function HomeHero() {
                 Back to your plan
                 <ArrowRight className="size-4" aria-hidden />
               </ButtonLink>
-              <ButtonLink href="/results" variant="secondary" size="lg">
+              <ButtonLink href="/persona" variant="secondary" size="lg">
                 You&rsquo;re {archetype.name}
               </ButtonLink>
             </>
@@ -64,6 +64,18 @@ export function HomeHero() {
             </li>
           ))}
         </ul>
+
+        <button
+          type="button"
+          onClick={() => {
+            window.localStorage.clear();
+            window.location.reload();
+          }}
+          className="mt-8 inline-flex min-h-11 items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
+        >
+          <Trash2 className="size-4" aria-hidden />
+          TEST ONLY: Wipe localStorage
+        </button>
       </div>
     </section>
   );

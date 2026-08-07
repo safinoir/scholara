@@ -4,17 +4,14 @@ import Link from "next/link";
 import { ArrowRight, RotateCcw } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { ARCHETYPE_BY_ID } from "@/lib/data/archetypes";
-import { TECHNIQUE_BY_ID } from "@/lib/data/techniques";
 import { ArchetypeIcon } from "@/components/ArchetypeIcon";
-import { AxisBars } from "./AxisBars";
-import { TechniqueCard } from "./TechniqueCard";
-import { ShareButton } from "./ShareButton";
-import { CoachNote } from "./CoachNote";
 import { LoadingShell, NoProfile } from "@/components/NoProfile";
+import { AxisBars } from "@/components/results/AxisBars";
+import { ShareButton } from "@/components/results/ShareButton";
 import { Badge, ButtonLink, Card, SectionHeading } from "@/components/ui";
 
-export function ResultsView() {
-  const { profile, ready } = useProfile();
+export function PersonaView() {
+  const { profile, ready, setProfile } = useProfile();
 
   if (!ready) return <LoadingShell />;
   if (!profile) return <NoProfile />;
@@ -23,13 +20,13 @@ export function ResultsView() {
   const secondary = ARCHETYPE_BY_ID[profile.match.secondary];
   const blended = profile.match.confidence < 0.35;
 
-  const techniques = profile.recommendedTechniqueIds
-    .map((id) => TECHNIQUE_BY_ID[id])
-    .filter(Boolean);
+  const continueToToolkit = () => {
+    if (profile.onboardingStage !== "persona") return;
+    setProfile({ ...profile, onboardingStage: "toolkit" });
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-10 sm:py-14">
-      {/* Archetype reveal */}
       <div className="animate-rise">
         <p className="text-sm text-ink-faint">Your starting point</p>
         <div
@@ -109,9 +106,6 @@ export function ResultsView() {
         </div>
       </div>
 
-      <CoachNote profile={profile} />
-
-      {/* Axes */}
       <section className="mt-16">
         <SectionHeading
           eyebrow="Your profile"
@@ -123,40 +117,27 @@ export function ResultsView() {
         </Card>
       </section>
 
-      {/* Techniques */}
-      <section className="mt-16">
-        <SectionHeading
-          eyebrow="Your techniques"
-          title="Five methods, ranked for you"
-          lead="Chosen by research on what works, then filtered by what fits how you operate. Every card shows how strong the evidence is."
-        />
-        <div className="mt-8 space-y-4">
-          {techniques.map((technique, index) => (
-            <TechniqueCard
-              key={technique.id}
-              technique={technique}
-              reasons={profile.reasons[technique.id] ?? []}
-              rank={index + 1}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Next */}
       <Card className="mt-16 border-brand-100 bg-brand-50">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
           <div className="flex-1">
-            <h2 className="text-xl font-semibold">
-              Now turn it into an actual week
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-700">
+              Next step
+            </p>
+            <h2 className="mt-2 text-xl font-semibold">
+              Build your Study Toolkit
             </h2>
             <p className="mt-1.5 text-sm text-ink-soft">
-              We&rsquo;ll build a schedule from the{" "}
-              {profile.context.hoursPerWeek} hours you said you had, in your peak
-              focus window.
+              See the five methods that best fit this profile, then explore how
+              each one works.
             </p>
           </div>
-          <ButtonLink href="/plan" size="lg" className="shrink-0">
-            Build my week
+          <ButtonLink
+            href="/toolkit"
+            size="lg"
+            className="shrink-0"
+            onClick={continueToToolkit}
+          >
+            Continue to Toolkit
             <ArrowRight className="size-4" aria-hidden />
           </ButtonLink>
         </div>

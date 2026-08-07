@@ -7,7 +7,8 @@ import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/components/ui";
 
 const NAV = [
-  { href: "/results", label: "Persona" },
+  { href: "/persona", label: "Persona" },
+  { href: "/toolkit", label: "Toolkit" },
   { href: "/plan", label: "Plan" },
   { href: "/tracker", label: "Tracker" },
   { href: "/resources", label: "Resources" },

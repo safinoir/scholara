@@ -486,7 +486,7 @@ export function PlanView() {
                         </p>
                         {technique && (
                           <Link
-                            href="/results"
+                            href={`/toolkit#technique-${technique.id}`}
                             className="mt-2.5 inline-block text-xs text-brand-700 underline hover:text-brand-600"
                           >
                             {technique.name}

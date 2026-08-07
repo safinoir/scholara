@@ -28,14 +28,18 @@ export function TechniqueCard({
   rank: number;
 }) {
   const [open, setOpen] = useState(rank === 1);
-  const panelId = `technique-${technique.id}`;
+  const cardId = `technique-${technique.id}`;
+  const panelId = `${cardId}-details`;
   const tools = technique.toolIds
     .map((id) => RESOURCE_BY_ID[id])
     .filter(Boolean)
     .slice(0, 2);
 
   return (
-    <div className="print-break-avoid rounded-2xl border border-line bg-surface">
+    <div
+      id={cardId}
+      className="print-break-avoid scroll-mt-24 rounded-2xl border border-line bg-surface"
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
