@@ -29,7 +29,7 @@ export const ARCHETYPES: Archetype[] = [
       drive: 25,
       clock: -20,
     },
-    accent: "#4f46e5",
+    accent: "#174c94",
     icon: "Compass",
   },
   {
@@ -56,7 +56,7 @@ export const ARCHETYPES: Archetype[] = [
       drive: -70,
       clock: 35,
     },
-    accent: "#e11d48",
+    accent: "#0e7490",
     icon: "Zap",
   },
   {
@@ -83,7 +83,7 @@ export const ARCHETYPES: Archetype[] = [
       drive: 20,
       clock: 15,
     },
-    accent: "#0891b2",
+    accent: "#1d4ed8",
     icon: "Users",
   },
   {
@@ -110,7 +110,7 @@ export const ARCHETYPES: Archetype[] = [
       drive: 40,
       clock: 0,
     },
-    accent: "#059669",
+    accent: "#0f766e",
     icon: "Network",
   },
   {
@@ -137,7 +137,7 @@ export const ARCHETYPES: Archetype[] = [
       drive: 90,
       clock: 40,
     },
-    accent: "#d97706",
+    accent: "#3b6ea5",
     icon: "Telescope",
   },
   {
@@ -164,7 +164,7 @@ export const ARCHETYPES: Archetype[] = [
       drive: -15,
       clock: -45,
     },
-    accent: "#7c3aed",
+    accent: "#312e81",
     icon: "Anchor",
   },
 ];

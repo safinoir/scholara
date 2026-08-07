@@ -12,8 +12,8 @@ import { Badge, Button, ButtonLink, Card, SectionHeading, cn } from "@/component
 
 const INTENSITY_STYLE: Record<BlockIntensity, string> = {
   deep: "border-brand-200 bg-brand-50",
-  review: "border-emerald-200 bg-emerald-50",
-  admin: "border-amber-200 bg-amber-50",
+  review: "border-teal-200 bg-teal-50",
+  admin: "border-slate-200 bg-slate-50",
 };
 
 const INTENSITY_LABEL: Record<BlockIntensity, string> = {

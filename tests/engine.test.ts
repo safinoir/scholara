@@ -235,6 +235,38 @@ describe("buildWeeklyPlan", () => {
     }
   });
 
+  it("keeps the weekly review even when no planning technique was recommended", () => {
+    const noPlanning = techniques.filter(
+      (t) => t.technique.category !== "planning",
+    );
+    expect(noPlanning.length).toBeGreaterThan(0);
+
+    const plan = buildWeeklyPlan({
+      axes: ZERO,
+      frictions: [],
+      context: CONTEXT,
+      techniques: noPlanning,
+    });
+
+    const review = plan.blocks.find((b) => b.intensity === "admin");
+    expect(review).toBeDefined();
+    expect(TECHNIQUE_BY_ID[review!.techniqueId]).toBeDefined();
+  });
+
+  it("never references a technique that doesn't exist", () => {
+    for (const hours of [2, 6, 14, 30]) {
+      const plan = buildWeeklyPlan({
+        axes: ZERO,
+        frictions: [],
+        context: { ...CONTEXT, hoursPerWeek: hours },
+        techniques,
+      });
+      for (const block of plan.blocks) {
+        expect(TECHNIQUE_BY_ID[block.techniqueId]).toBeDefined();
+      }
+    }
+  });
+
   it("puts hard work in the morning for early birds and at night for owls", () => {
     const early = buildWeeklyPlan({
       axes: { ...ZERO, clock: -80 },

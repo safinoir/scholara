@@ -8,6 +8,8 @@ import { TECHNIQUE_BY_ID } from "@/lib/data/techniques";
 import { ArchetypeIcon } from "@/components/ArchetypeIcon";
 import { AxisBars } from "./AxisBars";
 import { TechniqueCard } from "./TechniqueCard";
+import { ShareButton } from "./ShareButton";
+import { CoachNote } from "./CoachNote";
 import { LoadingShell, NoProfile } from "@/components/NoProfile";
 import { Badge, ButtonLink, Card, SectionHeading } from "@/components/ui";
 
@@ -107,6 +109,8 @@ export function ResultsView() {
         </div>
       </div>
 
+      <CoachNote profile={profile} />
+
       {/* Axes */}
       <section className="mt-16">
         <SectionHeading
@@ -163,6 +167,7 @@ export function ResultsView() {
           {profile.frictions.length} obstacle
           {profile.frictions.length === 1 ? "" : "s"} accounted for
         </Badge>
+        <ShareButton profile={profile} />
         <Link
           href="/quiz"
           className="inline-flex items-center gap-1.5 text-ink-soft underline hover:text-ink"

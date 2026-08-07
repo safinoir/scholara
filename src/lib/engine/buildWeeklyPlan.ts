@@ -134,7 +134,7 @@ export function buildWeeklyPlan(input: PlanInput): WeekPlan {
       "New material",
       technique.technique.id,
       "deep",
-      `Use ${technique.technique.name}. Hardest course first.`,
+      `Hardest course first, using ${technique.technique.name}.`,
     );
   }
 
@@ -177,42 +177,37 @@ export function buildWeeklyPlan(input: PlanInput): WeekPlan {
     );
   }
 
-  // The weekly review is always scheduled, even in a minimum plan.
-  const planTechnique =
-    techniques.find((t) => t.technique.id === "weekly-review") ??
-    techniques.find((t) => t.technique.category === "planning");
+  // The weekly review is always scheduled, even when it didn't rank in the
+  // user's top techniques, so it is sourced from the full library.
+  const reviewTechniqueId =
+    techniques.find((t) => t.technique.id === "weekly-review")?.technique.id ??
+    techniques.find((t) => t.technique.category === "planning")?.technique.id ??
+    "weekly-review";
 
-  if (planTechnique) {
-    const added = push(
+  const addWeeklyReview = () =>
+    push(
       "Sunday",
       Math.min(19, second),
       30,
       "Weekly review",
-      planTechnique.technique.id,
+      reviewTechniqueId,
       "admin",
       "Check every syllabus for the next 14 days, then block next week.",
     );
-    if (!added) {
-      // Make room by trimming the last deep block rather than dropping the review.
-      const last = blocks.findLast((b) => b.intensity === "deep");
-      if (last && last.minutes > 30) {
-        used -= 30;
-        last.minutes -= 30;
-        push(
-          "Sunday",
-          Math.min(19, second),
-          30,
-          "Weekly review",
-          planTechnique.technique.id,
-          "admin",
-          "Check every syllabus for the next 14 days, then block next week.",
-        );
-      }
+
+  if (!addWeeklyReview()) {
+    // Make room by trimming the last deep block rather than dropping the review.
+    const last = blocks.findLast((b) => b.intensity === "deep");
+    if (last && last.minutes > 30) {
+      used -= 30;
+      last.minutes -= 30;
+      addWeeklyReview();
     }
-    rationale.push(
-      "The weekly review is never cut. It's the block that keeps the other blocks honest.",
-    );
   }
+
+  rationale.push(
+    "The weekly review is never cut. It's the block that keeps the other blocks honest.",
+  );
 
   if (flexible) {
     rationale.push(

@@ -87,9 +87,9 @@ export function Card({
 const badgeTones = {
   neutral: "bg-line-soft text-ink-soft border-line",
   brand: "bg-brand-50 text-brand-700 border-brand-100",
-  free: "bg-emerald-50 text-emerald-800 border-emerald-100",
-  tier: "bg-amber-50 text-amber-800 border-amber-100",
-  paid: "bg-rose-50 text-rose-800 border-rose-100",
+  free: "bg-teal-50 text-teal-800 border-teal-100",
+  tier: "bg-sky-50 text-sky-800 border-sky-200",
+  paid: "bg-slate-100 text-slate-700 border-slate-200",
 };
 
 export function Badge({

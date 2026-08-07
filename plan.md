@@ -315,50 +315,54 @@ scholara/
 
 ## 10. Build Schedule (7 days)
 
-### Day 0 — Foundation
-- [ ] `create-next-app` (TS, Tailwind, App Router, ESLint); push to GitHub
-- [ ] Deploy to Vercel immediately, so deployment is never a last-day risk
-- [ ] `lib/types.ts` + `lib/schema.ts` + `lib/storage.ts` + `useProfile`
-- [ ] Base UI primitives + global styles + fonts
+### Day 0 — Foundation ✅
+- [x] `create-next-app` (TS, Tailwind, App Router, ESLint)
+- [x] `lib/types.ts` + `lib/schema.ts` + `lib/storage.ts` + `useProfile`
+- [x] Base UI primitives + global styles + fonts (deep-blue theme)
+- [ ] Push to GitHub + deploy to Vercel
 
-### Day 1 — Content & engine
-- [ ] Write all 14 questions with axis weights (`questions.ts`)
-- [ ] Write 6 archetypes with vectors (`archetypes.ts`)
-- [ ] Write 15 techniques, fully tagged (`techniques.ts`) ← the biggest writing task
-- [ ] `scoreAxes` + `matchArchetype` + `rankTechniques`
-- [ ] Vitest: axis math, archetype boundaries, diversity cap, all-neutral edge case
+### Day 1 — Content & engine ✅
+- [x] All 14 questions with axis weights (`questions.ts`)
+- [x] 6 archetypes with vectors (`archetypes.ts`)
+- [x] 20 techniques, fully tagged (`techniques.ts`)
+- [x] `scoreAxes` + `matchArchetype` + `rankTechniques`
+- [x] Vitest: axis math, archetype boundaries, diversity cap, all-neutral edge case
 
-### Day 2 — Quiz + results
-- [ ] Quiz flow: one-per-screen, progress, back, keyboard, resume-on-refresh
-- [ ] Express-intake alternate form
-- [ ] `/results`: archetype card, axis bars, technique cards
+### Day 2 — Quiz + results ✅
+- [x] Quiz flow: one-per-screen, progress, back, keyboard, resume-on-refresh
+- [x] Express-intake alternate form (`/express`)
+- [x] `/results`: archetype card, axis bars, technique cards
 
-### Day 3 — Plan + resources
-- [ ] `buildWeeklyPlan` + Vitest coverage
-- [ ] Week grid UI, flexible/structured toggle, copy-as-text
-- [ ] Write ~35 resources incl. campus resources; filter + fit sort
+### Day 3 — Plan + resources ✅
+- [x] `buildWeeklyPlan` + Vitest coverage
+- [x] Week grid UI, flexible/structured handling, copy-as-text, rebuild-hours control
+- [x] ~45 resources incl. campus resources; filter + fit sort + paid hidden by default
 
-### Day 4 — P1 features
-- [ ] Habit tracker + streaks (`useTracker`)
-- [ ] Career tracks
-- [ ] Share link encode/decode + `/share/[code]`
-- [ ] Print stylesheet → PDF
+### Day 4 — P1 features ✅
+- [x] Habit tracker + forgiving streaks (`useTracker`)
+- [x] Career tracks by field and year
+- [x] Share link encode/decode + `/share/[code]`
+- [x] Print stylesheet → PDF
 
 ### Day 5 — Polish
-- [ ] Mobile pass on every page
-- [ ] Accessibility pass: keyboard-only run-through, contrast check, axe scan
-- [ ] Empty/error/reset states; "start over" flow
+- [x] `/about` page documenting the model, limitations, and data handling
+- [x] Reset/delete-everything flow
+- [x] `/api/coach` with Zod validation, timeout, and silent fallback
+- [x] Mobile spot-check (390px) on landing, plan, resources
+- [ ] Full accessibility pass: keyboard-only run-through, contrast check, axe scan
 - [ ] Copy editing pass — tighten every sentence
-- [ ] Optional: `/api/coach` if and only if everything above is done
 
 ### Day 6 — Ship
+- [x] README: problem, category fit, thesis, run instructions, limitations, future work
 - [ ] Test on a real phone
 - [ ] Fresh-browser walkthrough; watch someone else use it silently
-- [ ] README: problem, category fit, thesis, screenshots, run instructions, evidence citations, future work
 - [ ] Demo script + recorded walkthrough
 - [ ] Final deploy; verify prod build
 
 **Every day ends with a commit and a green Vercel deploy.**
+
+### Bugs found and fixed during the build
+- **Weekly review could silently vanish.** It was sourced only from the user's top-5 techniques, so when no planning technique ranked, the block disappeared — contradicting the app's own promise that it's never cut. Now sourced from the full library, with two regression tests.
 
 ---
 
@@ -406,10 +410,32 @@ scholara/
 
 ## 14. Open Questions
 
-1. **AI provider** — is a NaviGator API key available, or should the coach route target OpenAI-compatible endpoints generically?
-2. **Institution** — should campus resources be generic ("your school's writing center") or hard-coded for one specific university for the demo?
-3. **Submission requirements** — is there a required demo video length, deck, or write-up format to reserve time for?
+1. **AI provider** — resolved for now: `/api/coach` targets any OpenAI-compatible endpoint via `COACH_BASE_URL`, so a NaviGator key drops in without code changes. No key is required.
+2. **Institution** — currently generic ("your school's writing center"). Worth revisiting if the demo should target one specific university.
+3. **Submission requirements** — still open: is there a required demo video length, deck, or write-up format to reserve time for?
 
 ---
 
-*Last updated: 2026-08-06 · Status: planning complete, awaiting go-ahead to build*
+## 15. Current Status
+
+**All P0 and P1 features are built and passing.** 13 routes, 29 engine tests green, production build clean.
+
+| Route | Purpose |
+| --- | --- |
+| `/` | Landing: problem, thesis, obstacle table |
+| `/quiz` | 14-question intake, keyboard-driven, resumes on refresh |
+| `/express` | Direct-input alternative to the quiz |
+| `/results` | Persona reveal, axis bars, 5 ranked techniques, share link |
+| `/plan` | Weekly schedule, copy-as-text, print, rebuild-hours |
+| `/resources` | ~45 resources, campus section first, paid hidden by default |
+| `/tracker` | Up to 3 micro-habits, forgiving streaks, 14-day re-assess prompt |
+| `/career` | Field × year career readiness checklist |
+| `/about` | The model, the evidence position, limitations, delete-my-data |
+| `/share/[code]` | Serverless shareable persona card |
+| `/api/coach` | Optional AI coaching paragraph, degrades silently |
+
+**Remaining before submission:** GitHub push, Vercel deploy, full accessibility audit, real-device test, demo recording.
+
+---
+
+*Last updated: 2026-08-06 · Status: P0 + P1 complete, pending deploy and final polish*
