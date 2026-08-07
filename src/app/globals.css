@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #fbfaf7;
+  --color-surface: #ffffff;
+  --color-ink: #16151a;
+  --color-ink-soft: #55525f;
+  --color-ink-faint: #7d798a;
+  --color-line: #e6e2db;
+  --color-line-soft: #f0ece5;
+
+  --color-brand-50: #f2f1fe;
+  --color-brand-100: #e6e4fd;
+  --color-brand-200: #cdcafb;
+  --color-brand-500: #5b4bdb;
+  --color-brand-600: #4a3ac4;
+  --color-brand-700: #3b2ea0;
+
+  --color-warm-100: #fdf1e3;
+  --color-warm-600: #b45f11;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    text-wrap: pretty;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+  }
+
+  /* Visible focus on every interactive element, never removed. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  ::selection {
+    background-color: var(--color-brand-100);
+  }
+}
+
+@utility animate-rise {
+  animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility animate-fade {
+  animation: fade 0.4s ease-out both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Anyone who asked their OS for less motion gets none of it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .print-break-avoid {
+    break-inside: avoid;
+  }
+}
