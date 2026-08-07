@@ -23,7 +23,24 @@ export function CoachPanel({
     );
   }
 
-  if (!coaching) return null;
+  if (!coaching) {
+    return (
+      <Card className="no-print mt-6 border-brand-100 bg-brand-50">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-semibold">
+              <Sparkles className="size-4.5 text-brand-600" aria-hidden />
+              Make this week more personal
+            </h2>
+            <p className="mt-1.5 text-sm text-ink-soft">
+              Get a short coaching brief grounded in this exact plan.
+            </p>
+          </div>
+          <Button onClick={onRefresh}>Personalize my week</Button>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card className="mt-6 border-brand-100 bg-brand-50">
@@ -34,7 +51,7 @@ export function CoachPanel({
         </h2>
         <div className="no-print flex items-center gap-2">
           {coaching.source === "fallback" && (
-            <Badge tone="neutral">Offline guidance</Badge>
+            <Badge tone="neutral">Built-in guidance</Badge>
           )}
           <Button
             variant="quiet"

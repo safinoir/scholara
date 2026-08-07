@@ -45,7 +45,7 @@ const DAY_SHORT: Record<Day, string> = {
 
 const chip = (active: boolean) =>
   cn(
-    "inline-flex min-h-11 items-center justify-center rounded-xl border px-3 text-sm transition-colors",
+    "inline-flex min-h-11 items-center justify-center rounded-xl border px-3 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40",
     active
       ? "border-brand-500 bg-brand-50 font-medium text-brand-700"
       : "border-line bg-surface text-ink-soft hover:bg-line-soft",
@@ -97,7 +97,7 @@ export function WeekTuner({
             Days that are already gone
           </legend>
           <p className="mt-1 text-sm text-ink-faint">
-            Class-heavy days, shifts, caregiving. Nothing gets scheduled here.
+            Class-heavy days, shifts, caregiving. Leave at least one day open.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {DAYS.map((day) => {
@@ -108,6 +108,7 @@ export function WeekTuner({
                   type="button"
                   aria-pressed={active}
                   onClick={() => toggleDay(day)}
+                  disabled={!active && draft.unavailableDays.length >= DAYS.length - 1}
                   className={chip(active)}
                 >
                   {DAY_SHORT[day]}

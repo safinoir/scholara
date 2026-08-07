@@ -7,6 +7,7 @@ import {
   FRICTIONS,
   WEEK_LOADS,
 } from "@/lib/types";
+import { TECHNIQUE_BY_ID } from "@/lib/data/techniques";
 
 /**
  * Request validation for the AI routes. Deliberately narrow: only structured,
@@ -44,12 +45,17 @@ export const weekContextSchema = z.object({
 });
 
 export const planBlockRequestSchema = z.object({
-  id: z.string().max(40),
+  id: z.string().regex(/^block-\d+$/),
   day: z.enum(DAYS),
   start: z.number().min(0).max(24),
   minutes: z.number().min(5).max(240),
-  label: z.string().max(80),
-  techniqueId: z.string().max(60),
+  label: z.enum([
+    "New material",
+    "Spaced review",
+    "Hardest task first",
+    "Weekly review",
+  ]),
+  techniqueId: z.string().max(60).refine((id) => id in TECHNIQUE_BY_ID),
   intensity: z.enum(["deep", "review", "admin"]),
   note: z.string().max(300),
 });
@@ -69,7 +75,9 @@ export const coachingRequestSchema = z.object({
   context: contextRequestSchema,
   primary: z.enum(ARCHETYPE_IDS),
   secondary: z.enum(ARCHETYPE_IDS),
-  techniqueIds: z.array(z.string().max(60)).max(8),
+  techniqueIds: z
+    .array(z.string().max(60).refine((id) => id in TECHNIQUE_BY_ID))
+    .max(8),
   plan: weekPlanRequestSchema,
   week: weekContextSchema.optional(),
 });
@@ -91,7 +99,9 @@ export const askRequestSchema = z.object({
   context: contextRequestSchema,
   primary: z.enum(ARCHETYPE_IDS),
   secondary: z.enum(ARCHETYPE_IDS),
-  techniqueIds: z.array(z.string().max(60)).max(8),
+  techniqueIds: z
+    .array(z.string().max(60).refine((id) => id in TECHNIQUE_BY_ID))
+    .max(8),
   plan: weekPlanRequestSchema,
   week: weekContextSchema.optional(),
 });

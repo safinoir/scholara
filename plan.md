@@ -49,7 +49,7 @@ Deciding this now prevents scope creep:
 | Backend | Next.js Route Handlers only. No separate server |
 | Database | **None for v1.** All data client-side |
 | Auth | **None for v1.** Architected so Supabase auth + a `profiles` table can be dropped in later |
-| AI | Rule-based engine is the source of truth. One optional route handler adds a coaching paragraph. App is fully functional with no API key |
+| AI | Rule-based engine is the source of truth. Optional routes add coaching prose and grounded plan Q&A. App is fully functional with no API key |
 | Icons | `lucide-react` |
 | Charts | None. A hand-built CSS bar display for the persona axes |
 | Deploy | **Vercel**, auto-deploy from `main` |
@@ -242,8 +242,8 @@ Field-based track (STEM · Health · Business · Humanities · Arts · Undecided
 ### 7.8 `/share/[code]` *(P1)*
 The profile is compressed → base64url → URL. Renders a read-only persona card with a "Take your own quiz" CTA. No server, no database. Also serves as dynamic OG-image content if time allows.
 
-### 7.9 `/api/coach` *(P2)*
-POST profile summary → short, specific coaching paragraph. Provider-agnostic (OpenAI-compatible `baseURL`, so NaviGator or any compatible endpoint drops in). **Rules:** key is server-side only and never in client code; no free-text PII sent; strict timeout; if the key is absent or the call fails, the UI silently falls back to pre-written copy. The AI never selects techniques — it only re-words the rationale.
+### 7.9 AI coaching routes *(P2)*
+`/api/coach` adds a short results-page note. `/api/plan` adds a weekly brief and block-level coaching. `/api/ask` answers a fixed menu of questions grounded in the current plan. All are provider-agnostic and OpenAI-compatible. **Rules:** the key is server-side only; no student-authored free text is sent; requests are narrowly validated and timeout-guarded; every failure falls back to pre-written copy. AI never selects techniques or changes the schedule.
 
 ---
 
@@ -410,7 +410,7 @@ scholara/
 
 ## 14. Open Questions
 
-1. **AI provider** — resolved for now: `/api/coach` targets any OpenAI-compatible endpoint via `COACH_BASE_URL`, so a NaviGator key drops in without code changes. No key is required.
+1. **AI provider** — resolved: all coaching routes target `https://api.ai.it.ufl.edu` with `llama-3.3-70b-instruct` by default. `AI_BASE_URL` and `AI_MODEL` can override either value. No key is required for fallback mode.
 2. **Institution** — currently generic ("your school's writing center"). Worth revisiting if the demo should target one specific university.
 3. **Submission requirements** — still open: is there a required demo video length, deck, or write-up format to reserve time for?
 
@@ -418,7 +418,7 @@ scholara/
 
 ## 15. Current Status
 
-**All P0 and P1 features are built and passing.** 13 routes, 29 engine tests green, production build clean.
+**All P0 and P1 features are built and passing.** The optional AI layer now personalizes weekly-plan coaching while preserving the deterministic engine as the source of truth. 15 routes and 29 engine tests are green.
 
 | Route | Purpose |
 | --- | --- |
@@ -426,16 +426,18 @@ scholara/
 | `/quiz` | 14-question intake, keyboard-driven, resumes on refresh |
 | `/express` | Direct-input alternative to the quiz |
 | `/results` | Persona reveal, axis bars, 5 ranked techniques, share link |
-| `/plan` | Weekly schedule, copy-as-text, print, rebuild-hours |
+| `/plan` | Weekly schedule, week-specific tuning, coaching, grounded Q&A, copy, print |
 | `/resources` | ~45 resources, campus section first, paid hidden by default |
 | `/tracker` | Up to 3 micro-habits, forgiving streaks, 14-day re-assess prompt |
 | `/career` | Field × year career readiness checklist |
 | `/about` | The model, the evidence position, limitations, delete-my-data |
 | `/share/[code]` | Serverless shareable persona card |
 | `/api/coach` | Optional AI coaching paragraph, degrades silently |
+| `/api/plan` | Weekly brief and block notes over an engine-built plan |
+| `/api/ask` | Fixed-topic coaching answers grounded in the current plan |
 
 **Remaining before submission:** GitHub push, Vercel deploy, full accessibility audit, real-device test, demo recording.
 
 ---
 
-*Last updated: 2026-08-06 · Status: P0 + P1 complete, pending deploy and final polish*
+*Last updated: 2026-08-07 · Status: P0 + P1 and personalized AI coaching complete, pending deploy and final polish*

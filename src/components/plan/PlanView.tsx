@@ -143,7 +143,7 @@ export function PlanView() {
       for (const block of blocks) {
         const time = plan.flexible ? "anytime" : formatHour(block.start);
         lines.push(
-          `  ${time} · ${block.minutes} min · ${block.label} — ${block.note}`,
+          `  ${time} · ${block.minutes} min · ${block.label} — ${blockNotes[block.id] ?? block.note}`,
         );
       }
       lines.push("");
@@ -208,6 +208,12 @@ export function PlanView() {
         {plan.minimumEffectiveDose && <Badge tone="tier">Time-scarce mode</Badge>}
       </div>
 
+      <CoachPanel
+        coaching={coaching}
+        busy={coachBusy}
+        onRefresh={() => void fetchCoaching(profile)}
+      />
+
       {/* Grid */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {[...byDay].map(([day, blocks]) => (
@@ -241,7 +247,7 @@ export function PlanView() {
                         : `${formatHour(block.start)} · ${INTENSITY_LABEL[block.intensity]}`}
                     </p>
                     <p className="mt-2.5 text-sm leading-relaxed text-ink-soft">
-                      {block.note}
+                      {blockNotes[block.id] ?? block.note}
                     </p>
                     {technique && (
                       <Link
@@ -275,6 +281,13 @@ export function PlanView() {
         </ul>
       </Card>
 
+      <WeekTuner
+        week={profile.weekContext}
+        onApply={(week) => rebuild({ week, coach: true })}
+        onClear={() => rebuild({ week: undefined, coach: true })}
+        busy={coachBusy}
+      />
+
       {/* Regenerate */}
       <Card className="no-print mt-6">
         <h2 className="text-lg font-semibold">Your hours changed?</h2>
@@ -293,18 +306,23 @@ export function PlanView() {
             max={40}
             value={hours}
             onChange={(e) => setHoursDraft(Number(e.target.value))}
+            disabled={coachBusy}
             className="w-full accent-brand-600 sm:max-w-sm"
           />
           <span className="text-sm font-medium tabular-nums">{hours} hrs/week</span>
           <Button
-            onClick={regenerate}
-            disabled={hours === profile.context.hoursPerWeek}
+            onClick={() =>
+              rebuild({ hoursPerWeek: hours, coach: true })
+            }
+            disabled={coachBusy || hours === profile.context.hoursPerWeek}
             className="sm:ml-auto"
           >
-            Rebuild plan
+            {coachBusy ? "Rebuilding…" : "Rebuild plan"}
           </Button>
         </div>
       </Card>
+
+      <AskCoach profile={profile} />
 
       <div className="no-print mt-10 flex flex-wrap gap-3">
         <ButtonLink href="/tracker" size="lg">

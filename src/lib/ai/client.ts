@@ -1,3 +1,5 @@
+import "server-only";
+
 /**
  * The only place Scholara talks to a model.
  *
@@ -42,6 +44,7 @@ function chatEndpoint(): string {
     process.env.COACH_BASE_URL ??
     DEFAULT_BASE_URL
   ).replace(/\/+$/, "");
+  if (/\/chat\/completions$/.test(raw)) return raw;
   const base = /\/v\d+$/.test(raw) ? raw : `${raw}/v1`;
   return `${base}/chat/completions`;
 }

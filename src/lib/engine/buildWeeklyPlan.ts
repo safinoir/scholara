@@ -91,7 +91,7 @@ export function buildWeeklyPlan(input: PlanInput): WeekPlan {
   const flexible = axes.structure <= -25;
 
   const weekFactor = week
-    ? ENERGY_BUDGET[week.energy] * LOAD_BUDGET[week.load]
+    ? Math.min(1, ENERGY_BUDGET[week.energy] * LOAD_BUDGET[week.load])
     : 1;
 
   let usableMinutes = Math.floor(budgetMinutes * BUDGET_USE * weekFactor);
@@ -115,7 +115,7 @@ export function buildWeeklyPlan(input: PlanInput): WeekPlan {
     } — that's the length you can actually sustain.`,
   );
   rationale.push(
-    `We scheduled ${Math.round(BUDGET_USE * 100)}% of the ${context.hoursPerWeek} hours you said you had. The gap is intentional: a plan with no slack is a plan you abandon.`,
+    `We capped this plan at ${Math.round(BUDGET_USE * weekFactor * 100)}% of the ${context.hoursPerWeek} hours you said you had. The gap is intentional: a plan with no slack is a plan you abandon.`,
   );
 
   const days = openDays(scarce ? MIN_DAYS : MED_DAYS);
@@ -257,10 +257,16 @@ export function buildWeeklyPlan(input: PlanInput): WeekPlan {
 
   if (!addWeeklyReview()) {
     // Make room by trimming the last deep block rather than dropping the review.
-    const last = blocks.findLast((b) => b.intensity === "deep");
-    if (last && last.minutes > 30) {
-      used -= 30;
-      last.minutes -= 30;
+    const lastIndex = blocks.findLastIndex((b) => b.intensity === "deep");
+    const last = blocks[lastIndex];
+    if (last) {
+      if (last.minutes > 30) {
+        used -= 30;
+        last.minutes -= 30;
+      } else {
+        used -= last.minutes;
+        blocks.splice(lastIndex, 1);
+      }
       addWeeklyReview();
     }
   }
