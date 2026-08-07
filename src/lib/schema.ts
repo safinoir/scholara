@@ -83,7 +83,7 @@ const sharedProfileShape = {
   context: contextSchema,
   match: matchSchema,
   reasons: z.record(z.string(), z.array(z.string())),
-  plan: weekPlanSchema,
+  plan: weekPlanSchema.optional(),
   resourceIds: z.array(z.string()),
   weekContext: weekContextSchema.optional(),
   coaching: coachingSchema.optional(),
@@ -120,11 +120,28 @@ export const profileSchema = z
         message: "A confirmed toolkit needs at least one selected technique",
       });
     }
+
+    if (profile.onboardingStage === "complete" && !profile.plan) {
+      context.addIssue({
+        code: "custom",
+        path: ["plan"],
+        message: "Completed onboarding requires a generated weekly plan",
+      });
+    }
+
+    if (profile.coaching && !profile.plan) {
+      context.addIssue({
+        code: "custom",
+        path: ["coaching"],
+        message: "Plan coaching requires a generated weekly plan",
+      });
+    }
   });
 
 export const legacyProfileSchema = z.object({
   version: z.literal(1),
   ...sharedProfileShape,
+  plan: weekPlanSchema,
   techniqueIds: z.array(z.string()),
 });
 

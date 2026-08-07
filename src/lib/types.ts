@@ -400,10 +400,13 @@ export type LearnerProfile = {
   onboardingStage: OnboardingStage;
   /** Why each technique was chosen, keyed by technique id. */
   reasons: Record<string, string[]>;
-  plan: WeekPlan;
+  /** Present only after the learner completes recurring schedule setup. */
+  plan?: WeekPlan;
   resourceIds: string[];
   /** Present once the student has tuned the plan for a specific week. */
   weekContext?: WeekContext;
   /** Optional AI polish over the current plan. Safe to be absent. */
   coaching?: PlanCoaching;
 };
+
+export type PlannedLearnerProfile = LearnerProfile & { plan: WeekPlan };

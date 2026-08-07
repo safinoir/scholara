@@ -462,7 +462,8 @@ describe("generateProfile", () => {
         frictions: ["overwhelm", "time-scarcity"],
         context: { ...CONTEXT, hoursPerWeek: 4 },
       });
-      expect(profile.plan.blocks.length).toBeGreaterThan(0);
+      expect(profile.plan).toBeUndefined();
+      expect(profile.recommendedTechniqueIds).toHaveLength(5);
     }
   });
 });

@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { generateProfile } from "@/lib/engine";
 import {
   canAccessToolkit,
+  hasCompletedSchedule,
   hasConfirmedToolkit,
+  hasGeneratedPlan,
   resumeDestination,
 } from "@/lib/onboarding";
 import type {
@@ -54,6 +56,8 @@ describe("onboarding access", () => {
 
     expect(canAccessToolkit(profile)).toBe(false);
     expect(hasConfirmedToolkit(profile)).toBe(false);
+    expect(hasGeneratedPlan(profile)).toBe(false);
+    expect(hasCompletedSchedule(profile)).toBe(false);
     expect(resumeDestination(profile)).toEqual({
       href: "/persona",
       label: "Continue to your persona",
@@ -101,5 +105,27 @@ describe("onboarding access", () => {
       href: "/toolkit",
       label: "Choose your Study Toolkit",
     });
+  });
+
+  it("recognizes a completed schedule only after its calendar is generated", () => {
+    const profile = profileAt("schedule");
+    const planned = {
+      ...profile,
+      plan: {
+        blocks: [],
+        flexible: false,
+        totalMinutes: 0,
+        budgetMinutes: 0,
+        minimumEffectiveDose: false,
+        rationale: [],
+      },
+    };
+
+    expect(hasGeneratedPlan(profile)).toBe(false);
+    expect(hasGeneratedPlan(planned)).toBe(true);
+    expect(hasCompletedSchedule(planned)).toBe(false);
+    expect(
+      hasCompletedSchedule({ ...planned, onboardingStage: "complete" }),
+    ).toBe(true);
   });
 });

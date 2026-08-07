@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MessageCircleQuestion } from "lucide-react";
 import { coachingPayload } from "@/lib/ai/payload";
 import { ASK_PROMPTS, type AskTopic } from "@/lib/ai/topics";
-import type { LearnerProfile } from "@/lib/types";
+import type { PlannedLearnerProfile } from "@/lib/types";
 import { Badge, Card, cn } from "@/components/ui";
 
 const TOPICS = Object.keys(ASK_PROMPTS) as AskTopic[];
@@ -14,7 +14,7 @@ const TOPICS = Object.keys(ASK_PROMPTS) as AskTopic[];
  * from the student's own plan, which keeps answers grounded and means no free
  * text ever leaves the browser.
  */
-export function AskCoach({ profile }: { profile: LearnerProfile }) {
+export function AskCoach({ profile }: { profile: PlannedLearnerProfile }) {
   const [active, setActive] = useState<AskTopic | null>(null);
   const [answer, setAnswer] = useState<string | null>(null);
   const [source, setSource] = useState<"ai" | "fallback" | null>(null);

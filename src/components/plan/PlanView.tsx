@@ -7,14 +7,18 @@ import { useProfile } from "@/hooks/useProfile";
 import { coachingPayload } from "@/lib/ai/payload";
 import { TECHNIQUE_BY_ID } from "@/lib/data/techniques";
 import { buildWeeklyPlan, formatHour, rankTechniques } from "@/lib/engine";
-import { hasConfirmedToolkit, resumeDestination } from "@/lib/onboarding";
+import {
+  hasConfirmedToolkit,
+  hasCompletedSchedule,
+  resumeDestination,
+} from "@/lib/onboarding";
 import {
   DAYS,
   type BlockIntensity,
   type Day,
-  type LearnerProfile,
   type PlanBlock,
   type PlanCoaching,
+  type PlannedLearnerProfile,
   type WeekPlan,
   type WeekContext,
 } from "@/lib/types";
@@ -72,13 +76,42 @@ function planSignature(plan: WeekPlan) {
     .join("|");
 }
 
+function ScheduleSetupRequired() {
+  return (
+    <div className="mx-auto max-w-3xl px-5 py-16 sm:py-20">
+      <Card>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-600">
+          Weekly Plan
+        </p>
+        <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">
+          Add your real week before we build it
+        </h1>
+        <p className="mt-4 max-w-2xl text-ink-soft">
+          Your persona and Study Toolkit are saved. Next, you&rsquo;ll add your
+          courses, recurring class times, and the windows when you can
+          realistically study. Scholara will not create a schedule until you
+          confirm those constraints.
+        </p>
+        <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+          <ButtonLink href="/toolkit" variant="secondary">
+            Review your toolkit
+          </ButtonLink>
+          <ButtonLink href="/persona" variant="ghost">
+            Review your persona
+          </ButtonLink>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
 export function PlanView() {
   const { profile, ready, setProfile } = useProfile();
   const [copied, setCopied] = useState(false);
   const [hoursDraft, setHoursDraft] = useState<number | null>(null);
   const [coachBusy, setCoachBusy] = useState(false);
 
-  const plan = profile?.plan;
+  const storedPlan = profile?.plan;
 
   /**
    * Coaching is fetched on demand, never on page load. The plan is already
@@ -86,7 +119,7 @@ export function PlanView() {
    * break the "works offline after load" promise.
    */
   const fetchCoaching = useCallback(
-    async (target: LearnerProfile) => {
+    async (target: PlannedLearnerProfile) => {
       setCoachBusy(true);
       try {
         const response = await fetch("/api/plan", {
@@ -110,13 +143,13 @@ export function PlanView() {
 
   const byDay = useMemo(() => {
     const map = new Map<Day, PlanBlock[]>();
-    if (!plan) return map;
+    if (!storedPlan) return map;
     for (const day of DAYS) {
-      const blocks = plan.blocks.filter((b) => b.day === day);
+      const blocks = storedPlan.blocks.filter((b) => b.day === day);
       if (blocks.length > 0) map.set(day, blocks);
     }
     return map;
-  }, [plan]);
+  }, [storedPlan]);
 
   if (!ready) return <LoadingShell />;
   if (!profile) return <NoProfile />;
@@ -131,7 +164,8 @@ export function PlanView() {
       />
     );
   }
-  if (!plan) return <NoProfile />;
+  if (!hasCompletedSchedule(profile)) return <ScheduleSetupRequired />;
+  const plan = profile.plan;
 
   const hours = hoursDraft ?? profile.context.hoursPerWeek;
   const previewContext = { ...profile.context, hoursPerWeek: hours };
@@ -186,7 +220,7 @@ export function PlanView() {
     });
 
     // Old coaching describes a plan that no longer exists, so it's dropped.
-    const next: LearnerProfile = {
+    const next: PlannedLearnerProfile = {
       ...profile,
       context,
       plan: nextPlan,
