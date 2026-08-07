@@ -3,10 +3,13 @@ import {
   type AxisScores,
   type BlockIntensity,
   type Day,
+  type EnergyLevel,
   type Friction,
   type LearnerContext,
   type PlanBlock,
   type ScoredTechnique,
+  type WeekContext,
+  type WeekLoad,
   type WeekPlan,
 } from "@/lib/types";
 
@@ -15,6 +18,23 @@ const BUDGET_USE = 0.85;
 
 const MED_DAYS: Day[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Saturday"];
 const MIN_DAYS: Day[] = ["Monday", "Wednesday", "Saturday"];
+
+/**
+ * A depleted week gets a smaller plan, not a pep talk. Shrinking the budget is
+ * the only honest response to "I have nothing left this week".
+ */
+const ENERGY_BUDGET: Record<EnergyLevel, number> = {
+  depleted: 0.6,
+  steady: 1,
+  strong: 1.1,
+};
+
+/** A crunch week trades review breadth for deadline throughput. */
+const LOAD_BUDGET: Record<WeekLoad, number> = {
+  light: 0.9,
+  normal: 1,
+  crunch: 1.15,
+};
 
 function sessionMinutes(rhythm: number): number {
   if (rhythm <= -35) return 25;
@@ -50,6 +70,8 @@ type PlanInput = {
   frictions: Friction[];
   context: LearnerContext;
   techniques: ScoredTechnique[];
+  /** Optional week-specific tuning. Absent means the standard week. */
+  week?: WeekContext;
 };
 
 /**
@@ -58,15 +80,34 @@ type PlanInput = {
  * rather than filling the calendar.
  */
 export function buildWeeklyPlan(input: PlanInput): WeekPlan {
-  const { axes, frictions, context, techniques } = input;
+  const { axes, frictions, context, techniques, week } = input;
 
   const budgetMinutes = Math.round(context.hoursPerWeek * 60);
-  const scarce = frictions.includes("time-scarcity");
+  const effectiveFrictions = week
+    ? [...new Set([...frictions, ...week.focusFrictions])]
+    : frictions;
+  const scarce =
+    effectiveFrictions.includes("time-scarcity") || week?.energy === "depleted";
   const flexible = axes.structure <= -25;
 
-  let usableMinutes = Math.floor(budgetMinutes * BUDGET_USE);
+  const weekFactor = week
+    ? ENERGY_BUDGET[week.energy] * LOAD_BUDGET[week.load]
+    : 1;
+
+  let usableMinutes = Math.floor(budgetMinutes * BUDGET_USE * weekFactor);
   const blockLength = sessionMinutes(axes.rhythm);
   const rationale: string[] = [];
+
+  // A fully blocked week would leave nowhere to schedule, so at least one day
+  // always stays open even if the student marked everything unavailable.
+  const blocked = new Set<Day>(week?.unavailableDays ?? []);
+  if (blocked.size >= DAYS.length) blocked.delete("Sunday");
+
+  const openDays = (days: Day[]): Day[] => {
+    const open = days.filter((d) => !blocked.has(d));
+    if (open.length > 0) return open;
+    return DAYS.filter((d) => !blocked.has(d)).slice(0, days.length);
+  };
 
   rationale.push(
     `Sessions are ${blockLength} minutes because you're a ${
@@ -77,12 +118,26 @@ export function buildWeeklyPlan(input: PlanInput): WeekPlan {
     `We scheduled ${Math.round(BUDGET_USE * 100)}% of the ${context.hoursPerWeek} hours you said you had. The gap is intentional: a plan with no slack is a plan you abandon.`,
   );
 
-  const days = scarce ? MIN_DAYS : MED_DAYS;
+  const days = openDays(scarce ? MIN_DAYS : MED_DAYS);
   if (scarce) {
     rationale.push(
-      "You told us time is genuinely scarce, so this is a minimum effective dose: three sessions, not a full grid.",
+      week?.energy === "depleted"
+        ? "You said you're running on empty, so this week is a minimum effective dose. Doing three small sessions and stopping is the win."
+        : "You told us time is genuinely scarce, so this is a minimum effective dose: three sessions, not a full grid.",
     );
     usableMinutes = Math.min(usableMinutes, blockLength * 3 + 30);
+  }
+
+  if (blocked.size > 0) {
+    rationale.push(
+      `Nothing is scheduled on ${[...blocked].join(", ")} — you told us those days are already gone.`,
+    );
+  }
+
+  if (week?.load === "crunch") {
+    rationale.push(
+      "It's a crunch week, so new-material blocks lead with whatever is due soonest and review is trimmed to the essentials.",
+    );
   }
 
   const blocks: PlanBlock[] = [];
@@ -144,9 +199,11 @@ export function buildWeeklyPlan(input: PlanInput): WeekPlan {
     techniques.find((t) => t.technique.id === "retrieval-practice") ??
     primaryDeep;
 
-  const reviewDays: Day[] = scarce
-    ? ["Thursday"]
-    : ["Tuesday", "Friday", "Sunday"];
+  const reviewDays = openDays(
+    scarce || week?.load === "crunch"
+      ? ["Thursday"]
+      : ["Tuesday", "Friday", "Sunday"],
+  );
 
   for (const day of reviewDays) {
     const minutes = Math.min(blockLength, 30);
@@ -164,10 +221,11 @@ export function buildWeeklyPlan(input: PlanInput): WeekPlan {
   // One focus-technique block for students whose main obstacle is starting.
   if (
     focusTechnique &&
-    (frictions.includes("procrastination") || frictions.includes("distraction"))
+    (effectiveFrictions.includes("procrastination") ||
+      effectiveFrictions.includes("distraction"))
   ) {
     push(
-      scarce ? "Wednesday" : "Thursday",
+      openDays(scarce ? ["Wednesday"] : ["Thursday"])[0],
       second,
       Math.min(blockLength, 50),
       "Hardest task first",
@@ -184,9 +242,11 @@ export function buildWeeklyPlan(input: PlanInput): WeekPlan {
     techniques.find((t) => t.technique.category === "planning")?.technique.id ??
     "weekly-review";
 
+  const reviewDay = openDays(["Sunday"])[0];
+
   const addWeeklyReview = () =>
     push(
-      "Sunday",
+      reviewDay,
       Math.min(19, second),
       30,
       "Weekly review",

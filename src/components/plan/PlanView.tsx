@@ -1,13 +1,25 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, Copy, Printer, Sparkles } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
+import { coachingPayload } from "@/lib/ai/payload";
 import { TECHNIQUE_BY_ID } from "@/lib/data/techniques";
 import { buildWeeklyPlan, formatHour, rankTechniques } from "@/lib/engine";
-import { DAYS, type BlockIntensity, type Day, type PlanBlock } from "@/lib/types";
+import {
+  DAYS,
+  type BlockIntensity,
+  type Day,
+  type LearnerProfile,
+  type PlanBlock,
+  type PlanCoaching,
+  type WeekContext,
+} from "@/lib/types";
 import { LoadingShell, NoProfile } from "@/components/NoProfile";
+import { AskCoach } from "@/components/plan/AskCoach";
+import { CoachPanel } from "@/components/plan/CoachPanel";
+import { WeekTuner } from "@/components/plan/WeekTuner";
 import { Badge, Button, ButtonLink, Card, SectionHeading, cn } from "@/components/ui";
 
 const INTENSITY_STYLE: Record<BlockIntensity, string> = {
@@ -34,8 +46,37 @@ export function PlanView() {
   const { profile, ready, setProfile } = useProfile();
   const [copied, setCopied] = useState(false);
   const [hoursDraft, setHoursDraft] = useState<number | null>(null);
+  const [coachBusy, setCoachBusy] = useState(false);
 
   const plan = profile?.plan;
+
+  /**
+   * Coaching is fetched on demand, never on page load. The plan is already
+   * complete without it, and an unprompted network call on every visit would
+   * break the "works offline after load" promise.
+   */
+  const fetchCoaching = useCallback(
+    async (target: LearnerProfile) => {
+      setCoachBusy(true);
+      try {
+        const response = await fetch("/api/plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(coachingPayload(target)),
+        });
+        if (!response.ok) return;
+        const coaching = (await response.json()) as PlanCoaching;
+        if (typeof coaching?.brief === "string") {
+          setProfile({ ...target, coaching });
+        }
+      } catch {
+        // The plan stands on its own; a failed call simply shows no coaching.
+      } finally {
+        setCoachBusy(false);
+      }
+    },
+    [setProfile],
+  );
 
   const byDay = useMemo(() => {
     const map = new Map<Day, PlanBlock[]>();
@@ -52,8 +93,18 @@ export function PlanView() {
 
   const hours = hoursDraft ?? profile.context.hoursPerWeek;
 
-  const regenerate = () => {
-    const context = { ...profile.context, hoursPerWeek: hours };
+  /** Rebuilds the plan deterministically, then asks the coach to narrate it. */
+  const rebuild = (options: {
+    hoursPerWeek?: number;
+    week?: WeekContext;
+    coach: boolean;
+  }) => {
+    const context = {
+      ...profile.context,
+      hoursPerWeek: options.hoursPerWeek ?? profile.context.hoursPerWeek,
+    };
+    const week = "week" in options ? options.week : profile.weekContext;
+
     const techniques = rankTechniques({
       axes: profile.axes,
       frictions: profile.frictions,
@@ -65,10 +116,25 @@ export function PlanView() {
       frictions: profile.frictions,
       context,
       techniques,
+      week,
     });
-    setProfile({ ...profile, context, plan: nextPlan });
+
+    // Old coaching describes a plan that no longer exists, so it's dropped.
+    const next: LearnerProfile = {
+      ...profile,
+      context,
+      plan: nextPlan,
+      weekContext: week,
+      coaching: undefined,
+    };
+
+    setProfile(next);
     setHoursDraft(null);
+    if (options.coach) void fetchCoaching(next);
   };
+
+  const coaching = profile.coaching ?? null;
+  const blockNotes = coaching?.blockNotes ?? {};
 
   const asText = () => {
     const lines = ["My Scholara week", ""];

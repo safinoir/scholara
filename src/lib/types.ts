@@ -251,6 +251,52 @@ export type WeekPlan = {
   rationale: string[];
 };
 
+/**
+ * Week-specific circumstances, re-answered whenever the week changes.
+ * Structured on purpose: no free text, so nothing identifying is ever sent
+ * to a model, and the scheduler can act on it deterministically.
+ */
+export const WEEK_LOADS = ["light", "normal", "crunch"] as const;
+
+export type WeekLoad = (typeof WEEK_LOADS)[number];
+
+export const ENERGY_LEVELS = ["depleted", "steady", "strong"] as const;
+
+export type EnergyLevel = (typeof ENERGY_LEVELS)[number];
+
+export type WeekContext = {
+  /** Days with no realistic study window — class-heavy, shifts, caregiving. */
+  unavailableDays: Day[];
+  /** How much is due in the next seven days. */
+  load: WeekLoad;
+  /** How much capacity the student actually has right now. */
+  energy: EnergyLevel;
+  /** Courses that need disproportionate attention, by friction tag. */
+  focusFrictions: Friction[];
+};
+
+// ---------------------------------------------------------------------------
+// AI coaching (optional layer — the engine is always the source of truth)
+// ---------------------------------------------------------------------------
+
+/**
+ * Written by the model, never structural. Every field is prose that explains
+ * or reframes a decision the engine already made, and every one has a
+ * deterministic fallback so the app is complete without a key.
+ */
+export type PlanCoaching = {
+  /** 2-3 sentence brief on how to approach the week. */
+  brief: string;
+  /** The single highest-leverage move, phrased as an action. */
+  focus: string;
+  /** The most likely way this week goes wrong for this student. */
+  watchOut: string;
+  /** blockId -> a rewritten, personal instruction for that block. */
+  blockNotes: Record<string, string>;
+  source: "ai" | "fallback";
+  generatedAt: string;
+};
+
 // ---------------------------------------------------------------------------
 // Resources
 // ---------------------------------------------------------------------------
@@ -343,4 +389,8 @@ export type LearnerProfile = {
   reasons: Record<string, string[]>;
   plan: WeekPlan;
   resourceIds: string[];
+  /** Present once the student has tuned the plan for a specific week. */
+  weekContext?: WeekContext;
+  /** Optional AI polish over the current plan. Safe to be absent. */
+  coaching?: PlanCoaching;
 };

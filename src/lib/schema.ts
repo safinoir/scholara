@@ -1,5 +1,13 @@
 import { z } from "zod";
-import { ARCHETYPE_IDS, AXES, DAYS, FRICTIONS, PROFILE_VERSION } from "@/lib/types";
+import {
+  ARCHETYPE_IDS,
+  AXES,
+  DAYS,
+  ENERGY_LEVELS,
+  FRICTIONS,
+  PROFILE_VERSION,
+  WEEK_LOADS,
+} from "@/lib/types";
 
 const axisScoresSchema = z.object(
   Object.fromEntries(
@@ -43,6 +51,22 @@ const weekPlanSchema = z.object({
   rationale: z.array(z.string()),
 });
 
+const weekContextSchema = z.object({
+  unavailableDays: z.array(z.enum(DAYS)).max(7),
+  load: z.enum(WEEK_LOADS),
+  energy: z.enum(ENERGY_LEVELS),
+  focusFrictions: z.array(z.enum(FRICTIONS)).max(10),
+});
+
+const coachingSchema = z.object({
+  brief: z.string(),
+  focus: z.string(),
+  watchOut: z.string(),
+  blockNotes: z.record(z.string(), z.string()),
+  source: z.enum(["ai", "fallback"]),
+  generatedAt: z.string(),
+});
+
 export const profileSchema = z.object({
   version: z.number(),
   createdAt: z.string(),
@@ -58,6 +82,8 @@ export const profileSchema = z.object({
   reasons: z.record(z.string(), z.array(z.string())),
   plan: weekPlanSchema,
   resourceIds: z.array(z.string()),
+  weekContext: weekContextSchema.optional(),
+  coaching: coachingSchema.optional(),
 });
 
 export const habitLogSchema = z.object({
