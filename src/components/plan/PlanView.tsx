@@ -7,6 +7,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { coachingPayload } from "@/lib/ai/payload";
 import { TECHNIQUE_BY_ID } from "@/lib/data/techniques";
 import { buildWeeklyPlan, formatHour, rankTechniques } from "@/lib/engine";
+import { hasConfirmedToolkit, resumeDestination } from "@/lib/onboarding";
 import {
   DAYS,
   type BlockIntensity,
@@ -18,6 +19,7 @@ import {
   type WeekContext,
 } from "@/lib/types";
 import { LoadingShell, NoProfile } from "@/components/NoProfile";
+import { OnboardingGate } from "@/components/OnboardingGate";
 import { AskCoach } from "@/components/plan/AskCoach";
 import { CoachPanel } from "@/components/plan/CoachPanel";
 import { WeekTuner } from "@/components/plan/WeekTuner";
@@ -117,7 +119,19 @@ export function PlanView() {
   }, [plan]);
 
   if (!ready) return <LoadingShell />;
-  if (!profile || !plan) return <NoProfile />;
+  if (!profile) return <NoProfile />;
+  if (!hasConfirmedToolkit(profile)) {
+    const destination = resumeDestination(profile);
+    return (
+      <OnboardingGate
+        title="Finish your study setup first"
+        body="Review your persona and save at least one study method before building your weekly plan."
+        href={destination.href}
+        action={destination.label}
+      />
+    );
+  }
+  if (!plan) return <NoProfile />;
 
   const hours = hoursDraft ?? profile.context.hoursPerWeek;
   const previewContext = { ...profile.context, hoursPerWeek: hours };

@@ -4,12 +4,14 @@ import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { TECHNIQUE_BY_ID, TECHNIQUES } from "@/lib/data/techniques";
+import { canAccessToolkit } from "@/lib/onboarding";
 import type {
   LearnerProfile,
   Technique,
   TechniqueCategory,
 } from "@/lib/types";
 import { LoadingShell, NoProfile } from "@/components/NoProfile";
+import { OnboardingGate } from "@/components/OnboardingGate";
 import { TechniqueCard } from "@/components/results/TechniqueCard";
 import { Button, ButtonLink, Card } from "@/components/ui";
 
@@ -44,6 +46,16 @@ export function ToolkitView() {
 
   if (!ready) return <LoadingShell />;
   if (!profile) return <NoProfile />;
+  if (!canAccessToolkit(profile)) {
+    return (
+      <OnboardingGate
+        title="See your persona first"
+        body="Review what your quiz says about your study style before choosing the methods you want to try."
+        href="/persona"
+        action="Continue to your persona"
+      />
+    );
+  }
 
   return (
     <ToolkitContent

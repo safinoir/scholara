@@ -4,6 +4,7 @@ import { ArrowRight, Clock, Lock, Trash2, WalletMinimal } from "lucide-react";
 import { ButtonLink } from "@/components/ui";
 import { useProfile } from "@/hooks/useProfile";
 import { ARCHETYPE_BY_ID } from "@/lib/data/archetypes";
+import { resumeDestination } from "@/lib/onboarding";
 
 const PROMISES = [
   { icon: Clock, text: "About two minutes" },
@@ -15,6 +16,7 @@ export function HomeHero() {
   const { profile, ready } = useProfile();
   const returning = ready && profile !== null;
   const archetype = profile ? ARCHETYPE_BY_ID[profile.match.primary] : null;
+  const resume = profile ? resumeDestination(profile) : null;
 
   return (
     <section className="mx-auto max-w-6xl px-5 pt-16 pb-14 sm:pt-24">
@@ -33,15 +35,17 @@ export function HomeHero() {
         </p>
 
         <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-          {returning && archetype ? (
+          {returning && archetype && resume ? (
             <>
-              <ButtonLink href="/plan" size="lg">
-                Back to your plan
+              <ButtonLink href={resume.href} size="lg">
+                {resume.label}
                 <ArrowRight className="size-4" aria-hidden />
               </ButtonLink>
-              <ButtonLink href="/persona" variant="secondary" size="lg">
-                You&rsquo;re {archetype.name}
-              </ButtonLink>
+              {resume.href !== "/persona" && (
+                <ButtonLink href="/persona" variant="secondary" size="lg">
+                  You&rsquo;re {archetype.name}
+                </ButtonLink>
+              )}
             </>
           ) : (
             <>

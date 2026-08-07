@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { GraduationCap } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/components/ui";
+import { canAccessToolkit, hasConfirmedToolkit } from "@/lib/onboarding";
 
 const NAV = [
   { href: "/persona", label: "Persona" },
@@ -21,6 +22,13 @@ export function SiteHeader() {
 
   // Nav only appears once there's something to navigate to.
   const showNav = ready && profile !== null;
+  const visibleNav = profile
+    ? NAV.filter((item) => {
+        if (item.href === "/toolkit") return canAccessToolkit(profile);
+        if (item.href === "/plan") return hasConfirmedToolkit(profile);
+        return true;
+      })
+    : [];
 
   return (
     <header className="no-print sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur">
@@ -36,7 +44,7 @@ export function SiteHeader() {
         {showNav && (
           <nav aria-label="Main" className="ml-auto">
             <ul className="flex items-center gap-1 overflow-x-auto text-sm">
-              {NAV.map((item) => {
+              {visibleNav.map((item) => {
                 const active = pathname === item.href;
                 return (
                   <li key={item.href}>
