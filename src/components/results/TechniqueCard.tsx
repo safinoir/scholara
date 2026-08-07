@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Clock, FlaskConical } from "lucide-react";
+import { Check, ChevronDown, Clock, FlaskConical, Plus } from "lucide-react";
 import { RESOURCE_BY_ID } from "@/lib/data/resources";
 import type { EvidenceStrength, Technique } from "@/lib/types";
 import { Badge, cn } from "@/components/ui";
@@ -22,10 +22,16 @@ export function TechniqueCard({
   technique,
   reasons,
   rank,
+  selected,
+  selectionDisabled = false,
+  onToggleSelection,
 }: {
   technique: Technique;
   reasons: string[];
-  rank: number;
+  rank?: number;
+  selected?: boolean;
+  selectionDisabled?: boolean;
+  onToggleSelection?: () => void;
 }) {
   const [open, setOpen] = useState(rank === 1);
   const cardId = `technique-${technique.id}`;
@@ -38,8 +44,36 @@ export function TechniqueCard({
   return (
     <div
       id={cardId}
-      className="print-break-avoid scroll-mt-24 rounded-2xl border border-line bg-surface"
+      className={cn(
+        "print-break-avoid scroll-mt-24 rounded-2xl border bg-surface",
+        selected ? "border-brand-300 ring-1 ring-brand-100" : "border-line",
+      )}
     >
+      {onToggleSelection && (
+        <div className="flex justify-end border-b border-line-soft px-4 py-3 sm:px-5">
+          <button
+            type="button"
+            aria-pressed={selected}
+            aria-label={`${selected ? "Remove" : "Add"} ${technique.name} ${selected ? "from" : "to"} your Study Toolkit`}
+            onClick={onToggleSelection}
+            disabled={selectionDisabled}
+            className={cn(
+              "inline-flex min-h-11 items-center gap-2 rounded-xl border px-3.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45",
+              selected
+                ? "border-brand-500 bg-brand-50 text-brand-700"
+                : "border-line bg-white text-ink-soft hover:border-brand-300 hover:text-brand-700",
+            )}
+          >
+            {selected ? (
+              <Check className="size-4" aria-hidden />
+            ) : (
+              <Plus className="size-4" aria-hidden />
+            )}
+            {selected ? "In your toolkit" : "Add to toolkit"}
+          </button>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -47,9 +81,11 @@ export function TechniqueCard({
         aria-controls={panelId}
         className="flex w-full items-start gap-4 p-5 text-left sm:p-6"
       >
-        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-sm font-semibold text-brand-700">
-          {rank}
-        </span>
+        {rank !== undefined && (
+          <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-sm font-semibold text-brand-700">
+            {rank}
+          </span>
+        )}
 
         <span className="flex-1">
           <span className="block text-lg font-semibold">{technique.name}</span>
