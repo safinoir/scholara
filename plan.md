@@ -179,13 +179,14 @@ type Technique = {
 **Inputs:** `hoursAvailablePerWeek`, `courseLoad`, `clock`, `rhythm`, `structure`, top techniques.
 
 **Rules:**
-- Session length from `rhythm`: Sprinter → 25 min; mid → 45 min; Marathoner → 90 min.
+- Focus cadence from `rhythm`: Sprinter → 25 min; mid → 45 min; Marathoner → 90 min. Larger study windows repeat that cadence with breaks.
 - Hardest material lands in the user's peak window from `clock`.
 - Total scheduled time ≤ 85% of stated availability. **Deliberately under-schedule** — over-scheduling is why plans get abandoned.
+- Available hours scale the number and size of study windows across open days; they are not merely an upper bound on a fixed template.
 - Low `structure` → output 3 flexible "anchor blocks" + a menu, not a rigid grid.
 - One weekly review block, always.
 - Spaced-repetition reviews auto-placed on days 1 / 3 / 7 after each new-material block.
-- If `time-scarcity` is a friction point → the plan is capped at 3 blocks and labeled "Minimum Effective Dose."
+- If `time-scarcity` is a friction point and current capacity is eight hours or less → the plan is capped at 3 blocks and labeled "Minimum Effective Dose." A newer, higher capacity entry overrides the old quiz answer.
 
 **Output:** a 7-day × time-slot grid. Each block: `{ day, start, minutes, label, techniqueId, intensity }`. Rendered as a responsive grid (stacked list on mobile), plus a plain-text copy button and a print view.
 
@@ -363,6 +364,7 @@ scholara/
 
 ### Bugs found and fixed during the build
 - **Weekly review could silently vanish.** It was sourced only from the user's top-5 techniques, so when no planning technique ranked, the block disappeared — contradicting the app's own promise that it's never cut. Now sourced from the full library, with two regression tests.
+- **The hours slider stopped mattering above roughly eight hours.** Availability only capped a fixed nine-block template, so 8-hour and 40-hour plans were identical. The scheduler is now capacity-driven, previews its allocation before saving, and prevents same-day block overlaps.
 
 ---
 

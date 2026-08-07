@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, Copy, Printer, Sparkles } from "lucide-react";
+import { Check, Copy, Minus, Plus, Printer, Sparkles } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { coachingPayload } from "@/lib/ai/payload";
 import { TECHNIQUE_BY_ID } from "@/lib/data/techniques";
@@ -14,6 +14,7 @@ import {
   type LearnerProfile,
   type PlanBlock,
   type PlanCoaching,
+  type WeekPlan,
   type WeekContext,
 } from "@/lib/types";
 import { LoadingShell, NoProfile } from "@/components/NoProfile";
@@ -34,12 +35,39 @@ const INTENSITY_LABEL: Record<BlockIntensity, string> = {
   admin: "Planning",
 };
 
+const HOUR_PRESETS = [4, 8, 12, 20, 40] as const;
+
 function formatMinutes(total: number) {
   const hours = Math.floor(total / 60);
   const minutes = total % 60;
   if (hours === 0) return `${minutes} min`;
   if (minutes === 0) return `${hours} hr`;
   return `${hours} hr ${minutes} min`;
+}
+
+function clampHours(hours: number) {
+  return Math.min(40, Math.max(2, Math.round(hours)));
+}
+
+function minutesByIntensity(plan: WeekPlan, intensity: BlockIntensity) {
+  return plan.blocks
+    .filter((block) => block.intensity === intensity)
+    .reduce((sum, block) => sum + block.minutes, 0);
+}
+
+function planSignature(plan: WeekPlan) {
+  return plan.blocks
+    .map((block) =>
+      [
+        block.day,
+        block.start,
+        block.minutes,
+        block.label,
+        block.techniqueId,
+        block.intensity,
+      ].join(":"),
+    )
+    .join("|");
 }
 
 export function PlanView() {
@@ -92,6 +120,30 @@ export function PlanView() {
   if (!profile || !plan) return <NoProfile />;
 
   const hours = hoursDraft ?? profile.context.hoursPerWeek;
+  const previewContext = { ...profile.context, hoursPerWeek: hours };
+  const previewPlan = buildWeeklyPlan({
+    axes: profile.axes,
+    frictions: profile.frictions,
+    context: previewContext,
+    techniques: rankTechniques({
+      axes: profile.axes,
+      frictions: profile.frictions,
+      context: previewContext,
+      primary: profile.match.primary,
+    }),
+    week: profile.weekContext,
+  });
+  const hasPlanChanges =
+    hours !== profile.context.hoursPerWeek ||
+    planSignature(previewPlan) !== planSignature(plan);
+  const previewBudget = hours * 60;
+  const previewDeep = minutesByIntensity(previewPlan, "deep");
+  const previewReview = minutesByIntensity(previewPlan, "review");
+  const previewAdmin = minutesByIntensity(previewPlan, "admin");
+  const previewBuffer = Math.max(0, previewBudget - previewPlan.totalMinutes);
+  const previewDays = new Set(previewPlan.blocks.map((block) => block.day)).size;
+
+  const setCapacity = (next: number) => setHoursDraft(clampHours(next));
 
   /** Rebuilds the plan deterministically, then asks the coach to narrate it. */
   const rebuild = (options: {
@@ -208,6 +260,176 @@ export function PlanView() {
         {plan.minimumEffectiveDose && <Badge tone="tier">Time-scarce mode</Badge>}
       </div>
 
+      <Card className="no-print mt-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Plan your weekly capacity</h2>
+            <p id="capacity-help" className="mt-1.5 max-w-2xl text-sm text-ink-soft">
+              Choose the time you can realistically protect. The preview updates
+              immediately; nothing is saved until you apply it.
+            </p>
+          </div>
+          <output
+            htmlFor="weekly-hours weekly-hours-number"
+            className="text-2xl font-semibold tabular-nums text-brand-700"
+          >
+            {hours} hours
+          </output>
+        </div>
+
+        <div className="mt-5 grid gap-4 sm:grid-cols-[auto_1fr] sm:items-center">
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              aria-label="Remove one available hour"
+              onClick={() => setCapacity(hours - 1)}
+              disabled={coachBusy || hours <= 2}
+              className="px-3"
+            >
+              <Minus className="size-4" aria-hidden />
+            </Button>
+            <label htmlFor="weekly-hours-number" className="sr-only">
+              Available study hours per week
+            </label>
+            <input
+              id="weekly-hours-number"
+              type="number"
+              min={2}
+              max={40}
+              step={1}
+              value={hours}
+              onChange={(event) => setCapacity(Number(event.target.value))}
+              disabled={coachBusy}
+              aria-describedby="capacity-help"
+              className="min-h-11 w-20 rounded-xl border border-line bg-surface px-3 text-center font-medium tabular-nums outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              aria-label="Add one available hour"
+              onClick={() => setCapacity(hours + 1)}
+              disabled={coachBusy || hours >= 40}
+              className="px-3"
+            >
+              <Plus className="size-4" aria-hidden />
+            </Button>
+          </div>
+
+          <div>
+            <label htmlFor="weekly-hours" className="sr-only">
+              Available study hours per week
+            </label>
+            <input
+              id="weekly-hours"
+              type="range"
+              min={2}
+              max={40}
+              step={1}
+              value={hours}
+              onChange={(event) => setCapacity(Number(event.target.value))}
+              disabled={coachBusy}
+              aria-describedby="capacity-help"
+              aria-valuetext={`${hours} hours per week`}
+              className="w-full accent-brand-600"
+            />
+            <div className="mt-1 flex justify-between text-xs text-ink-faint">
+              <span>2 hours</span>
+              <span>40 hours</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2" aria-label="Hour presets">
+          {HOUR_PRESETS.map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => setCapacity(preset)}
+              disabled={coachBusy}
+              aria-pressed={hours === preset}
+              className={cn(
+                "min-h-11 rounded-xl border px-3 text-sm transition-colors disabled:opacity-45",
+                hours === preset
+                  ? "border-brand-500 bg-brand-50 font-medium text-brand-700"
+                  : "border-line bg-surface text-ink-soft hover:bg-line-soft",
+              )}
+            >
+              {preset}h
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4" aria-live="polite">
+          <div className="rounded-xl bg-line-soft p-3">
+            <p className="text-xs text-ink-faint">Scheduled</p>
+            <p className="mt-1 font-semibold tabular-nums">
+              {formatMinutes(previewPlan.totalMinutes)}
+            </p>
+          </div>
+          <div className="rounded-xl bg-line-soft p-3">
+            <p className="text-xs text-ink-faint">Study windows</p>
+            <p className="mt-1 font-semibold tabular-nums">
+              {previewPlan.blocks.length}
+            </p>
+          </div>
+          <div className="rounded-xl bg-line-soft p-3">
+            <p className="text-xs text-ink-faint">Active days</p>
+            <p className="mt-1 font-semibold tabular-nums">{previewDays}</p>
+          </div>
+          <div className="rounded-xl bg-line-soft p-3">
+            <p className="text-xs text-ink-faint">Protected buffer</p>
+            <p className="mt-1 font-semibold tabular-nums">
+              {formatMinutes(previewBuffer)}
+            </p>
+          </div>
+        </div>
+
+        <div
+          role="img"
+          aria-label={`${formatMinutes(previewDeep)} deep work, ${formatMinutes(previewReview)} review, ${formatMinutes(previewAdmin)} planning, and ${formatMinutes(previewBuffer)} buffer`}
+          className="mt-5 flex h-3 overflow-hidden rounded-full bg-line-soft"
+        >
+          <span
+            className="bg-brand-500"
+            style={{ width: `${(previewDeep / previewBudget) * 100}%` }}
+          />
+          <span
+            className="bg-teal-500"
+            style={{ width: `${(previewReview / previewBudget) * 100}%` }}
+          />
+          <span
+            className="bg-slate-400"
+            style={{ width: `${(previewAdmin / previewBudget) * 100}%` }}
+          />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-xs text-ink-soft">
+          <span><span className="mr-1.5 inline-block size-2 rounded-full bg-brand-500" />Deep {formatMinutes(previewDeep)}</span>
+          <span><span className="mr-1.5 inline-block size-2 rounded-full bg-teal-500" />Review {formatMinutes(previewReview)}</span>
+          <span><span className="mr-1.5 inline-block size-2 rounded-full bg-slate-400" />Planning {formatMinutes(previewAdmin)}</span>
+          <span><span className="mr-1.5 inline-block size-2 rounded-full bg-line" />Buffer {formatMinutes(previewBuffer)}</span>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <p className="text-sm text-ink-soft">
+            {hours !== profile.context.hoursPerWeek
+              ? `Your saved plan will change from ${profile.context.hoursPerWeek} to ${hours} hours.`
+              : hasPlanChanges
+                ? "A capacity-based update is ready for your current hours."
+                : "This is your current saved capacity."}
+          </p>
+          <Button
+            onClick={() => rebuild({ hoursPerWeek: hours, coach: true })}
+            disabled={coachBusy || !hasPlanChanges}
+            className="w-full sm:ml-auto sm:w-auto"
+          >
+            {coachBusy ? "Applying…" : `Apply ${hours}-hour plan`}
+          </Button>
+        </div>
+      </Card>
+
       <CoachPanel
         coaching={coaching}
         busy={coachBusy}
@@ -216,53 +438,68 @@ export function PlanView() {
 
       {/* Grid */}
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {[...byDay].map(([day, blocks]) => (
-          <div
-            key={day}
-            className="print-break-avoid rounded-2xl border border-line bg-surface p-5"
-          >
-            <h3 className="text-sm font-semibold uppercase tracking-[0.1em] text-ink-faint">
-              {day}
-            </h3>
-            <ul className="mt-4 space-y-3">
-              {blocks.map((block) => {
-                const technique = TECHNIQUE_BY_ID[block.techniqueId];
-                return (
-                  <li
-                    key={block.id}
-                    className={cn(
-                      "rounded-xl border p-4",
-                      INTENSITY_STYLE[block.intensity],
-                    )}
-                  >
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-sm font-semibold">{block.label}</span>
-                      <span className="shrink-0 text-xs text-ink-soft">
-                        {block.minutes} min
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs font-medium text-ink-faint">
-                      {plan.flexible
-                        ? INTENSITY_LABEL[block.intensity]
-                        : `${formatHour(block.start)} · ${INTENSITY_LABEL[block.intensity]}`}
-                    </p>
-                    <p className="mt-2.5 text-sm leading-relaxed text-ink-soft">
-                      {blockNotes[block.id] ?? block.note}
-                    </p>
-                    {technique && (
-                      <Link
-                        href="/results"
-                        className="mt-2.5 inline-block text-xs text-brand-700 underline hover:text-brand-600"
+        {DAYS.map((day) => {
+          const blocks = byDay.get(day) ?? [];
+          const dayMinutes = blocks.reduce((sum, block) => sum + block.minutes, 0);
+          return (
+            <div
+              key={day}
+              className="print-break-avoid rounded-2xl border border-line bg-surface p-5"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.1em] text-ink-faint">
+                  {day}
+                </h3>
+                {dayMinutes > 0 && (
+                  <span className="text-xs tabular-nums text-ink-faint">
+                    {formatMinutes(dayMinutes)}
+                  </span>
+                )}
+              </div>
+              {blocks.length === 0 ? (
+                <p className="mt-4 text-sm text-ink-faint">Buffer day — no blocks.</p>
+              ) : (
+                <ul className="mt-4 space-y-3">
+                  {blocks.map((block) => {
+                    const technique = TECHNIQUE_BY_ID[block.techniqueId];
+                    return (
+                      <li
+                        key={block.id}
+                        className={cn(
+                          "rounded-xl border p-4",
+                          INTENSITY_STYLE[block.intensity],
+                        )}
                       >
-                        {technique.name}
-                      </Link>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ))}
+                        <div className="flex items-baseline justify-between gap-3">
+                          <span className="text-sm font-semibold">{block.label}</span>
+                          <span className="shrink-0 text-xs text-ink-soft">
+                            {block.minutes} min
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-ink-faint">
+                          {plan.flexible
+                            ? INTENSITY_LABEL[block.intensity]
+                            : `${formatHour(block.start)} · ${INTENSITY_LABEL[block.intensity]}`}
+                        </p>
+                        <p className="mt-2.5 text-sm leading-relaxed text-ink-soft">
+                          {blockNotes[block.id] ?? block.note}
+                        </p>
+                        {technique && (
+                          <Link
+                            href="/results"
+                            className="mt-2.5 inline-block text-xs text-brand-700 underline hover:text-brand-600"
+                          >
+                            {technique.name}
+                          </Link>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Why */}
@@ -287,40 +524,6 @@ export function PlanView() {
         onClear={() => rebuild({ week: undefined, coach: true })}
         busy={coachBusy}
       />
-
-      {/* Regenerate */}
-      <Card className="no-print mt-6">
-        <h2 className="text-lg font-semibold">Your hours changed?</h2>
-        <p className="mt-1.5 text-sm text-ink-soft">
-          Slide to the number you actually have this week and we&rsquo;ll rebuild
-          the plan around it.
-        </p>
-        <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center">
-          <label htmlFor="hours" className="sr-only">
-            Study hours available per week
-          </label>
-          <input
-            id="hours"
-            type="range"
-            min={2}
-            max={40}
-            value={hours}
-            onChange={(e) => setHoursDraft(Number(e.target.value))}
-            disabled={coachBusy}
-            className="w-full accent-brand-600 sm:max-w-sm"
-          />
-          <span className="text-sm font-medium tabular-nums">{hours} hrs/week</span>
-          <Button
-            onClick={() =>
-              rebuild({ hoursPerWeek: hours, coach: true })
-            }
-            disabled={coachBusy || hours === profile.context.hoursPerWeek}
-            className="sm:ml-auto"
-          >
-            {coachBusy ? "Rebuilding…" : "Rebuild plan"}
-          </Button>
-        </div>
-      </Card>
 
       <AskCoach profile={profile} />
 
