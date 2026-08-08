@@ -178,6 +178,13 @@ export type ArchetypeMatch = {
 
 export type TechniqueCategory = "encoding" | "focus" | "planning" | "exam";
 
+export type TechniqueScheduleRole =
+  | "learn"
+  | "review"
+  | "focus-support"
+  | "planning"
+  | "pre-assessment";
+
 export type EvidenceStrength = "strong" | "moderate" | "promising";
 
 export type Technique = {
@@ -198,6 +205,12 @@ export type Technique = {
   toolIds: string[];
   /** Minutes a single rep of this technique typically takes. */
   sessionMinutes?: number;
+  /** How this method may be used inside a generated study block. */
+  scheduleRoles?: TechniqueScheduleRole[];
+  /** A block shorter than this uses another compatible method. */
+  minBlockMinutes?: number;
+  /** Held back unless the week includes a matching deadline. */
+  requiresAssessment?: boolean;
 };
 
 export type ScoredTechnique = {
@@ -225,14 +238,63 @@ export type Day = (typeof DAYS)[number];
 
 export type BlockIntensity = "deep" | "review" | "admin";
 
+export const COURSE_PRIORITIES = ["maintenance", "standard", "focus"] as const;
+export type CoursePriority = (typeof COURSE_PRIORITIES)[number];
+
+export const COURSE_COLOR_KEYS = [
+  "indigo",
+  "teal",
+  "sky",
+  "violet",
+  "amber",
+  "rose",
+] as const;
+export type CourseColorKey = (typeof COURSE_COLOR_KEYS)[number];
+
+export type Course = {
+  id: string;
+  name: string;
+  colorKey: CourseColorKey;
+  includedInPlan: boolean;
+  priority: CoursePriority;
+};
+
+export type RecurringClassMeeting = {
+  id: string;
+  courseId?: string;
+  label: string;
+  days: Day[];
+  startMinute: number;
+  endMinute: number;
+};
+
+export type StudyWindow = {
+  id: string;
+  days: Day[];
+  startMinute: number;
+  endMinute: number;
+};
+
+export type ScheduleSetup = {
+  mode: "general" | "by-course";
+  courses: Course[];
+  classMeetings: RecurringClassMeeting[];
+  studyWindows: StudyWindow[];
+  targetStudyMinutes: number;
+};
+
 export type PlanBlock = {
   id: string;
   day: Day;
-  /** 24h start hour, e.g. 14.5 = 2:30pm. */
+  /** Kept while old saved plans migrate to integer minute ranges. */
   start: number;
+  /** Local minutes from midnight, snapped to a 15-minute grid. */
+  startMinute: number;
   minutes: number;
+  courseId?: string;
   label: string;
   techniqueId: string;
+  supportingTechniqueIds: string[];
   intensity: BlockIntensity;
   /** Short instruction shown on the block. */
   note: string;
@@ -249,6 +311,110 @@ export type WeekPlan = {
   minimumEffectiveDose: boolean;
   /** Plain-language explanation of the scheduling choices. */
   rationale: string[];
+  /** Requested time that could not safely fit in confirmed study windows. */
+  unallocatedMinutes?: number;
+  /** Known courses that could not receive a block this week. */
+  unassignedCourseIds?: string[];
+  /** Selected methods that were not compatible with this week's blocks. */
+  unusedTechniqueIds?: string[];
+  /** Visible constraints and compromises made by the scheduler. */
+  warnings?: PlanWarning[];
+};
+
+export type PlanWarningCode =
+  | "insufficient-availability"
+  | "no-study-window"
+  | "course-unassigned"
+  | "deadline-after-slot"
+  | "method-not-used";
+
+export type PlanWarning = {
+  code: PlanWarningCode;
+  message: string;
+  courseId?: string;
+};
+
+/**
+ * Week-specific circumstances, re-answered whenever the week changes.
+ * Structured on purpose so the scheduler can act on it deterministically.
+ * Optional free text is converted into this shape only after explicit review.
+ */
+export const WEEK_LOADS = ["light", "normal", "crunch"] as const;
+
+export type WeekLoad = (typeof WEEK_LOADS)[number];
+
+export const ENERGY_LEVELS = ["depleted", "steady", "strong"] as const;
+
+export type EnergyLevel = (typeof ENERGY_LEVELS)[number];
+
+export type TemporaryBusyWindow = {
+  id: string;
+  day: Day;
+  startMinute: number;
+  endMinute: number;
+};
+
+export type CourseTarget = {
+  courseId: string;
+  priority: "focus" | "urgent";
+  deadlineDay: Day | null;
+};
+
+export type WeekTuningProposal = {
+  load: WeekLoad | null;
+  energy: EnergyLevel | null;
+  targetStudyMinutes: number | null;
+  focusFrictions: Friction[];
+  unavailableDays: Day[];
+  busyWindows: Array<{
+    day: Day;
+    startMinute: number;
+    endMinute: number;
+  }>;
+  courseTargets: CourseTarget[];
+  assumptions: string[];
+  unresolved: string[];
+};
+
+export type WeekContext = {
+  /** Days with no realistic study window — class-heavy, shifts, caregiving. */
+  unavailableDays: Day[];
+  /** How much is due in the next seven days. */
+  load: WeekLoad;
+  /** How much capacity the student actually has right now. */
+  energy: EnergyLevel;
+  /** Courses that need disproportionate attention, by friction tag. */
+  focusFrictions: Friction[];
+  /** Optional replacement for the recurring weekly target. */
+  targetStudyMinutes?: number;
+  /** One-off commitments that subtract from this week's availability. */
+  busyWindows?: TemporaryBusyWindow[];
+  /** Temporary course urgency or deadline information. */
+  courseTargets?: CourseTarget[];
+  /** Local ISO date for the Monday represented by this plan. */
+  weekStart?: string;
+};
+
+// ---------------------------------------------------------------------------
+// AI coaching (optional layer — the engine is always the source of truth)
+// ---------------------------------------------------------------------------
+
+/**
+ * Written by the model, never structural. Every field is prose that explains
+ * or reframes a decision the engine already made, and every one has a
+ * deterministic fallback so the app is complete without a key.
+ */
+export type PlanCoaching = {
+  /** 2-3 sentence brief on how to approach the week. */
+  brief: string;
+  /** The single highest-leverage move, phrased as an action. */
+  focus: string;
+  /** The most likely way this week goes wrong for this student. */
+  watchOut: string;
+  /** blockId -> a rewritten, personal instruction for that block. */
+  blockNotes: Record<string, string>;
+  source: "ai" | "fallback";
+  generatedAt: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -328,19 +494,44 @@ export type CareerTrack = {
 // The profile
 // ---------------------------------------------------------------------------
 
-export const PROFILE_VERSION = 1;
+export const PROFILE_VERSION = 2;
+
+export const ONBOARDING_STAGES = [
+  "persona",
+  "toolkit",
+  "schedule",
+  "complete",
+] as const;
+
+export type OnboardingStage = (typeof ONBOARDING_STAGES)[number];
 
 export type LearnerProfile = {
-  version: number;
+  version: typeof PROFILE_VERSION;
   createdAt: string;
   axes: AxisScores;
   frictions: Friction[];
   context: LearnerContext;
   match: ArchetypeMatch;
   /** Ids of the recommended techniques, in rank order. */
-  techniqueIds: string[];
+  recommendedTechniqueIds: string[];
+  /** The 1-3 methods the learner explicitly confirms in Study Toolkit. */
+  selectedTechniqueIds: string[];
+  /** The next guided workflow step the learner needs to complete. */
+  onboardingStage: OnboardingStage;
   /** Why each technique was chosen, keyed by technique id. */
   reasons: Record<string, string[]>;
-  plan: WeekPlan;
+  /** Present only after the learner completes recurring schedule setup. */
+  plan?: WeekPlan;
+  /** Recurring classes, study availability, and weekly target. */
+  schedule?: ScheduleSetup;
   resourceIds: string[];
+  /** Present once the student has tuned the plan for a specific week. */
+  weekContext?: WeekContext;
+  /** Optional AI polish over the current plan. Safe to be absent. */
+  coaching?: PlanCoaching;
+};
+
+export type PlannedLearnerProfile = LearnerProfile & { plan: WeekPlan };
+export type ScheduledLearnerProfile = PlannedLearnerProfile & {
+  schedule: ScheduleSetup;
 };

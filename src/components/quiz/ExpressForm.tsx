@@ -50,7 +50,7 @@ export function ExpressForm() {
     setProfile(
       generateProfile({ axes: axesFromDirectInput(axes), frictions, context }),
     );
-    router.push("/results");
+    router.push("/persona");
   };
 
   return (

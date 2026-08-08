@@ -95,7 +95,7 @@ export function QuizFlow() {
     const answers: QuizAnswers = { axisAnswers, frictions, context };
     setProfile(generateProfileFromQuiz(answers));
     clearQuizDraft();
-    router.push("/results");
+    router.push("/persona");
   }, [axisAnswers, frictions, context, setProfile, router]);
 
   // Number keys pick an option; arrows move between screens.

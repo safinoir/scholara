@@ -5,13 +5,16 @@ import { usePathname } from "next/navigation";
 import { GraduationCap } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/components/ui";
+import { canAccessToolkit, hasConfirmedToolkit } from "@/lib/onboarding";
 
 const NAV = [
-  { href: "/results", label: "Persona" },
+  { href: "/persona", label: "Persona" },
+  { href: "/toolkit", label: "Toolkit" },
   { href: "/plan", label: "Plan" },
   { href: "/tracker", label: "Tracker" },
   { href: "/resources", label: "Resources" },
   { href: "/career", label: "After" },
+  { href: "/about", label: "About" },
 ] as const;
 
 export function SiteHeader() {
@@ -20,6 +23,13 @@ export function SiteHeader() {
 
   // Nav only appears once there's something to navigate to.
   const showNav = ready && profile !== null;
+  const visibleNav = profile
+    ? NAV.filter((item) => {
+        if (item.href === "/toolkit") return canAccessToolkit(profile);
+        if (item.href === "/plan") return hasConfirmedToolkit(profile);
+        return true;
+      })
+    : [];
 
   return (
     <header className="no-print sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur">
@@ -35,8 +45,9 @@ export function SiteHeader() {
         {showNav && (
           <nav aria-label="Main" className="ml-auto">
             <ul className="flex items-center gap-1 overflow-x-auto text-sm">
-              {NAV.map((item) => {
-                const active = pathname === item.href;
+              {visibleNav.map((item) => {
+                const active =
+                  pathname === item.href || pathname.startsWith(`${item.href}/`);
                 return (
                   <li key={item.href}>
                     <Link
@@ -59,12 +70,32 @@ export function SiteHeader() {
         )}
 
         {!showNav && (
-          <Link
-            href="/quiz"
-            className="ml-auto inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft hover:bg-line-soft hover:text-ink"
-          >
-            Take the quiz
-          </Link>
+          <nav aria-label="Main" className="ml-auto">
+            <ul className="flex items-center gap-1 text-sm">
+              <li>
+                <Link
+                  href="/about"
+                  aria-current={pathname === "/about" ? "page" : undefined}
+                  className={cn(
+                    "inline-flex min-h-11 items-center rounded-lg px-3 transition-colors",
+                    pathname === "/about"
+                      ? "bg-brand-50 font-medium text-brand-700"
+                      : "text-ink-soft hover:bg-line-soft hover:text-ink",
+                  )}
+                >
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/quiz"
+                  className="inline-flex min-h-11 items-center rounded-lg px-3 text-ink-soft transition-colors hover:bg-line-soft hover:text-ink"
+                >
+                  Take the quiz
+                </Link>
+              </li>
+            </ul>
+          </nav>
         )}
       </div>
     </header>
@@ -76,20 +107,16 @@ export function SiteFooter() {
     <footer className="no-print mt-20 border-t border-line">
       <div className="mx-auto max-w-6xl px-5 py-10 text-sm text-ink-faint">
         <p className="max-w-2xl">
-          Scholara stores your answers in your own browser. Nothing is sent to a
-          server, and there is no account to create.
+          Scholara stores your profile and schedule in your browser. Only an AI
+          note you explicitly submit and bounded plan context are sent to the
+          configured provider; Scholara does not store them on a server.
         </p>
         <p className="mt-3 max-w-2xl">
           Study techniques are drawn from cognitive-science research, and each one
           is labeled with how strong that evidence is. Scholara is a study tool,
           not medical or mental-health advice.
         </p>
-        <p className="mt-5">
-          Built for the Stellic Pathfinders challenge &middot;{" "}
-          <Link href="/about" className="underline hover:text-ink">
-            How it works
-          </Link>
-        </p>
+        <p className="mt-5">Built for the Stellic Pathfinders challenge</p>
       </div>
     </footer>
   );

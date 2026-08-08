@@ -12,6 +12,7 @@ export const TECHNIQUES: Technique[] = [
   // -------------------------------------------------------------------------
   {
     id: "retrieval-practice",
+    scheduleRoles: ["learn", "review"],
     name: "Retrieval Practice",
     category: "encoding",
     blurb:
@@ -34,6 +35,7 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "spaced-repetition",
+    scheduleRoles: ["review"],
     name: "Spaced Repetition",
     category: "encoding",
     blurb:
@@ -56,6 +58,7 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "interleaving",
+    scheduleRoles: ["learn", "review"],
     name: "Interleaving",
     category: "encoding",
     blurb:
@@ -78,6 +81,7 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "feynman",
+    scheduleRoles: ["learn", "review"],
     name: "The Feynman Technique",
     category: "encoding",
     blurb:
@@ -100,6 +104,7 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "elaborative-interrogation",
+    scheduleRoles: ["learn"],
     name: "Ask Why Relentlessly",
     category: "encoding",
     blurb:
@@ -122,6 +127,7 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "dual-coding",
+    scheduleRoles: ["learn", "review"],
     name: "Dual Coding & Concept Maps",
     category: "encoding",
     blurb:
@@ -144,6 +150,7 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "cornell-notes",
+    scheduleRoles: ["learn"],
     name: "Cornell Notes",
     category: "encoding",
     blurb:
@@ -170,6 +177,7 @@ export const TECHNIQUES: Technique[] = [
   // -------------------------------------------------------------------------
   {
     id: "pomodoro",
+    scheduleRoles: ["focus-support"],
     name: "Pomodoro (25/5)",
     category: "focus",
     blurb:
@@ -192,6 +200,8 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "deep-block",
+    scheduleRoles: ["focus-support"],
+    minBlockMinutes: 90,
     name: "90-Minute Deep Block",
     category: "focus",
     blurb:
@@ -214,6 +224,7 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "five-minute-rule",
+    scheduleRoles: ["focus-support"],
     name: "The Five-Minute Rule",
     category: "focus",
     blurb:
@@ -236,6 +247,7 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "body-doubling",
+    scheduleRoles: ["focus-support"],
     name: "Body Doubling",
     category: "focus",
     blurb:
@@ -258,6 +270,7 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "implementation-intentions",
+    scheduleRoles: ["focus-support"],
     name: "If-Then Planning",
     category: "focus",
     blurb:
@@ -284,6 +297,7 @@ export const TECHNIQUES: Technique[] = [
   // -------------------------------------------------------------------------
   {
     id: "time-blocking",
+    scheduleRoles: ["planning"],
     name: "Time Blocking",
     category: "planning",
     blurb:
@@ -306,6 +320,7 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "eisenhower",
+    scheduleRoles: ["planning"],
     name: "Urgent / Important Sort",
     category: "planning",
     blurb:
@@ -328,6 +343,7 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "weekly-review",
+    scheduleRoles: ["planning"],
     name: "The Weekly Review",
     category: "planning",
     blurb:
@@ -350,6 +366,7 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "backwards-planning",
+    scheduleRoles: ["planning"],
     name: "Backwards Planning",
     category: "planning",
     blurb:
@@ -376,6 +393,9 @@ export const TECHNIQUES: Technique[] = [
   // -------------------------------------------------------------------------
   {
     id: "practice-testing",
+    scheduleRoles: ["review"],
+    minBlockMinutes: 45,
+    requiresAssessment: true,
     name: "Practice Under Real Conditions",
     category: "exam",
     blurb:
@@ -398,6 +418,8 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "brain-dump",
+    scheduleRoles: ["pre-assessment"],
+    requiresAssessment: true,
     name: "Pre-Exam Brain Dump",
     category: "exam",
     blurb:
@@ -419,6 +441,7 @@ export const TECHNIQUES: Technique[] = [
   },
   {
     id: "error-log",
+    scheduleRoles: ["review"],
     name: "Keep an Error Log",
     category: "exam",
     blurb:

@@ -175,6 +175,44 @@ describe("buildWeeklyPlan", () => {
     }
   });
 
+  it("materially scales the plan as available hours increase", () => {
+    const plans = [2, 8, 20, 40].map((hours) =>
+      buildWeeklyPlan({
+        axes: ZERO,
+        frictions: [],
+        context: { ...CONTEXT, hoursPerWeek: hours },
+        techniques,
+      }),
+    );
+
+    for (let index = 1; index < plans.length; index++) {
+      expect(plans[index].totalMinutes).toBeGreaterThan(
+        plans[index - 1].totalMinutes,
+      );
+    }
+    expect(plans[3].totalMinutes - plans[1].totalMinutes).toBeGreaterThanOrEqual(
+      600,
+    );
+    expect(plans[3].blocks.length).toBeGreaterThan(plans[1].blocks.length);
+    expect(plans[3].blocks.length).toBeLessThanOrEqual(30);
+  });
+
+  it("scales flexible plans too", () => {
+    const totals = [8, 20, 40].map((hours) => {
+      const plan = buildWeeklyPlan({
+        axes: { ...ZERO, structure: -70 },
+        frictions: [],
+        context: { ...CONTEXT, hoursPerWeek: hours },
+        techniques,
+      });
+      expect(plan.flexible).toBe(true);
+      return plan.totalMinutes;
+    });
+
+    expect(totals[1]).toBeGreaterThan(totals[0]);
+    expect(totals[2]).toBeGreaterThan(totals[1]);
+  });
+
   it("uses short blocks for sprinters and long ones for marathoners", () => {
     const sprinter = buildWeeklyPlan({
       axes: { ...ZERO, rhythm: -90 },
@@ -209,18 +247,34 @@ describe("buildWeeklyPlan", () => {
     const scarce = buildWeeklyPlan({
       axes: ZERO,
       frictions: ["time-scarcity"],
-      context: { ...CONTEXT, hoursPerWeek: 20 },
+      context: { ...CONTEXT, hoursPerWeek: 8 },
       techniques,
     });
     const normal = buildWeeklyPlan({
       axes: ZERO,
       frictions: [],
-      context: { ...CONTEXT, hoursPerWeek: 20 },
+      context: { ...CONTEXT, hoursPerWeek: 8 },
       techniques,
     });
 
     expect(scarce.minimumEffectiveDose).toBe(true);
     expect(scarce.blocks.length).toBeLessThan(normal.blocks.length);
+  });
+
+  it("lets current capacity override an old time-scarcity answer", () => {
+    const planFor = (hoursPerWeek: number) =>
+      buildWeeklyPlan({
+        axes: ZERO,
+        frictions: ["time-scarcity"],
+        context: { ...CONTEXT, hoursPerWeek },
+        techniques,
+      });
+
+    const eightHours = planFor(8);
+    const fortyHours = planFor(40);
+    expect(eightHours.minimumEffectiveDose).toBe(true);
+    expect(fortyHours.minimumEffectiveDose).toBe(false);
+    expect(fortyHours.totalMinutes).toBeGreaterThan(eightHours.totalMinutes);
   });
 
   it("always keeps a weekly review block", () => {
@@ -288,6 +342,79 @@ describe("buildWeeklyPlan", () => {
     expect(firstDeep(owl)).toBeGreaterThanOrEqual(17);
   });
 
+  it("never overlaps blocks on the same day", () => {
+    const plan = buildWeeklyPlan({
+      axes: ZERO,
+      frictions: ["procrastination"],
+      context: { ...CONTEXT, hoursPerWeek: 40 },
+      techniques,
+    });
+
+    for (const day of [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ] as const) {
+      const blocks = plan.blocks
+        .filter((block) => block.day === day)
+        .sort((a, b) => a.start - b.start);
+      for (let index = 1; index < blocks.length; index++) {
+        const previousEnd =
+          blocks[index - 1].start + blocks[index - 1].minutes / 60;
+        expect(blocks[index].start).toBeGreaterThanOrEqual(previousEnd);
+      }
+    }
+  });
+
+  it("honors unavailable days even at high capacity", () => {
+    const unavailableDays = ["Tuesday", "Thursday", "Saturday"] as const;
+    const plan = buildWeeklyPlan({
+      axes: ZERO,
+      frictions: [],
+      context: { ...CONTEXT, hoursPerWeek: 40 },
+      techniques,
+      week: {
+        unavailableDays: [...unavailableDays],
+        load: "normal",
+        energy: "steady",
+        focusFrictions: [],
+      },
+    });
+
+    expect(
+      plan.blocks.some((block) =>
+        unavailableDays.some((day) => day === block.day),
+      ),
+    ).toBe(false);
+  });
+
+  it("uses week energy to change the planned workload", () => {
+    const planFor = (energy: "depleted" | "steady" | "strong") =>
+      buildWeeklyPlan({
+        axes: ZERO,
+        frictions: [],
+        context: { ...CONTEXT, hoursPerWeek: 20 },
+        techniques,
+        week: {
+          unavailableDays: [],
+          load: "normal",
+          energy,
+          focusFrictions: [],
+        },
+      });
+
+    expect(planFor("steady").totalMinutes).toBeGreaterThan(
+      planFor("depleted").totalMinutes,
+    );
+    expect(planFor("strong").totalMinutes).toBeGreaterThan(
+      planFor("steady").totalMinutes,
+    );
+  });
+
   it("produces valid blocks at every hour setting", () => {
     for (let hours = 2; hours <= 40; hours++) {
       const plan = buildWeeklyPlan({
@@ -323,7 +450,7 @@ describe("generateProfile", () => {
       context: CONTEXT,
     });
     expect(profile.resourceIds.length).toBeGreaterThan(0);
-    for (const id of profile.techniqueIds) {
+    for (const id of profile.recommendedTechniqueIds) {
       expect(profile.reasons[id]).toBeDefined();
     }
   });
@@ -335,7 +462,8 @@ describe("generateProfile", () => {
         frictions: ["overwhelm", "time-scarcity"],
         context: { ...CONTEXT, hoursPerWeek: 4 },
       });
-      expect(profile.plan.blocks.length).toBeGreaterThan(0);
+      expect(profile.plan).toBeUndefined();
+      expect(profile.recommendedTechniqueIds).toHaveLength(5);
     }
   });
 });

@@ -150,9 +150,11 @@ export default function AboutPage() {
         <h2 className="text-xl font-semibold">Your data</h2>
         <div className="mt-4 space-y-4 text-ink-soft">
           <p>
-            Everything stays in your browser&rsquo;s local storage. There is no
-            account, no database, no analytics, and no server that ever sees your
-            answers. That also means clearing your browser data clears your
+            Your profile, courses, and schedule stay in your browser&rsquo;s local
+            storage. There is no account, database, or analytics. If you
+            explicitly submit an AI weekly note, that note and bounded schedule
+            context are sent to the configured AI provider for processing and
+            are not stored by Scholara. Clearing your browser data clears your
             profile.
           </p>
         </div>

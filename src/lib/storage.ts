@@ -1,9 +1,11 @@
 import { parseProfile } from "@/lib/schema";
-import type { LearnerProfile, QuizAnswers } from "@/lib/types";
+import type { LearnerProfile, QuizAnswers, ScheduleSetup } from "@/lib/types";
 
 export const KEYS = {
-  profile: "scholara:profile:v1",
+  profile: "scholara:profile:v2",
+  legacyProfile: "scholara:profile:v1",
   quizDraft: "scholara:quiz-draft:v1",
+  scheduleDraft: "scholara:schedule-draft:v1",
   tracker: "scholara:tracker:v1",
 } as const;
 
@@ -36,7 +38,14 @@ function remove(key: string): void {
 }
 
 export function loadProfile(): LearnerProfile | null {
-  return parseProfile(read(KEYS.profile));
+  const current = parseProfile(read(KEYS.profile));
+  if (current) return current;
+
+  const migrated = parseProfile(read(KEYS.legacyProfile));
+  if (!migrated) return null;
+
+  write(KEYS.profile, migrated);
+  return migrated;
 }
 
 export function saveProfile(profile: LearnerProfile): void {
@@ -45,7 +54,9 @@ export function saveProfile(profile: LearnerProfile): void {
 
 export function clearProfile(): void {
   remove(KEYS.profile);
+  remove(KEYS.legacyProfile);
   remove(KEYS.quizDraft);
+  remove(KEYS.scheduleDraft);
 }
 
 export function loadQuizDraft(): Partial<QuizAnswers> | null {
@@ -59,6 +70,33 @@ export function saveQuizDraft(draft: Partial<QuizAnswers>): void {
 
 export function clearQuizDraft(): void {
   remove(KEYS.quizDraft);
+}
+
+export type ScheduleDraft = {
+  step: 1 | 2 | 3;
+  schedule: ScheduleSetup;
+};
+
+export function loadScheduleDraft(): ScheduleDraft | null {
+  const raw = read(KEYS.scheduleDraft);
+  if (!raw || typeof raw !== "object") return null;
+  const candidate = raw as Partial<ScheduleDraft>;
+  if (
+    (candidate.step !== 1 && candidate.step !== 2 && candidate.step !== 3) ||
+    !candidate.schedule ||
+    typeof candidate.schedule !== "object"
+  ) {
+    return null;
+  }
+  return candidate as ScheduleDraft;
+}
+
+export function saveScheduleDraft(draft: ScheduleDraft): void {
+  write(KEYS.scheduleDraft, draft);
+}
+
+export function clearScheduleDraft(): void {
+  remove(KEYS.scheduleDraft);
 }
 
 export { read as readRaw, write as writeRaw, remove as removeRaw };

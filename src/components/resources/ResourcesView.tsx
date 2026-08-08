@@ -66,7 +66,7 @@ export function ResourcesView() {
 
   const toolIds = useMemo(() => {
     if (!profile) return [];
-    return profile.techniqueIds.flatMap(
+    return profile.recommendedTechniqueIds.flatMap(
       (id) => TECHNIQUE_BY_ID[id]?.toolIds ?? [],
     );
   }, [profile]);
