@@ -14,6 +14,7 @@ const NAV = [
   { href: "/tracker", label: "Tracker" },
   { href: "/resources", label: "Resources" },
   { href: "/career", label: "After" },
+  { href: "/about", label: "About" },
 ] as const;
 
 export function SiteHeader() {
@@ -69,12 +70,32 @@ export function SiteHeader() {
         )}
 
         {!showNav && (
-          <Link
-            href="/quiz"
-            className="ml-auto inline-flex min-h-11 items-center rounded-lg px-3 text-sm text-ink-soft hover:bg-line-soft hover:text-ink"
-          >
-            Take the quiz
-          </Link>
+          <nav aria-label="Main" className="ml-auto">
+            <ul className="flex items-center gap-1 text-sm">
+              <li>
+                <Link
+                  href="/about"
+                  aria-current={pathname === "/about" ? "page" : undefined}
+                  className={cn(
+                    "inline-flex min-h-11 items-center rounded-lg px-3 transition-colors",
+                    pathname === "/about"
+                      ? "bg-brand-50 font-medium text-brand-700"
+                      : "text-ink-soft hover:bg-line-soft hover:text-ink",
+                  )}
+                >
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/quiz"
+                  className="inline-flex min-h-11 items-center rounded-lg px-3 text-ink-soft transition-colors hover:bg-line-soft hover:text-ink"
+                >
+                  Take the quiz
+                </Link>
+              </li>
+            </ul>
+          </nav>
         )}
       </div>
     </header>
@@ -95,12 +116,7 @@ export function SiteFooter() {
           is labeled with how strong that evidence is. Scholara is a study tool,
           not medical or mental-health advice.
         </p>
-        <p className="mt-5">
-          Built for the Stellic Pathfinders challenge &middot;{" "}
-          <Link href="/about" className="underline hover:text-ink">
-            How it works
-          </Link>
-        </p>
+        <p className="mt-5">Built for the Stellic Pathfinders challenge</p>
       </div>
     </footer>
   );
