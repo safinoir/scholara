@@ -15,6 +15,13 @@ export { scoreAxes, axesFromDirectInput } from "./scoreAxes";
 export { matchArchetype, archetypeScores } from "./matchArchetype";
 export { rankTechniques } from "./rankTechniques";
 export { buildWeeklyPlan, formatHour } from "./buildWeeklyPlan";
+export {
+  buildSchedulePlan,
+  calculateScheduleCapacity,
+  type BuildSchedulePlanInput,
+  type ScheduleCapacity,
+  type UsableStudyWindow,
+} from "./buildSchedulePlan";
 export { pickResources, sortResourcesByFit, scoreResource } from "./pickResources";
 
 type GenerateInput = {

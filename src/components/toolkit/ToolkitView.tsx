@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { TECHNIQUE_BY_ID, TECHNIQUES } from "@/lib/data/techniques";
+import { buildSchedulePlan, rankTechniques } from "@/lib/engine";
 import { canAccessToolkit } from "@/lib/onboarding";
 import type {
   LearnerProfile,
@@ -119,10 +120,29 @@ function ToolkitContent({
         ? "schedule"
         : profile.onboardingStage;
 
+    const plan = profile.schedule
+      ? buildSchedulePlan({
+          axes: profile.axes,
+          frictions: profile.frictions,
+          context: profile.context,
+          schedule: profile.schedule,
+          techniques: rankTechniques({
+            axes: profile.axes,
+            frictions: profile.frictions,
+            context: profile.context,
+            primary: profile.match.primary,
+          }),
+          selectedTechniqueIds: orderedDraft,
+          week: profile.weekContext,
+        })
+      : profile.plan;
+
     onSave({
       ...profile,
       selectedTechniqueIds: orderedDraft,
       onboardingStage,
+      plan,
+      coaching: undefined,
     });
     setDraft(orderedDraft);
   };

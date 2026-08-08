@@ -239,9 +239,11 @@ export function buildWeeklyPlan(input: PlanInput): WeekPlan {
       id: `block-${counter++}`,
       day,
       start,
+      startMinute: Math.round(start * 60),
       minutes,
       label,
       techniqueId,
+      supportingTechniqueIds: [],
       intensity,
       note,
     });

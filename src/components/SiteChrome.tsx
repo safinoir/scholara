@@ -45,7 +45,8 @@ export function SiteHeader() {
           <nav aria-label="Main" className="ml-auto">
             <ul className="flex items-center gap-1 overflow-x-auto text-sm">
               {visibleNav.map((item) => {
-                const active = pathname === item.href;
+                const active =
+                  pathname === item.href || pathname.startsWith(`${item.href}/`);
                 return (
                   <li key={item.href}>
                     <Link
@@ -85,8 +86,9 @@ export function SiteFooter() {
     <footer className="no-print mt-20 border-t border-line">
       <div className="mx-auto max-w-6xl px-5 py-10 text-sm text-ink-faint">
         <p className="max-w-2xl">
-          Scholara stores your answers in your own browser. Nothing is sent to a
-          server, and there is no account to create.
+          Scholara stores your profile and schedule in your browser. Only an AI
+          note you explicitly submit and bounded plan context are sent to the
+          configured provider; Scholara does not store them on a server.
         </p>
         <p className="mt-3 max-w-2xl">
           Study techniques are drawn from cognitive-science research, and each one

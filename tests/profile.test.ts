@@ -42,6 +42,23 @@ function makePlan(profile: ReturnType<typeof makeProfile>) {
   });
 }
 
+function makeSchedule() {
+  return {
+    mode: "general" as const,
+    courses: [],
+    classMeetings: [],
+    studyWindows: [
+      {
+        id: "weeknights",
+        days: ["Monday" as const, "Wednesday" as const],
+        startMinute: 18 * 60,
+        endMinute: 21 * 60,
+      },
+    ],
+    targetStudyMinutes: 360,
+  };
+}
+
 describe("profile version 2", () => {
   it("starts new profiles at the persona step with no claimed selections", () => {
     const profile = makeProfile();
@@ -122,6 +139,7 @@ describe("profile version 2", () => {
         onboardingStage: "complete",
         selectedTechniqueIds,
         plan: makePlan(profile),
+        schedule: makeSchedule(),
       }).success,
     ).toBe(true);
   });

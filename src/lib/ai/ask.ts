@@ -18,7 +18,7 @@ export type AskInput = {
 
 const SYSTEM_PROMPT = `You are the coaching voice of Scholara, a study-habit tool for college students.
 
-The student's persona, techniques, and weekly schedule were already set by a rule-based engine. Answer their question using ONLY that plan and those techniques. You may reorder, shorten, or reprioritize what already exists; you must not invent new study techniques, tools, apps, or claims about research.
+The student's persona and toolkit were set by the student, then a rule-based engine placed compatible methods into the weekly schedule. Answer using ONLY that plan and those methods. You may reorder, shorten, or reprioritize what already exists; you must not invent new study techniques, tools, apps, or claims about research.
 
 Rules:
 - 70-130 words. Plain prose, no headings, no bullet points, no markdown, no emojis.
@@ -78,13 +78,19 @@ function fallbackAnswer(input: AskInput): string {
         ? `Open your ${first.label.toLowerCase()} block: ${first.minutes} minutes, using ${name}. ${firstStep ?? "Start with the smallest piece you can finish."} Put your phone in another room before you begin, and stop when the timer ends even if you're mid-flow — finishing on time is what makes you willing to come back tomorrow.`
         : "Rebuild your plan first, then start with the first block it gives you.";
     case "fell-behind":
-      return "Don't rebuild the week you missed. Take today's block, cut it in half, and do that. Falling behind compounds through guilt, not through lost hours, so the only move that matters is doing one short session now. Your spaced-review blocks will absorb what you skipped without any extra catch-up work.";
+      return first
+        ? `Don't rebuild the week you missed. Take your next ${first.label.toLowerCase()} block, cut it in half, and use ${name}. One completed session is enough to restart the plan.`
+        : "Don't rebuild the week you missed. Reopen weekly setup and protect one realistic study window first.";
     case "why-this-plan":
       return `Your session length, your peak hour, and your technique list all came from your answers: ${input.plan.rationale[0] ?? "the plan is built around the hours you said you had."} Everything is scheduled below your stated capacity on purpose, because plans with no slack get abandoned in week one.`;
     case "exam-soon":
-      return `Convert your next two review blocks into practice testing under real conditions: no notes, timed, in one sitting. Keep ${name} for new material only. The day before the exam, do a single closed-book brain dump of the whole unit rather than re-reading anything.`;
+      return first
+        ? `Start with the next scheduled block and use ${name} exactly as written. If the deadline is not reflected in your calendar yet, add it through “Adjust this week” so the scheduler can move course time before it without inventing extra hours.`
+        : "Add the exam and its course through “Adjust this week,” then let the scheduler find the earliest valid study window.";
     case "cant-focus":
-      return "Change the start, not the willpower. Decide the exact first action before you sit down, set a timer for five minutes, and give yourself permission to stop when it rings. Starting is the part that fails, so shrink it until it's too small to avoid, then let momentum do the rest.";
+      return firstStep
+        ? `Use your next ${name} block, but focus only on its first action: ${firstStep} Remove one distraction before you begin and stop at the scheduled end time.`
+        : "Open the next scheduled block, name one concrete outcome, and remove one distraction before you begin.";
     case "too-much":
       return "Keep the first deep block and the weekly review. Cut everything else this week. That's the minimum that still moves you forward, and a plan you finish is worth more than one you resent. Add blocks back one at a time once the small version has held for a full week.";
   }

@@ -1,4 +1,8 @@
-import type { LearnerProfile, PlannedLearnerProfile } from "@/lib/types";
+import type {
+  LearnerProfile,
+  PlannedLearnerProfile,
+  ScheduledLearnerProfile,
+} from "@/lib/types";
 
 export type OnboardingDestination = {
   href: "/persona" | "/toolkit" | "/plan";
@@ -29,8 +33,12 @@ export function hasGeneratedPlan(
 /** Legacy plans remain stored, but only a completed schedule unlocks Plan. */
 export function hasCompletedSchedule(
   profile: LearnerProfile,
-): profile is PlannedLearnerProfile {
-  return profile.onboardingStage === "complete" && hasGeneratedPlan(profile);
+): profile is ScheduledLearnerProfile {
+  return (
+    profile.onboardingStage === "complete" &&
+    profile.schedule !== undefined &&
+    hasGeneratedPlan(profile)
+  );
 }
 
 /** Returns the next useful destination for a returning learner. */

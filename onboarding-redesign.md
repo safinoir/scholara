@@ -1,6 +1,7 @@
 # Scholara Guided Flow and Weekly Plan Redesign
 
-**Status:** Approved design; ready for development  
+**Status:** Weekly Plan workflow implemented; Persona self-report editing remains
+
 **Active scope:** Persona, Study Toolkit, and Weekly Plan  
 **Deferred:** Tracker, Resources, and After/Career
 
@@ -518,3 +519,21 @@ for processing and are not stored by Scholara.
 - Nothing changes until the user applies that proposal.
 - AI failure never removes or corrupts the deterministic plan.
 - Tracker, Resources, and After/Career receive no workflow redesign in this phase.
+
+## 13. Implementation Status
+
+Implemented on the `ai-backend` branch:
+
+- Three-step recurring schedule setup with local draft recovery
+- Course-aware and general study modes
+- Recurring class conflicts, study-window validation, and capacity preview
+- Deterministic scheduling inside confirmed availability only
+- Course weighting, deadline handling, selected-method roles, and visible warnings
+- Seven-column desktop calendar and mobile chronological agenda
+- Manual weekly overrides with one-step undo
+- Bounded AI note interpretation with proposal review before applying
+- Updated AI coaching context and privacy disclosures
+
+Automated verification covers profile migration, schedule schemas, scheduling
+constraints, and the AI tuning route. Final real-device and keyboard-only review
+remains part of release verification.

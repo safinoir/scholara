@@ -55,8 +55,8 @@ export function AskCoach({ profile }: { profile: PlannedLearnerProfile }) {
         Ask about your plan
       </h2>
       <p className="mt-1.5 text-sm text-ink-soft">
-        Answers come from your plan and your techniques — nothing invented, and
-        nothing you type is ever sent anywhere.
+        Choose a question and Scholara sends only bounded plan context to the
+        configured AI provider. There is no open chat history to store.
       </p>
 
       <div className="mt-5 flex flex-wrap gap-2">

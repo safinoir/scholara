@@ -119,6 +119,20 @@ describe("onboarding access", () => {
         minimumEffectiveDose: false,
         rationale: [],
       },
+      schedule: {
+        mode: "general" as const,
+        courses: [],
+        classMeetings: [],
+        studyWindows: [
+          {
+            id: "monday",
+            days: ["Monday" as const],
+            startMinute: 18 * 60,
+            endMinute: 20 * 60,
+          },
+        ],
+        targetStudyMinutes: 120,
+      },
     };
 
     expect(hasGeneratedPlan(profile)).toBe(false);

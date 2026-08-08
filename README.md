@@ -22,7 +22,7 @@ Most students are never taught *how* to study. They get generic advice — "revi
 | "I don't know what comes after" | A free, year-sequenced career track for your field |
 | "Advice never sticks" | Habit tracking with forgiving streaks and a 2-week re-assessment prompt |
 
-**No account. No database. No cost.** Everything stays in your browser's local storage — nothing is ever sent to a server.
+**No account. No database. No cost.** Your profile and schedule stay in your browser's local storage. Only AI features you explicitly invoke send bounded context to the configured provider.
 
 ---
 
@@ -138,7 +138,7 @@ AI_BASE_URL=https://api.ai.it.ufl.edu
 AI_MODEL=llama-3.3-70b-instruct
 ```
 
-The endpoint is OpenAI-compatible and can be changed with environment variables. The key stays server-side, request bodies are Zod-validated, students choose from fixed prompts rather than sending free text, and calls have a strict timeout. **Any** failure falls back to deterministic pre-written copy, so the app remains complete with no key.
+The endpoint is OpenAI-compatible and can be changed with environment variables. The key stays server-side, request bodies are Zod-validated, and calls have a strict timeout. Weekly free text is sent only after explicit disclosure and is constrained to a reviewable structured proposal. **Any** failure leaves the deterministic plan and manual controls available.
 
 ---
 
@@ -158,7 +158,7 @@ Treated as a core requirement, since the audience explicitly includes people who
 
 ## Privacy
 
-There is no database, analytics, or telemetry. Your profile lives in `localStorage` and can be deleted in one click from `/about`. Shared links encode the persona into the URL itself. Optional coaching sends a bounded, structured snapshot of the current plan to the configured AI provider; it sends no student-authored free text and stores no response on the server.
+There is no database, analytics, or telemetry. Your profile and schedule live in `localStorage` and can be deleted in one click from `/about`. Shared links encode the persona into the URL itself. Optional coaching sends bounded plan context to the configured AI provider. A weekly note is sent only when the student selects **Preview AI changes**, is not saved by Scholara, and can only produce a validated proposal that the student must apply.
 
 ---
 

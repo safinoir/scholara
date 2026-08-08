@@ -55,7 +55,7 @@ function describeLearner(input: CoachingInput): string {
     `AXES:\n${axisLines}`,
     `STATED OBSTACLES: ${frictions}`,
     `CONTEXT: ${input.context.year} in ${input.context.field}, ${input.context.courseLoad} courses, ${input.context.hoursPerWeek} study hours available per week, outside job or caregiving: ${input.context.hasOutsideObligations ? "yes" : "no"}.`,
-    `ASSIGNED TECHNIQUES (already chosen by the evidence engine — do not change them):\n${techniques || "- none"}`,
+    `METHODS USED IN THIS PLAN (student-selected or a labeled foundation fallback — do not introduce others):\n${techniques || "- none"}`,
   ].join("\n\n");
 }
 
@@ -93,7 +93,7 @@ function describePlan(input: CoachingInput): string {
 
 const SYSTEM_PROMPT = `You are the coaching voice of Scholara, a study-habit tool for college students.
 
-A rule-based engine has ALREADY decided this student's persona, techniques, and schedule. Your job is to explain and personalize those decisions in the student's own terms. You never invent techniques, never change times or durations, and never add or remove blocks.
+A rule-based engine has ALREADY placed the student's chosen methods and any required foundation method into a schedule. Your job is to explain and personalize that schedule in the student's own terms. You never invent techniques, never change times or durations, and never add or remove blocks.
 
 Voice rules, all mandatory:
 - Second person, direct, warm, specific. Short sentences.
@@ -163,11 +163,11 @@ function validate(validIds: Set<string>) {
 
 export function fallbackCoaching(input: CoachingInput): PlanCoaching {
   const archetype = ARCHETYPE_BY_ID[input.primary];
-  const first = TECHNIQUE_BY_ID[input.techniqueIds[0]];
   const obstacle = input.frictions[0]
     ? FRICTION_BY_ID[input.frictions[0]].label.toLowerCase()
     : null;
   const firstBlock = input.plan.blocks[0];
+  const first = firstBlock ? TECHNIQUE_BY_ID[firstBlock.techniqueId] : undefined;
 
   const brief = [
     `You're starting from ${archetype.name.replace("The ", "")} territory: ${archetype.tagline.toLowerCase()}.`,
