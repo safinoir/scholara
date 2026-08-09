@@ -57,12 +57,12 @@ export default function Home() {
       <HomeHero />
 
       <section className="border-y border-line bg-surface">
-        <div className="mx-auto max-w-6xl px-5 py-16">
+        <div className="mx-auto max-w-6xl px-5 py-10 sm:py-12 lg:py-16">
           <SectionHeading eyebrow="How it works" title="Three steps, one sitting" />
-          <ol className="mt-10 grid gap-6 md:grid-cols-3">
+          <ol className="mt-6 grid gap-3 sm:mt-8 sm:gap-4 md:grid-cols-3 lg:mt-10 lg:gap-6">
             {STEPS.map((step, index) => (
               <li key={step.title}>
-                <Card className="h-full border-line-soft">
+                <Card className="h-full border-line-soft !p-4 sm:!p-5 lg:!p-6">
                   <div className="flex items-center gap-3">
                     <span className="flex size-9 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
                       <step.icon className="size-4.5" aria-hidden />
@@ -71,8 +71,8 @@ export default function Home() {
                       Step {index + 1}
                     </span>
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+                  <h3 className="mt-3 text-lg font-semibold">{step.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">
                     {step.body}
                   </p>
                 </Card>

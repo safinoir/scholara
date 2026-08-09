@@ -19,9 +19,9 @@ export function HomeHero() {
   const resume = profile ? resumeDestination(profile) : null;
 
   return (
-    <section className="mx-auto max-w-6xl px-5 pt-16 pb-14 sm:pt-24">
+    <section className="mx-auto max-w-6xl px-5 pt-10 pb-12 sm:pt-16 sm:pb-14">
       <div className="max-w-3xl">
-        <p className="mb-5 text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">
+        <p className="mb-4 text-base font-semibold uppercase tracking-[0.18em] text-brand-600">
           Scholara
         </p>
         <h1 className="text-4xl font-semibold leading-[1.08] sm:text-6xl">
