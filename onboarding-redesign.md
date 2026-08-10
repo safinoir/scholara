@@ -1,12 +1,14 @@
 # Scholara Guided Flow and Weekly Plan Redesign
 
-**Status:** Weekly Plan workflow implemented; Persona self-report editing remains
+**Status:** Core guided flow and Weekly Plan implemented; Persona self-report,
+profile editing, legacy cleanup, and release QA remain
 
-**Active scope:** Persona, Study Toolkit, and Weekly Plan  
-**Deferred:** Tracker, Resources, and After/Career
+**Current scope:** Homepage, Persona, Study Toolkit, and Weekly Plan
+**Existing but outside this redesign:** Tracker, Resources, and After/Career
+(their workflow redesign is deferred)
 
-This document replaces the current combined results and plan workflow. It is the
-implementation source of truth for the next development phase.
+This document records the approved redesign and its current implementation
+status. [plan.md](./plan.md) is the concise current-state source of truth.
 
 ## 1. Product Flow
 
@@ -43,13 +45,16 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 
 ### Self-report path
 
-- **Skip the quiz** opens `/persona/setup`.
-- Persona is derived from the six axes; there is no independent persona override.
-- Keep the obstacle and context inputs needed by the recommendation engine.
-- Do not let untouched neutral defaults silently assign a persona. Require the
-  user to actively confirm their axis profile before saving.
+- **Current:** **Skip the quiz** opens `/express`.
+- The current form derives Persona from six directly set axes; there is no
+  independent persona override.
+- It also records the obstacle and context inputs needed by the recommendation
+  engine.
+- **Pending:** make `/persona/setup` the canonical route (with `/express` as a
+  redirect) and require active axis confirmation so untouched neutral defaults
+  cannot silently assign a persona.
 
-### Editing
+### Editing (pending)
 
 - Persona is read-only by default.
 - **Edit profile** reveals the six axis controls.
@@ -96,7 +101,8 @@ available or how much time exists.
 - Exam-only methods are used only when the week includes an assessment or
   deadline; otherwise they stay saved for a relevant week.
 - If the selected toolkit lacks a required role, use the highest-ranked
-  compatible recommendation as a clearly labeled foundation method.
+  compatible recommendation or foundation method. The current calendar shows
+  the method name, but an explicit **foundation method** label remains pending.
 - A small week does not need to use every selected method. Show which toolkit
   choices were not needed that week rather than adding unnecessary sessions.
 
@@ -202,13 +208,16 @@ hours.
 
 ### Placement
 
-- Use the rhythm axis and selected focus method to determine cadence.
+- Use the rhythm axis and current energy to determine cadence. Selected focus
+  methods support compatible blocks and may impose a minimum block length; they
+  do not independently set cadence.
 - Prefer slots closest to the user's peak-hours axis, but availability always
   wins.
 - Spread blocks across days before stacking many blocks on one day.
 - Reserve one 30-minute weekly review in the latest compatible slot, preferring
   Sunday but never inventing a time.
-- Keep review blocks linked to the course or learning block they reinforce.
+- Keep review blocks course-linked when possible. An explicit link back to the
+  particular learning block they reinforce is not currently stored.
 - In course-aware mode, allocate time with weighted fairness:
   - `maintenance` = weight 1
   - `standard` = weight 2
@@ -245,7 +254,8 @@ ordering, IDs, totals, and warnings.
   - Confirmed study windows: subtle background availability
   - Generated study blocks: course color plus text and method labels
 - Each day header shows the planned study total.
-- A focused or clicked study block opens its full instructions and method details.
+- A focused or clicked study block shows its primary method, supporting methods,
+  and block instruction. Full method steps and evidence remain in Study Toolkit.
 - Provide **Edit recurring schedule** and **Adjust this week** actions.
 
 ### Mobile and print
@@ -253,8 +263,10 @@ ordering, IDs, totals, and warnings.
 - Do not compress detailed content into seven tiny columns.
 - Default to a seven-day summary strip and one selected day's chronological
   agenda.
-- Keep a compact week-overview option for density only.
-- Agenda order is also the semantic screen-reader and print representation.
+- Keep the seven-day strip compact and use the selected-day agenda for detailed
+  mobile content.
+- Print uses the existing print stylesheet; a dedicated agenda-only print mode
+  is not currently implemented.
 
 Calendar meaning must never depend on color alone. Interactive targets remain at
 least 44px, and calendar items stay in chronological DOM order.
@@ -278,7 +290,8 @@ calendar engine.
   - Energy reduced for this week
 - Show assumptions and anything the model could not resolve.
 - Let the user edit, apply, or discard the proposal.
-- Applying reruns the deterministic scheduler and shows a before/after plan diff.
+- Applying reruns the deterministic scheduler and shows a compact summary of
+  moved blocks and planned-minute change.
 - Provide one-step undo to the previous structured week settings and plan.
 
 ### Allowed AI proposal
@@ -418,29 +431,51 @@ Migration behavior:
 - Resume legacy profiles at Study Toolkit, then require recurring schedule setup.
 - Do not discard a valid version 1 profile merely because new fields are absent.
 
-## 9. Routes and Navigation
+## 9. Homepage, Routes, and Navigation
+
+### Homepage
+
+The homepage now gives a concise version of the product story in this order:
+
+1. How it works
+2. Overcoming obstacles
+3. The six personas
+4. The six axes
+5. Technique recommendations
+6. A weekly plan
+7. Final quiz call to action
+
+The hero's **How it works** control scrolls to `#how-it-works`. It does not
+navigate to About. `/about` remains the detailed methodology, limitations,
+privacy, and data-handling page.
+
+### Current guided routes
 
 - `/persona` - persona result and axis profile
-- `/persona/setup` - self-report intake
+- `/express` - current direct self-report intake
 - `/toolkit` - recommendations, full method library, and selection
 - `/plan/setup` - first-time or recurring schedule editor
 - `/plan` - generated calendar and weekly tuning
-- `/results` redirects to `/persona`
-- `/express` redirects to `/persona/setup`
+- `/results` - redirects to `/persona`
+- `/persona/setup` - planned canonical self-report route; not implemented yet
 
-Navigation sequence is Persona -> Toolkit -> Plan. Plan appears after Toolkit is
+The guided sequence is Persona -> Toolkit -> Plan. Plan appears after Toolkit is
 confirmed and opens setup until a valid recurring schedule exists. Direct visits
 to a locked stage show a clear completion gate rather than partial content.
 
-The results-page AI coach and `/api/coach` are removed. Existing `/api/plan`
-coaching and `/api/ask` remain, but their prompts and fallbacks must reference the
-actual methods used in the plan and never introduce an unselected method as if it
-were assigned.
+Before a profile exists, global navigation is **About -> Resources -> Take the
+quiz**. With a profile, About remains first, Resources remains available, and
+the guided Persona/Toolkit/Plan destinations are progressively unlocked.
 
-Privacy copy must change from an absolute `nothing you type is sent` promise to
-the precise behavior: profile and schedule data stay in the browser; explicitly
-submitted AI notes and bounded plan context are sent to the configured provider
-for processing and are not stored by Scholara.
+The results-page coach is no longer in the active UI. The unused
+`src/components/results/CoachNote.tsx` component and legacy `/api/coach` route
+still exist and remain cleanup work. `/api/plan` coaching and `/api/ask` use the
+actual methods present in the plan and avoid presenting an unselected method as
+if the user chose it.
+
+Privacy copy now states the precise behavior: profile and schedule data stay in
+the browser; explicitly submitted AI notes and bounded plan context are sent to
+the configured provider for processing and are not stored by Scholara.
 
 ## 10. Edge Cases
 
@@ -460,70 +495,87 @@ for processing and are not stored by Scholara.
 - AI cannot resolve a course or time: place it in `unresolved`; do not guess
   silently.
 
-## 11. Development Order
+## 11. Implementation Progress
 
 ### Phase 1 - Profile and navigation foundation
 
-- Add profile v2 and tested v1 migration.
-- Add onboarding stages, canonical routes, resume logic, and gates.
-- Make `plan` optional until scheduling is configured.
+- [x] Add profile v2 and tested v1 migration.
+- [x] Add onboarding stages, resume logic, and gates.
+- [x] Make `plan` optional until scheduling is configured.
+- [ ] Finish the canonical self-report route transition.
 
 ### Phase 2 - Persona and Study Toolkit
 
-- Split the current Results page.
-- Add self-report setup and editable axes.
-- Add top-five/full-library selection with 1-3 persistence.
-- Add technique scheduling roles.
-- Remove the results AI coach.
+- [x] Split the current Results page.
+- [ ] Finish self-report confirmation and editable Persona axes.
+- [x] Add top-five/full-library selection with 1-3 persistence.
+- [x] Add technique scheduling roles.
+- [x] Remove the results coach from the active UI.
+- [ ] Delete the unused CoachNote component and `/api/coach` route.
 
 ### Phase 3 - Recurring schedule setup
 
-- Build course, class meeting, study window, target, and review steps.
-- Persist drafts locally.
-- Add validation and capacity preview.
+- [x] Build course, class meeting, study window, target, and review steps.
+- [x] Persist drafts locally.
+- [x] Add validation and capacity preview.
 
 ### Phase 4 - Scheduler and calendar
 
-- Refactor the engine around explicit time ranges and selected methods.
-- Add course allocation, warnings, and deterministic tests.
-- Build desktop seven-column calendar and mobile/print agenda.
+- [x] Refactor the engine around explicit time ranges and selected methods.
+- [x] Add course allocation, warnings, and deterministic tests.
+- [x] Build the desktop seven-column calendar and mobile agenda.
 
 ### Phase 5 - Weekly tuning and AI
 
-- Replace the current whole-day tuner with structured week overrides.
-- Add manual adjustment workflow.
-- Add `/api/plan/tune`, proposal review, apply, diff, and undo.
-- Update plan coaching and fixed-topic answers for selected/used methods.
-- Update privacy copy.
+- [x] Replace the old tuner with structured week overrides.
+- [x] Add the manual adjustment workflow.
+- [x] Add `/api/plan/tune`, proposal review, apply summary, and undo.
+- [x] Update plan coaching and fixed-topic answers for selected/used methods.
+- [x] Update privacy copy.
 
 ### Phase 6 - Verification
 
-- Run engine, migration, schema, and AI-route tests.
-- Run TypeScript and targeted lint.
-- Manually verify the full flow at mobile and desktop widths.
+- [x] Run engine, migration, schema, and AI-route tests.
+- [x] Run TypeScript and targeted lint.
+- [ ] Complete the final real-device, keyboard-only, and accessibility review.
 
 ## 12. Acceptance Criteria
 
-- Quiz and self-report users land on a focused Persona page.
-- Users intentionally choose 1-3 methods from the top five or full catalog.
-- Plan setup records real classes, real study windows, and a separate weekly
+- [x] Quiz users land on a focused Persona page.
+- [x] The current self-report flow at `/express` also lands on Persona.
+- [x] Users intentionally choose 1-3 methods from the top five or full catalog.
+- [x] Plan setup records real classes, real study windows, and a separate weekly
   target.
-- Every generated study block lies inside a confirmed study window and outside
-  every class or temporary busy period.
-- Course-aware plans visibly distribute study time by course priority; general
-  mode remains available.
-- Selected methods are used according to their scheduling role.
-- Desktop displays all seven days as a calendar; mobile remains readable as an
-  agenda.
-- A weekly free-text note produces only a reviewable structured proposal.
-- Nothing changes until the user applies that proposal.
-- AI failure never removes or corrupts the deterministic plan.
-- Tracker, Resources, and After/Career receive no workflow redesign in this phase.
+- [x] Every generated study block lies inside a confirmed study window and
+  outside every class or temporary busy period.
+- [x] Course-aware plans distribute study time by course priority; general mode
+  remains available.
+- [x] Selected methods are used according to their scheduling role.
+- [x] Desktop displays all seven days as a calendar; mobile uses a readable
+  selected-day agenda.
+- [x] A weekly free-text note produces only a reviewable structured proposal.
+- [x] Nothing changes until the user applies that proposal.
+- [x] AI failure never removes or corrupts the deterministic plan.
+- [x] Homepage content follows the agreed section order, and the hero's How it
+  works action scrolls to the in-page section.
+- [x] About remains the detailed page, appears first in navigation, and Resources
+  remains available before and after onboarding.
+- [ ] Move self-report to `/persona/setup` and require users to actively confirm
+  their axes.
+- [ ] Add Persona editing with a deliberate recompute-and-save flow.
+- [ ] Delete the legacy results coach files and the temporary local-storage test
+  button.
+- [ ] Complete real-device, keyboard-only, and accessibility review.
+
+Tracker, Resources, and After/Career already exist. Their broader workflow
+redesign remains outside this phase.
 
 ## 13. Implementation Status
 
-Implemented on the `ai-backend` branch:
+Implemented in the current codebase:
 
+- Consolidated homepage explanation and updated global navigation
+- Persona and Study Toolkit separation with explicit method selection
 - Three-step recurring schedule setup with local draft recovery
 - Course-aware and general study modes
 - Recurring class conflicts, study-window validation, and capacity preview
@@ -534,6 +586,12 @@ Implemented on the `ai-backend` branch:
 - Bounded AI note interpretation with proposal review before applying
 - Updated AI coaching context and privacy disclosures
 
-Automated verification covers profile migration, schedule schemas, scheduling
-constraints, and the AI tuning route. Final real-device and keyboard-only review
-remains part of release verification.
+Known remaining work is the canonical self-report route and confirmation flow,
+Persona editing, legacy coach cleanup, removal of the test-only storage button,
+and final release QA.
+
+Automated verification covers the recommendation engines, profile migration,
+onboarding helpers, sharing, schedule schemas and constraints, and the AI tuning
+route. The live AI integration test skips when no API key is configured. There
+are not yet component, browser end-to-end, or automated accessibility tests, so
+real-device and keyboard-only review remains part of release verification.
