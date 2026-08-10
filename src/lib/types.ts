@@ -512,6 +512,8 @@ export type LearnerProfile = {
   frictions: Friction[];
   context: LearnerContext;
   match: ArchetypeMatch;
+  /** Explicit learner choice. The measured axis match remains unchanged. */
+  personaOverride?: ArchetypeId;
   /** Ids of the recommended techniques, in rank order. */
   recommendedTechniqueIds: string[];
   /** The 1-3 methods the learner explicitly confirms in Study Toolkit. */

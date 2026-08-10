@@ -23,6 +23,7 @@ export {
   type UsableStudyWindow,
 } from "./buildSchedulePlan";
 export { pickResources, sortResourcesByFit, scoreResource } from "./pickResources";
+export { changePersona } from "./changePersona";
 
 type GenerateInput = {
   axes: AxisScores;

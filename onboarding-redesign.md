@@ -1,7 +1,7 @@
 # Scholara Guided Flow and Weekly Plan Redesign
 
-**Status:** Core guided flow and Weekly Plan implemented; Persona self-report,
-profile editing, legacy cleanup, and release QA remain
+**Status:** Core guided flow and Weekly Plan implemented; self-report and
+six-axis editing, legacy cleanup, and release QA remain
 
 **Current scope:** Homepage, Persona, Study Toolkit, and Weekly Plan
 **Existing but outside this redesign:** Tracker, Resources, and After/Career
@@ -46,15 +46,26 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 ### Self-report path
 
 - **Current:** **Skip the quiz** opens `/express`.
-- The current form derives Persona from six directly set axes; there is no
-  independent persona override.
+- The current form derives Persona from six directly set axes; override controls
+  appear afterward on the Persona page rather than inside the form.
 - It also records the obstacle and context inputs needed by the recommendation
   engine.
 - **Pending:** make `/persona/setup` the canonical route (with `/express` as a
   redirect) and require active axis confirmation so untouched neutral defaults
   cannot silently assign a persona.
 
-### Editing (pending)
+### Manual persona choice
+
+- The Persona callout links to a detailed chooser containing all six personas,
+  including strengths and watch-outs.
+- A manual choice is stored as an explicit override; it does not rewrite the
+  six measured axes or silently change cadence and peak-time preferences.
+- Recommendations, resources, and an existing plan refresh around the effective
+  persona while preserving selected methods, schedule, and week settings.
+- The learner can restore the original axis-derived result at any time.
+- The About page reuses the same detailed persona cards for all six personas.
+
+### Six-axis editing (pending)
 
 - Persona is read-only by default.
 - **Edit profile** reveals the six axis controls.
@@ -415,6 +426,7 @@ type PlanBlock = {
 
 Profile version 2 adds:
 
+- `personaOverride?: ArchetypeId`
 - `recommendedTechniqueIds: string[]`
 - `selectedTechniqueIds: string[]`
 - `onboardingStage: OnboardingStage`
@@ -507,6 +519,7 @@ the configured provider for processing and are not stored by Scholara.
 ### Phase 2 - Persona and Study Toolkit
 
 - [x] Split the current Results page.
+- [x] Add detailed Persona comparison and a reversible manual choice.
 - [ ] Finish self-report confirmation and editable Persona axes.
 - [x] Add top-five/full-library selection with 1-3 persistence.
 - [x] Add technique scheduling roles.
@@ -560,9 +573,11 @@ the configured provider for processing and are not stored by Scholara.
   works action scrolls to the in-page section.
 - [x] About remains the detailed page, appears first in navigation, and Resources
   remains available before and after onboarding.
+- [x] Users can compare all six personas, select a different one, and restore
+  their original axis-derived result without rewriting measured axes.
 - [ ] Move self-report to `/persona/setup` and require users to actively confirm
   their axes.
-- [ ] Add Persona editing with a deliberate recompute-and-save flow.
+- [ ] Add six-axis editing with a deliberate recompute-and-save flow.
 - [ ] Delete the legacy results coach files and the temporary local-storage test
   button.
 - [ ] Complete real-device, keyboard-only, and accessibility review.
@@ -575,7 +590,8 @@ redesign remains outside this phase.
 Implemented in the current codebase:
 
 - Consolidated homepage explanation and updated global navigation
-- Persona and Study Toolkit separation with explicit method selection
+- Persona comparison and reversible override, plus Study Toolkit separation with
+  explicit method selection
 - Three-step recurring schedule setup with local draft recovery
 - Course-aware and general study modes
 - Recurring class conflicts, study-window validation, and capacity preview
@@ -587,7 +603,7 @@ Implemented in the current codebase:
 - Updated AI coaching context and privacy disclosures
 
 Known remaining work is the canonical self-report route and confirmation flow,
-Persona editing, legacy coach cleanup, removal of the test-only storage button,
+six-axis editing, legacy coach cleanup, removal of the test-only storage button,
 and final release QA.
 
 Automated verification covers the recommendation engines, profile migration,

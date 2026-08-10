@@ -4,7 +4,7 @@
 **Current branch:** `ui-changes` (based on the AI/onboarding work already merged
 into `main`)
 **Status:** The guided Persona -> Toolkit -> Weekly Plan workflow is implemented.
-The remaining work is persona self-report/editing cleanup, release QA, and
+The remaining work is self-report and six-axis editing cleanup, release QA, and
 merging the current UI refinements.
 
 For the detailed design and implementation record behind onboarding and weekly
@@ -127,6 +127,8 @@ Implemented:
 - primary persona and secondary blend;
 - strengths and watch-outs;
 - six-axis visualization;
+- detailed comparison of all six personas with a reversible manual persona
+  choice;
 - explicit continuation to Study Toolkit;
 - retake and share actions; and
 - focused Persona page with no technique cards or AI coach.
@@ -287,8 +289,9 @@ Weekly Plan are fully polished.
   `/express` redirect there.
 - Require active confirmation of self-report axes so untouched neutral defaults
   cannot silently assign a persona.
-- Add Persona-page profile editing that recomputes persona and recommendations
-  while preserving valid toolkit selections and rebuilding an existing plan.
+- Add Persona-page six-axis editing that recomputes the natural quiz match and
+  recommendations while preserving the existing manual persona choice, valid
+  toolkit selections, and schedule.
 - Remove the unused `CoachNote` component and legacy `/api/coach` route.
 - Remove the red **TEST ONLY: Wipe localStorage** home-page button before release.
 
@@ -331,7 +334,9 @@ Weekly Plan are fully polished.
 - [x] Desktop calendar and mobile agenda are implemented.
 - [x] Profile v1 migration is covered by tests.
 - [x] About and Resources are always available in navigation.
-- [ ] Self-report confirmation and Persona editing are complete.
+- [x] Users can compare all personas and override or restore their original
+  axis-derived result.
+- [ ] Self-report confirmation and six-axis editing are complete.
 - [ ] Temporary and legacy UI/API cleanup is complete.
 - [ ] Accessibility and real-device verification are complete.
 - [ ] Current UI branch is merged and production is smoke-tested.

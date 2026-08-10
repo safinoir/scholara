@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, Link2 } from "lucide-react";
 import { encodeShare } from "@/lib/share";
+import { effectiveArchetypeMatch } from "@/lib/persona";
 import type { LearnerProfile } from "@/lib/types";
 import { Button } from "@/components/ui";
 
@@ -10,9 +11,10 @@ export function ShareButton({ profile }: { profile: LearnerProfile }) {
   const [state, setState] = useState<"idle" | "copied" | "failed">("idle");
 
   const share = async () => {
+    const match = effectiveArchetypeMatch(profile);
     const code = encodeShare({
-      primary: profile.match.primary,
-      secondary: profile.match.secondary,
+      primary: match.primary,
+      secondary: match.secondary,
       axes: profile.axes,
       frictions: profile.frictions,
     });

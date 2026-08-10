@@ -7,52 +7,50 @@ import type { AxisScores } from "@/lib/types";
  */
 export function AxisBars({ axes }: { axes: AxisScores }) {
   return (
-    <ul className="space-y-6">
+    <ul className="space-y-10">
       {AXIS_META.map((meta) => {
         const value = axes[meta.id];
         const magnitude = Math.abs(value);
         const leaning = value > 0 ? meta.highLabel : meta.lowLabel;
         const strength =
           magnitude < 18 ? "balanced" : magnitude < 55 ? "leans" : "strongly";
+        const leanSummary =
+          strength === "balanced"
+            ? "Balanced"
+            : `${strength === "strongly" ? "Strongly" : "Leans"} ${leaning}`;
 
         return (
           <li key={meta.id}>
-            <div className="mb-2 flex items-baseline justify-between gap-4">
-              <span className="text-sm font-medium">{meta.label}</span>
-              <span className="text-sm text-ink-soft">
-                {strength === "balanced" ? (
-                  <>Balanced</>
-                ) : (
-                  <>
-                    {strength === "strongly" ? "Strongly " : "Leans "}
-                    <span className="font-medium text-ink">{leaning}</span>
-                  </>
-                )}
-              </span>
-            </div>
+            <h3 className="mb-5 text-base font-semibold text-ink sm:text-lg">
+              {meta.label}
+            </h3>
 
-            <div className="relative h-2.5 rounded-full bg-line-soft">
-              <div
-                className="absolute top-0 bottom-0 left-1/2 w-px bg-line"
-                aria-hidden
-              />
+            <div className="relative h-3 rounded-full bg-line-soft">
               <div
                 className="absolute top-0 bottom-0 rounded-full bg-brand-500"
                 style={{
-                  width: `${Math.max(2, magnitude / 2)}%`,
+                  width: `${magnitude / 2}%`,
                   left: value >= 0 ? "50%" : undefined,
                   right: value < 0 ? "50%" : undefined,
                 }}
                 aria-hidden
               />
+              <div
+                className="absolute -top-1 -bottom-1 left-1/2 z-10 w-0.5 -translate-x-1/2 rounded-full bg-ink"
+                aria-hidden
+              />
             </div>
 
-            <div className="mt-1.5 flex justify-between text-xs text-ink-faint">
+            <div className="mt-2 flex justify-between gap-4 text-xs font-medium text-ink-soft sm:text-sm">
               <span>{meta.lowLabel}</span>
               <span>{meta.highLabel}</span>
             </div>
 
-            <p className="mt-2 text-sm text-ink-soft">
+            <p className="mt-3 text-center text-sm font-semibold text-ink">
+              {leanSummary}
+            </p>
+
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">
               {magnitude < 18
                 ? `You sit in the middle here, so we won't force either extreme. ${meta.drives}`
                 : value > 0

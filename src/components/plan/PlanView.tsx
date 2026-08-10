@@ -15,6 +15,7 @@ import {
   hasConfirmedToolkit,
   resumeDestination,
 } from "@/lib/onboarding";
+import { effectiveArchetypeMatch } from "@/lib/persona";
 import type {
   Day,
   LearnerProfile,
@@ -95,7 +96,7 @@ function generatePlan(
     axes: profile.axes,
     frictions,
     context,
-    primary: profile.match.primary,
+    primary: effectiveArchetypeMatch(profile).primary,
   });
   return buildSchedulePlan({
     axes: profile.axes,

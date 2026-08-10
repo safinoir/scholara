@@ -255,6 +255,7 @@ export const profileSchema = z
   .object({
     version: z.literal(PROFILE_VERSION),
     ...sharedProfileShape,
+    personaOverride: z.enum(ARCHETYPE_IDS).optional(),
     recommendedTechniqueIds: uniqueTechniqueIds(5),
     selectedTechniqueIds: uniqueTechniqueIds(3),
     onboardingStage: z.enum(ONBOARDING_STAGES),

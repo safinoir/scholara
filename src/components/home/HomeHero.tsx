@@ -12,6 +12,7 @@ import { ButtonLink } from "@/components/ui";
 import { useProfile } from "@/hooks/useProfile";
 import { ARCHETYPE_BY_ID } from "@/lib/data/archetypes";
 import { resumeDestination } from "@/lib/onboarding";
+import { effectiveArchetypeMatch } from "@/lib/persona";
 
 const PROMISES = [
   { icon: Clock, text: "About two minutes" },
@@ -22,7 +23,9 @@ const PROMISES = [
 export function HomeHero() {
   const { profile, ready } = useProfile();
   const returning = ready && profile !== null;
-  const archetype = profile ? ARCHETYPE_BY_ID[profile.match.primary] : null;
+  const archetype = profile
+    ? ARCHETYPE_BY_ID[effectiveArchetypeMatch(profile).primary]
+    : null;
   const resume = profile ? resumeDestination(profile) : null;
 
   return (

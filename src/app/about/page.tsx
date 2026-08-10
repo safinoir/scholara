@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ARCHETYPES } from "@/lib/data/archetypes";
 import { AXIS_META } from "@/lib/data/axes";
 import { TECHNIQUES } from "@/lib/data/techniques";
-import { ArchetypeIcon } from "@/components/ArchetypeIcon";
+import { PersonaDetailsCard } from "@/components/persona/PersonaDetailsCard";
 import { ButtonLink, Card, SectionHeading } from "@/components/ui";
 import { ResetProfileButton } from "@/components/ResetProfileButton";
 
@@ -123,26 +123,21 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="mt-14">
+      <section id="personas" className="mt-14 scroll-mt-24">
         <h2 className="text-xl font-semibold">The six personas</h2>
-        <ul className="mt-6 space-y-3">
+        <p className="mt-3 max-w-2xl text-ink-soft">
+          Personas are practical starting points, not fixed labels. Compare the
+          full descriptions, including what tends to work and where each
+          pattern can break down.
+        </p>
+        <ul className="mt-7 space-y-7">
           {ARCHETYPES.map((archetype) => (
-            <li
-              key={archetype.id}
-              className="flex items-start gap-4 rounded-xl border border-line bg-surface p-5"
-            >
-              <span
-                className="flex size-10 shrink-0 items-center justify-center rounded-xl text-white"
-                style={{ backgroundColor: archetype.accent }}
-              >
-                <ArchetypeIcon name={archetype.icon} className="size-5" />
-              </span>
-              <div>
-                <p className="font-medium">{archetype.name}</p>
-                <p className="mt-1 text-sm text-ink-soft">
-                  {archetype.description}
-                </p>
-              </div>
+            <li key={archetype.id}>
+              <PersonaDetailsCard
+                archetype={archetype}
+                headingLevel="h3"
+                compact
+              />
             </li>
           ))}
         </ul>

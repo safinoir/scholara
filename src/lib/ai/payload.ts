@@ -1,10 +1,12 @@
 import type { PlannedLearnerProfile } from "@/lib/types";
+import { effectiveArchetypeMatch } from "@/lib/persona";
 
 /**
  * Builds the exact request body the AI routes accept. Client-safe: this module
  * never imports the AI client, so no key or provider detail reaches the bundle.
  */
 export function coachingPayload(profile: PlannedLearnerProfile) {
+  const match = effectiveArchetypeMatch(profile);
   const techniqueIds = [
     ...profile.selectedTechniqueIds,
     ...profile.plan.blocks.flatMap((block) => [
@@ -17,8 +19,8 @@ export function coachingPayload(profile: PlannedLearnerProfile) {
     axes: profile.axes,
     frictions: profile.frictions,
     context: profile.context,
-    primary: profile.match.primary,
-    secondary: profile.match.secondary,
+    primary: match.primary,
+    secondary: match.secondary,
     techniqueIds: techniqueIds.slice(0, 8),
     plan: profile.plan,
     week: profile.weekContext,

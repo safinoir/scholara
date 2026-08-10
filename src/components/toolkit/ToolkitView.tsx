@@ -6,6 +6,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { TECHNIQUE_BY_ID, TECHNIQUES } from "@/lib/data/techniques";
 import { buildSchedulePlan, rankTechniques } from "@/lib/engine";
 import { canAccessToolkit } from "@/lib/onboarding";
+import { effectiveArchetypeMatch } from "@/lib/persona";
 import type {
   LearnerProfile,
   Technique,
@@ -130,7 +131,7 @@ function ToolkitContent({
             axes: profile.axes,
             frictions: profile.frictions,
             context: profile.context,
-            primary: profile.match.primary,
+            primary: effectiveArchetypeMatch(profile).primary,
           }),
           selectedTechniqueIds: orderedDraft,
           week: profile.weekContext,

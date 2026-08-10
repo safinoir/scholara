@@ -1,109 +1,88 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, RotateCcw } from "lucide-react";
+import { ArrowRight, RefreshCw, RotateCcw } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { ARCHETYPE_BY_ID } from "@/lib/data/archetypes";
-import { ArchetypeIcon } from "@/components/ArchetypeIcon";
+import { changePersona } from "@/lib/engine";
+import { effectiveArchetypeMatch } from "@/lib/persona";
 import { LoadingShell, NoProfile } from "@/components/NoProfile";
+import { PersonaDetailsCard } from "@/components/persona/PersonaDetailsCard";
+import { PersonaPickerDialog } from "@/components/persona/PersonaPickerDialog";
 import { AxisBars } from "@/components/results/AxisBars";
 import { ShareButton } from "@/components/results/ShareButton";
 import { Badge, ButtonLink, Card, SectionHeading } from "@/components/ui";
 
 export function PersonaView() {
   const { profile, ready, setProfile } = useProfile();
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   if (!ready) return <LoadingShell />;
   if (!profile) return <NoProfile />;
 
-  const primary = ARCHETYPE_BY_ID[profile.match.primary];
-  const secondary = ARCHETYPE_BY_ID[profile.match.secondary];
-  const blended = profile.match.confidence < 0.35;
+  const effectiveMatch = effectiveArchetypeMatch(profile);
+  const primary = ARCHETYPE_BY_ID[effectiveMatch.primary];
+  const secondary = ARCHETYPE_BY_ID[effectiveMatch.secondary];
+  const blended = !effectiveMatch.overridden && effectiveMatch.confidence < 0.35;
 
   const continueToToolkit = () => {
     if (profile.onboardingStage !== "persona") return;
     setProfile({ ...profile, onboardingStage: "toolkit" });
   };
 
+  const selectPersona = (personaId: typeof effectiveMatch.primary) => {
+    setProfile(
+      changePersona(
+        profile,
+        personaId === profile.match.primary ? null : personaId,
+      ),
+    );
+    setPickerOpen(false);
+  };
+
   return (
     <div className="mx-auto max-w-4xl px-5 py-10 sm:py-14">
       <div className="animate-rise">
         <p className="text-sm text-ink-faint">Your starting point</p>
-        <div
-          className="mt-4 overflow-hidden rounded-3xl border p-7 sm:p-9"
-          style={{
-            borderColor: `${primary.accent}33`,
-            backgroundColor: `${primary.accent}0a`,
-          }}
-        >
-          <div className="flex items-start gap-5">
-            <span
-              className="flex size-14 shrink-0 items-center justify-center rounded-2xl text-white"
-              style={{ backgroundColor: primary.accent }}
-            >
-              <ArchetypeIcon name={primary.icon} className="size-7" />
-            </span>
-            <div>
-              <h1 className="text-3xl font-semibold sm:text-4xl">
-                {primary.name}
-              </h1>
-              <p className="mt-1 text-lg text-ink-soft">{primary.tagline}</p>
+        <PersonaDetailsCard
+          archetype={primary}
+          headingLevel="h1"
+          className="mt-4"
+          notice={
+            blended ? (
+              <p className="mt-5 rounded-xl border border-line bg-surface/70 p-4 text-sm text-ink-soft">
+                You&rsquo;re a genuine blend &mdash; you also lean strongly toward{" "}
+                <Link href="/about#personas" className="font-medium text-ink underline">
+                  {secondary.name}
+                </Link>
+                . Read both, and take whichever advice sounds more like your week.
+              </p>
+            ) : effectiveMatch.overridden ? (
+              <p className="mt-5 rounded-xl border border-line bg-surface/70 p-4 text-sm text-ink-soft">
+                You chose this persona yourself. Your six-axis profile still
+                reflects the answers you gave, so the planning details remain
+                intact.
+              </p>
+            ) : undefined
+          }
+          footer={
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-ink-faint">
+                This is a starting point, not a label. Retake the quiz any time
+                your term or workload changes.
+              </p>
+              <button
+                type="button"
+                onClick={() => setPickerOpen(true)}
+                className="inline-flex min-h-11 shrink-0 items-center gap-2 self-start rounded-lg text-sm font-semibold text-brand-700 underline underline-offset-4 hover:text-brand-600 sm:self-auto"
+              >
+                <RefreshCw className="size-4" aria-hidden="true" />
+                Change your persona
+              </button>
             </div>
-          </div>
-
-          <p className="mt-6 max-w-2xl leading-relaxed">{primary.description}</p>
-
-          {blended && (
-            <p className="mt-5 rounded-xl border border-line bg-surface/70 p-4 text-sm text-ink-soft">
-              You&rsquo;re a genuine blend &mdash; you also lean strongly toward{" "}
-              <Link href="/about" className="font-medium text-ink underline">
-                {secondary.name}
-              </Link>
-              . Read both, and take whichever advice sounds more like your week.
-            </p>
-          )}
-
-          <div className="mt-7 grid gap-6 sm:grid-cols-2">
-            <div>
-              <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-faint">
-                What works for you
-              </h2>
-              <ul className="mt-3 space-y-2">
-                {primary.strengths.map((item) => (
-                  <li key={item} className="flex gap-2.5 text-sm text-ink-soft">
-                    <span
-                      className="mt-1.5 size-1.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: primary.accent }}
-                      aria-hidden
-                    />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-faint">
-                Where you tend to slip
-              </h2>
-              <ul className="mt-3 space-y-2">
-                {primary.watchOuts.map((item) => (
-                  <li key={item} className="flex gap-2.5 text-sm text-ink-soft">
-                    <span
-                      className="mt-1.5 size-1.5 shrink-0 rounded-full bg-ink-faint"
-                      aria-hidden
-                    />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <p className="mt-7 text-sm text-ink-faint">
-            This is a starting point, not a label. Retake the quiz any time your
-            term or workload changes.
-          </p>
-        </div>
+          }
+        />
       </div>
 
       <section className="mt-16">
@@ -157,6 +136,15 @@ export function PersonaView() {
           Retake the quiz
         </Link>
       </div>
+
+      {pickerOpen && (
+        <PersonaPickerDialog
+          currentId={effectiveMatch.primary}
+          naturalId={profile.match.primary}
+          onClose={() => setPickerOpen(false)}
+          onConfirm={selectPersona}
+        />
+      )}
     </div>
   );
 }

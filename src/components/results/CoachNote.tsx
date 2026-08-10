@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MessageSquareQuote } from "lucide-react";
+import { effectiveArchetypeMatch } from "@/lib/persona";
 import type { LearnerProfile } from "@/lib/types";
 import { Badge, Card } from "@/components/ui";
 
@@ -15,12 +16,13 @@ export function CoachNote({ profile }: { profile: LearnerProfile }) {
 
   useEffect(() => {
     let active = true;
+    const match = effectiveArchetypeMatch(profile);
 
     fetch("/api/coach", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        primary: profile.match.primary,
+        primary: match.primary,
         frictions: profile.frictions,
         techniqueIds: profile.recommendedTechniqueIds,
         hoursPerWeek: profile.context.hoursPerWeek,
