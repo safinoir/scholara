@@ -4,13 +4,12 @@ import {
   CalendarRange,
   ClipboardList,
   Clock3,
-  FlaskConical,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
 import { ArchetypeIcon } from "@/components/ArchetypeIcon";
-import { Badge, ButtonLink, Card, SectionHeading } from "@/components/ui";
+import { ButtonLink, Card, SectionHeading } from "@/components/ui";
 import { ARCHETYPES } from "@/lib/data/archetypes";
 import { AXIS_META } from "@/lib/data/axes";
 
@@ -56,27 +55,42 @@ const OBSTACLES = [
 ] as const;
 
 const RANKING_SIGNALS = [
-  "Evidence strength",
-  "Axis and persona fit",
-  "Obstacles it addresses",
-  "Time cost for your week",
-] as const;
-
-const PLAN_STEPS = [
   {
-    icon: CalendarRange,
-    title: "Add the fixed parts",
-    body: "Courses and recurring class meetings establish when you are already busy.",
+    title: "Evidence quality",
+    body: "Methods with stronger research support receive a higher starting score.",
   },
   {
-    icon: Clock3,
-    title: "Set honest boundaries",
-    body: "Mark the times you can really study, your weekly target, and which courses need attention.",
+    title: "Fit with your profile",
+    body: "Your six axes and closest persona raise methods that suit how you work.",
+  },
+  {
+    title: "Obstacles you named",
+    body: "A method gets a meaningful boost when it directly addresses your friction points.",
+  },
+  {
+    title: "The time you have",
+    body: "Time-heavy methods are less likely to rank highly when your week is already tight.",
+  },
+] as const;
+
+const PLAN_INPUTS = [
+  {
+    icon: SlidersHorizontal,
+    eyebrow: "Your persona",
+    title: "Sets the rhythm",
+    body: "It shapes session length, structure, accountability, format, motivation cues, and preferred hours.",
   },
   {
     icon: BookOpenCheck,
-    title: "Get a usable calendar",
-    body: "Your selected methods become study blocks placed only inside those confirmed windows.",
+    eyebrow: "Your toolkit",
+    title: "Shapes each block",
+    body: "The methods you selected determine what you do inside learning, review, focus, and planning sessions.",
+  },
+  {
+    icon: Clock3,
+    eyebrow: "Your real week",
+    title: "Keeps it realistic",
+    body: "Classes, confirmed study windows, course priorities, and your target decide when work can actually fit.",
   },
 ] as const;
 
@@ -145,10 +159,9 @@ function PersonasSection() {
     <section className="border-b border-line bg-surface">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-16">
         <div>
-          <Badge tone="brand" className="mb-4">
-            <FlaskConical className="size-3.5" aria-hidden />
-            No learning-style labels
-          </Badge>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-brand-600">
+            No traditional learning styles
+          </p>
           <h2 className="text-2xl font-semibold sm:text-3xl">
             The six personas
           </h2>
@@ -158,11 +171,7 @@ function PersonasSection() {
             reliably improved learning. Instead, the quiz looks at practical
             preferences that affect whether a study plan fits your life.
           </p>
-          <p className="mt-5 rounded-xl border border-brand-100 bg-brand-50 p-5 text-sm leading-relaxed text-ink">
-            <strong>Evidence guides what you practice.</strong> Your persona
-            shapes how it fits into your week.
-          </p>
-          <p className="mt-4 text-sm text-ink-faint">
+          <p className="mt-5 text-sm text-ink-faint">
             A persona is a practical starting point, not a diagnosis or a fixed
             identity. Many people are a blend.
           </p>
@@ -220,45 +229,54 @@ function AxesSection() {
             </div>
           ))}
         </dl>
+      </div>
+    </section>
+  );
+}
 
-        <div className="mt-6 grid overflow-hidden rounded-2xl bg-brand-900 text-white lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="p-6 sm:p-7">
-            <div className="flex items-center gap-3 text-brand-100">
-              <SlidersHorizontal className="size-5" aria-hidden />
-              <p className="text-xs font-semibold uppercase tracking-[0.14em]">
-                Technique ranking
+function TechniqueRankingSection() {
+  return (
+    <section className="border-b border-line bg-surface">
+      <div className="mx-auto max-w-6xl px-5 py-16">
+        <SectionHeading
+          eyebrow="Technique recommendations"
+          title="How Scholara suggests your methods"
+          lead="The quiz does not lock you into a study system. Scholara scores every method in the library for your situation, then gives you a balanced top five to review."
+        />
+
+        <ol className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {RANKING_SIGNALS.map((signal, index) => (
+            <li
+              key={signal.title}
+              className="rounded-2xl border border-line bg-paper p-5"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex size-8 items-center justify-center rounded-lg bg-brand-50 text-sm font-semibold text-brand-700">
+                  {index + 1}
+                </span>
+                <ShieldCheck className="size-4 text-brand-500" aria-hidden />
+              </div>
+              <h3 className="mt-4 font-semibold">{signal.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+                {signal.body}
               </p>
-            </div>
-            <h3 className="mt-3 text-xl font-semibold">
-              How methods reach your top five
-            </h3>
-            <p className="mt-3 text-sm leading-relaxed text-brand-100">
-              Every method is scored for the signals that matter, then repeated
-              categories are limited so you don&rsquo;t get five versions of the
-              same idea.
-            </p>
-          </div>
-          <div className="border-t border-white/15 bg-white/5 p-6 sm:p-7 lg:border-t-0 lg:border-l">
-            <ul className="grid gap-3 text-sm sm:grid-cols-2">
-              {RANKING_SIGNALS.map((signal) => (
-                <li key={signal} className="flex items-center gap-2.5">
-                  <ShieldCheck
-                    className="size-4 shrink-0 text-brand-200"
-                    aria-hidden
-                  />
-                  {signal}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-5 text-sm text-brand-100">
-              You see five personalized matches, then choose one to three for
-              your toolkit.{" "}
-              <Link href="/about" className="font-medium text-white underline">
-                Read the full methodology
-              </Link>
-              .
-            </p>
-          </div>
+            </li>
+          ))}
+        </ol>
+
+        <div className="mt-6 rounded-2xl border border-brand-100 bg-brand-50 p-5 sm:flex sm:items-center sm:justify-between sm:gap-8">
+          <p className="max-w-3xl text-sm leading-relaxed text-ink-soft">
+            Scholara ranks the full library, limits repeated categories, and
+            shows five varied recommendations. They are suggestions, not
+            assignments: you choose the one to three methods that belong in your
+            toolkit.
+          </p>
+          <Link
+            href="/about"
+            className="mt-4 inline-flex min-h-11 shrink-0 items-center font-medium text-brand-700 underline sm:mt-0"
+          >
+            Read the full methodology
+          </Link>
         </div>
       </div>
     </section>
@@ -267,58 +285,74 @@ function AxesSection() {
 
 function WeeklyPlanSection() {
   return (
-    <section className="border-b border-line bg-surface">
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-16">
-        <div>
-          <SectionHeading
-            eyebrow="A weekly plan"
-            title="A recommendation only matters if it fits Tuesday"
-            lead="Scholara turns the methods you chose into study blocks that respect the calendar you actually have."
-          />
-          <div className="mt-6 rounded-2xl border border-brand-100 bg-brand-50 p-5">
-            <div className="flex items-start gap-3">
-              <Sparkles
-                className="mt-0.5 size-5 shrink-0 text-brand-600"
-                aria-hidden
-              />
+    <section className="border-b border-line bg-paper">
+      <div className="mx-auto max-w-6xl px-5 py-16">
+        <SectionHeading
+          eyebrow="A weekly plan"
+          title="Your persona and methods become a week you can keep"
+          lead="Scholara combines how you work, what you chose, and when you are truly available to build a schedule that feels personal without pretending you have unlimited time."
+        />
+
+        <div className="mt-8 grid gap-3 lg:grid-cols-3">
+          {PLAN_INPUTS.map((item) => (
+            <article
+              key={item.eyebrow}
+              className="rounded-2xl border border-line bg-surface p-5"
+            >
+              <span className="flex size-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
+                <item.icon className="size-5" aria-hidden />
+              </span>
+              <p className="mt-4 text-xs font-semibold uppercase tracking-[0.12em] text-brand-600">
+                {item.eyebrow}
+              </p>
+              <h3 className="mt-1 text-lg font-semibold">{item.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+                {item.body}
+              </p>
+            </article>
+          ))}
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-brand-100 bg-brand-50 p-6 sm:p-7">
+          <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div className="flex items-start gap-4">
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white">
+                <CalendarRange className="size-5" aria-hidden />
+              </span>
               <div>
-                <h3 className="font-semibold">When the week changes, say so</h3>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-700">
+                  The result
+                </p>
+                <h3 className="mt-1 text-xl font-semibold">
+                  A seven-day schedule designed to survive real life
+                </h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-                  Write something like &ldquo;exam Friday, work shift Thursday,
-                  low energy.&rdquo; AI turns it into proposed adjustments for
-                  you to review. The scheduling engine—not AI—places every block
-                  inside your hard boundaries.
+                  Study blocks stay inside your confirmed windows, use your
+                  selected techniques in the right roles, balance course
+                  priorities and deadlines, and show you when something cannot
+                  fit.
                 </p>
               </div>
             </div>
-          </div>
-          <p className="mt-4 text-xs leading-relaxed text-ink-faint">
-            Your profile and schedule stay in this browser. A weekly note is sent
-            to the configured AI provider only when you submit it.
-          </p>
-        </div>
 
-        <ol className="space-y-3">
-          {PLAN_STEPS.map((step, index) => (
-            <li
-              key={step.title}
-              className="flex gap-4 rounded-2xl border border-line bg-paper p-5"
-            >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600">
-                <step.icon className="size-5" aria-hidden />
-              </span>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-faint">
-                  Plan step {index + 1}
-                </p>
-                <h3 className="mt-1 font-semibold">{step.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-                  {step.body}
-                </p>
+            <div className="border-t border-brand-100 pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
+              <div className="flex items-start gap-3">
+                <Sparkles
+                  className="mt-0.5 size-5 shrink-0 text-brand-600"
+                  aria-hidden
+                />
+                <div>
+                  <h3 className="font-semibold">Fine-tune it with AI</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">
+                    Tell Scholara what changed this week. AI proposes adjustments
+                    for you to review before the scheduling engine rebuilds the
+                    plan within your boundaries.
+                  </p>
+                </div>
               </div>
-            </li>
-          ))}
-        </ol>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -358,6 +392,7 @@ export function HomeSections() {
       <ObstaclesSection />
       <PersonasSection />
       <AxesSection />
+      <TechniqueRankingSection />
       <WeeklyPlanSection />
       <FinalCta />
     </>
