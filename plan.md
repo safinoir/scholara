@@ -4,8 +4,8 @@
 **Current branch:** `ui-changes` (based on the AI/onboarding work already merged
 into `main`)
 **Status:** The guided Persona -> Toolkit -> Weekly Plan workflow is implemented.
-The remaining work is self-report and six-axis editing cleanup, release QA, and
-merging the current UI refinements.
+The remaining work is self-report routing and post-intake six-axis editing,
+release QA, and merging the current UI refinements.
 
 For the detailed design and implementation record behind onboarding and weekly
 planning, see [onboarding-redesign.md](./onboarding-redesign.md). This file is
@@ -85,8 +85,10 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 - Legacy version 1 profiles migrate to the Toolkit stage without pretending the
   old recommendations were user-selected.
 
-The current self-report route is `/express`. It derives a persona from directly
-set axes, friction points, and context, then opens `/persona`.
+The current self-report route is `/express`. It uses a four-step flow: choose a
+starting persona, confirm or refine the six seeded axes, select obstacles, and
+add context. The final profile keeps the user's persona choice distinct from the
+axis-derived match when necessary, then opens `/persona`.
 
 ---
 
@@ -224,7 +226,7 @@ or selects toolkit methods.
 | `/` | Persuasive overview, product explanation, and onboarding resume |
 | `/about` | Detailed methodology, limitations, privacy, and reset controls |
 | `/quiz` | Fourteen-question guided intake with draft recovery |
-| `/express` | Current direct self-report intake |
+| `/express` | Persona-first, four-step self-report intake |
 | `/persona` | Persona, blend, strengths, watch-outs, and axes |
 | `/toolkit` | Top five, full method library, and one-to-three selection |
 | `/plan/setup` | Canonical recurring schedule setup entry |
@@ -285,10 +287,8 @@ Weekly Plan are fully polished.
 
 ### Product cleanup
 
-- Replace `/express` with the planned canonical `/persona/setup` route, or make
-  `/express` redirect there.
-- Require active confirmation of self-report axes so untouched neutral defaults
-  cannot silently assign a persona.
+- Decide whether `/express` remains canonical or redirects to the planned
+  `/persona/setup` route.
 - Add Persona-page six-axis editing that recomputes the natural quiz match and
   recommendations while preserving the existing manual persona choice, valid
   toolkit selections, and schedule.
@@ -336,7 +336,8 @@ Weekly Plan are fully polished.
 - [x] About and Resources are always available in navigation.
 - [x] Users can compare all personas and override or restore their original
   axis-derived result.
-- [ ] Self-report confirmation and six-axis editing are complete.
+- [x] Express users actively choose a persona and confirm the six axes.
+- [ ] Post-intake six-axis editing is complete.
 - [ ] Temporary and legacy UI/API cleanup is complete.
 - [ ] Accessibility and real-device verification are complete.
 - [ ] Current UI branch is merged and production is smoke-tested.

@@ -1,7 +1,7 @@
 # Scholara Guided Flow and Weekly Plan Redesign
 
-**Status:** Core guided flow and Weekly Plan implemented; self-report and
-six-axis editing, legacy cleanup, and release QA remain
+**Status:** Core guided flow and Weekly Plan implemented; self-report routing,
+post-intake six-axis editing, legacy cleanup, and release QA remain
 
 **Current scope:** Homepage, Persona, Study Toolkit, and Weekly Plan
 **Existing but outside this redesign:** Tracker, Resources, and After/Career
@@ -46,13 +46,14 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 ### Self-report path
 
 - **Current:** **Skip the quiz** opens `/express`.
-- The current form derives Persona from six directly set axes; override controls
-  appear afterward on the Persona page rather than inside the form.
-- It also records the obstacle and context inputs needed by the recommendation
-  engine.
-- **Pending:** make `/persona/setup` the canonical route (with `/express` as a
-  redirect) and require active axis confirmation so untouched neutral defaults
-  cannot silently assign a persona.
+- The current four-step form asks the learner to choose a starting persona,
+  confirm or refine its seeded axes, select obstacles, and add context.
+- Switching personas reseeds untouched axes while preserving values the learner
+  deliberately changed.
+- Saving retains the explicit persona choice when it differs from the final
+  axis-derived match, then opens `/persona`.
+- **Pending:** decide whether `/persona/setup` becomes canonical with `/express`
+  as a redirect.
 
 ### Manual persona choice
 
@@ -464,7 +465,7 @@ privacy, and data-handling page.
 ### Current guided routes
 
 - `/persona` - persona result and axis profile
-- `/express` - current direct self-report intake
+- `/express` - current persona-first, four-step self-report intake
 - `/toolkit` - recommendations, full method library, and selection
 - `/plan/setup` - first-time or recurring schedule editor
 - `/plan` - generated calendar and weekly tuning
@@ -520,7 +521,8 @@ the configured provider for processing and are not stored by Scholara.
 
 - [x] Split the current Results page.
 - [x] Add detailed Persona comparison and a reversible manual choice.
-- [ ] Finish self-report confirmation and editable Persona axes.
+- [x] Add persona-first Express intake with explicit axis confirmation.
+- [ ] Add editable Persona axes after intake.
 - [x] Add top-five/full-library selection with 1-3 persistence.
 - [x] Add technique scheduling roles.
 - [x] Remove the results coach from the active UI.
@@ -556,6 +558,8 @@ the configured provider for processing and are not stored by Scholara.
 
 - [x] Quiz users land on a focused Persona page.
 - [x] The current self-report flow at `/express` also lands on Persona.
+- [x] Express users choose a starting persona and explicitly confirm or refine
+  all six seeded axes before saving.
 - [x] Users intentionally choose 1-3 methods from the top five or full catalog.
 - [x] Plan setup records real classes, real study windows, and a separate weekly
   target.
@@ -575,8 +579,8 @@ the configured provider for processing and are not stored by Scholara.
   remains available before and after onboarding.
 - [x] Users can compare all six personas, select a different one, and restore
   their original axis-derived result without rewriting measured axes.
-- [ ] Move self-report to `/persona/setup` and require users to actively confirm
-  their axes.
+- [ ] Decide whether to move self-report to `/persona/setup` or retain
+  `/express` as canonical.
 - [ ] Add six-axis editing with a deliberate recompute-and-save flow.
 - [ ] Delete the legacy results coach files and the temporary local-storage test
   button.
@@ -590,6 +594,7 @@ redesign remains outside this phase.
 Implemented in the current codebase:
 
 - Consolidated homepage explanation and updated global navigation
+- Persona-first Express setup with explicit six-axis review
 - Persona comparison and reversible override, plus Study Toolkit separation with
   explicit method selection
 - Three-step recurring schedule setup with local draft recovery
@@ -602,7 +607,7 @@ Implemented in the current codebase:
 - Bounded AI note interpretation with proposal review before applying
 - Updated AI coaching context and privacy disclosures
 
-Known remaining work is the canonical self-report route and confirmation flow,
+Known remaining work is the canonical self-report route decision, post-intake
 six-axis editing, legacy coach cleanup, removal of the test-only storage button,
 and final release QA.
 

@@ -3,3 +3,5 @@ main = self explanatory
 opus ai --> attempt of the ai backend with opus (refer to github copilot chat) but ran out of credits
 
 ai-backend --> Codex picked up where opus ai left off
+
+ui changes --> mostly for changes to ui on select pages one at a time
