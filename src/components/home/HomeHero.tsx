@@ -1,6 +1,13 @@
 "use client";
 
-import { ArrowRight, Clock, Lock, Trash2, WalletMinimal } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowRight,
+  Clock,
+  Lock,
+  Trash2,
+  WalletMinimal,
+} from "lucide-react";
 import { ButtonLink } from "@/components/ui";
 import { useProfile } from "@/hooks/useProfile";
 import { ARCHETYPE_BY_ID } from "@/lib/data/archetypes";
@@ -8,7 +15,7 @@ import { resumeDestination } from "@/lib/onboarding";
 
 const PROMISES = [
   { icon: Clock, text: "About two minutes" },
-  { icon: Lock, text: "No account, nothing stored on a server" },
+  { icon: Lock, text: "Your profile stays in this browser" },
   { icon: WalletMinimal, text: "Free, and so is everything we recommend" },
 ];
 
@@ -53,8 +60,9 @@ export function HomeHero() {
                 Start the quiz
                 <ArrowRight className="size-4" aria-hidden />
               </ButtonLink>
-              <ButtonLink href="/about" variant="ghost" size="lg">
+              <ButtonLink href="#how-it-works" variant="ghost" size="lg">
                 How it works
+                <ArrowDown className="size-4" aria-hidden />
               </ButtonLink>
             </>
           )}

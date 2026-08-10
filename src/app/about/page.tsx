@@ -107,16 +107,18 @@ export default function AboutPage() {
         <h2 className="text-xl font-semibold">How the schedule is built</h2>
         <div className="mt-4 space-y-4 text-ink-soft">
           <p>
-            The generator only ever schedules 85% of the hours you say you have.
-            This is the single most important design decision in the app. A full
-            calendar breaks the first time life interferes, and a broken plan
-            gets abandoned entirely rather than adjusted.
+            Your confirmed study windows are hard boundaries. The scheduler
+            subtracts classes and temporary busy time, then plans up to your
+            weekly target or the time that is genuinely available &mdash;
+            whichever is smaller. Any shortfall stays visible instead of being
+            hidden by an unrealistic calendar.
           </p>
           <p>
-            Session length comes from your rhythm axis, your hardest material
-            goes in your peak window, spaced reviews are placed one, three, and
-            seven days out, and the weekly review is never cut. If you tell us
-            time is genuinely scarce, you get three sessions instead of a grid.
+            Session length comes from your rhythm axis, available times closest
+            to your peak hours are preferred, and course priorities and
+            deadlines guide how study time is shared. The weekly review is
+            reserved inside a valid window rather than placed on top of
+            something else.
           </p>
         </div>
       </section>
