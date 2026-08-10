@@ -8,13 +8,13 @@ import { cn } from "@/components/ui";
 import { canAccessToolkit, hasConfirmedToolkit } from "@/lib/onboarding";
 
 const NAV = [
+  { href: "/about", label: "About" },
   { href: "/persona", label: "Persona" },
   { href: "/toolkit", label: "Toolkit" },
   { href: "/plan", label: "Plan" },
   { href: "/tracker", label: "Tracker" },
   { href: "/resources", label: "Resources" },
   { href: "/career", label: "After" },
-  { href: "/about", label: "About" },
 ] as const;
 
 export function SiteHeader() {
@@ -70,7 +70,7 @@ export function SiteHeader() {
         )}
 
         {!showNav && (
-          <nav aria-label="Main" className="ml-auto">
+          <nav aria-label="Main" className="ml-auto min-w-0 overflow-x-auto">
             <ul className="flex items-center gap-1 text-sm">
               <li>
                 <Link
@@ -84,6 +84,20 @@ export function SiteHeader() {
                   )}
                 >
                   About
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/resources"
+                  aria-current={pathname === "/resources" ? "page" : undefined}
+                  className={cn(
+                    "inline-flex min-h-11 items-center rounded-lg px-3 transition-colors",
+                    pathname === "/resources"
+                      ? "bg-brand-50 font-medium text-brand-700"
+                      : "text-ink-soft hover:bg-line-soft hover:text-ink",
+                  )}
+                >
+                  Resources
                 </Link>
               </li>
               <li>
