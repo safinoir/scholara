@@ -1248,8 +1248,8 @@ export function PlanSetupWizard({
                     ["Available", capacity.availableMinutes, "Window time"],
                     [
                       "In class",
-                      capacity.availableMinutes - capacity.usableMinutes,
-                      "Removed",
+                      capacity.classMinutes,
+                      "Weekly total",
                     ],
                     ["Target", schedule.targetStudyMinutes, "Your goal"],
                     ["Can plan", capacity.plannedMinutes, "Feasible"],
@@ -1272,12 +1272,10 @@ export function PlanSetupWizard({
               </div>
             </Card>
 
-            {capacity.availableMinutes > capacity.usableMinutes && (
+            {capacity.classOverlapMinutes > 0 && (
               <p className="mt-4 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-700">
                 Classes remove{" "}
-                {formatDuration(
-                  capacity.availableMinutes - capacity.usableMinutes,
-                )}{" "}
+                {formatDuration(capacity.classOverlapMinutes)}{" "}
                 from these study windows. The feasible total already accounts
                 for that overlap.
               </p>

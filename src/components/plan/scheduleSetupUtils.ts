@@ -13,6 +13,10 @@ type MinuteRange = {
 
 export type CapacitySummary = {
   availableMinutes: number;
+  /** Total recurring class time across the week. */
+  classMinutes: number;
+  /** Class time that overlaps the learner's confirmed study windows. */
+  classOverlapMinutes: number;
   usableMinutes: number;
   plannedMinutes: number;
   bufferMinutes: number;
@@ -203,10 +207,16 @@ export function summarizeCapacity(schedule: ScheduleSetup): CapacitySummary {
   const windowsByDay = rangesByDay(normalizedWindows);
   const classesByDay = rangesByDay(schedule.classMeetings);
   let availableMinutes = 0;
+  let classMinutes = 0;
+  let classOverlapMinutes = 0;
   let usableMinutes = 0;
 
   for (const day of DAYS) {
     const classRanges = classesByDay.get(day) ?? [];
+    classMinutes += classRanges.reduce(
+      (total, range) => total + range.endMinute - range.startMinute,
+      0,
+    );
     for (const window of windowsByDay.get(day) ?? []) {
       const windowMinutes = window.endMinute - window.startMinute;
       availableMinutes += windowMinutes;
@@ -217,6 +227,7 @@ export function summarizeCapacity(schedule: ScheduleSetup): CapacitySummary {
         const overlapEnd = Math.min(window.endMinute, classRange.endMinute);
         blockedMinutes += Math.max(0, overlapEnd - overlapStart);
       }
+      classOverlapMinutes += blockedMinutes;
       usableMinutes += Math.max(0, windowMinutes - blockedMinutes);
     }
   }
@@ -228,6 +239,8 @@ export function summarizeCapacity(schedule: ScheduleSetup): CapacitySummary {
 
   return {
     availableMinutes,
+    classMinutes,
+    classOverlapMinutes,
     usableMinutes,
     plannedMinutes,
     bufferMinutes: Math.max(0, usableMinutes - plannedMinutes),

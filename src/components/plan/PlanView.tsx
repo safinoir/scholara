@@ -213,7 +213,10 @@ export function PlanView({ setupOnly = false }: { setupOnly?: boolean }) {
       plan,
       onboardingStage: "complete",
     });
-    if (setupOnly) router.replace("/plan");
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+    if (setupOnly) router.replace("/plan", { scroll: true });
   };
 
   if (setupOnly || !hasCompletedSchedule(profile)) {
