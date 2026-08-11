@@ -63,7 +63,7 @@ and never influence the weekly schedule.
 
 | Axis | Low ← → High | What it changes |
 | --- | --- | --- |
-| Rhythm | Sprinter ↔ Marathoner | Session length (25 / 45 / 90 min) |
+| Rhythm | Sprinter ↔ Marathoner | Session length (30 / 45 / 90 min) |
 | Structure | Improviser ↔ Architect | Fixed grid vs. flexible anchors |
 | Company | Solo ↔ Collaborative | Body doubling, group study |
 | Format | Verbal ↔ Spatial | Note format, technique choice |
@@ -79,11 +79,18 @@ Matched by cosine similarity, so the *shape* of your preferences matters rather 
 ### Scheduling rules
 
 - Study blocks stay inside the windows the learner confirms and never overlap a class or temporary busy time.
+- The setup summary reports total recurring class time separately from class time that overlaps a study window; only the overlap reduces usable study capacity.
 - Every non-administration block names the course, method, duration, and concrete action.
 - Course priority, weekly urgency, deadlines, the six axes, and selected methods shape allocation and placement.
 - Every reported obstacle gets a visible response tied to the blocks and methods that address it.
 - If the target exceeds physical capacity, Scholara schedules only what fits and reports the shortfall.
 - A 30-minute weekly review is added only when there is enough time to cover every included course first.
+
+Recurring courses, meetings, availability, and the study target are edited on
+`/plan/setup`. The completed experience remains one page at `/plan`: summary,
+obstacle responses, the embedded seven-day calendar, weekly tuning, and the
+build rationale. Generating a plan returns the learner to the top of that page.
+There is no separate calendar route.
 
 ---
 
@@ -91,34 +98,39 @@ Matched by cosine similarity, so the *shape* of your preferences matters rather 
 
 | Layer | Choice |
 | --- | --- |
-| Framework | Next.js 16 (App Router) + TypeScript |
+| Framework | Next.js 16.3 (App Router) + React 19 + TypeScript |
 | Styling | Tailwind CSS v4, deep-blue theme via `@theme` |
 | State | React Context + `localStorage`, validated with Zod on read |
 | Icons | lucide-react |
-| Tests | Vitest for engines, schemas, migrations, onboarding, and AI tuning |
-| AI | Optional, provider-agnostic, fully degradable |
+| Tests | Vitest for engines, schemas, migrations, onboarding, setup capacity, sharing, and AI-route validation |
+| AI | Optional OpenAI-compatible weekly tuning with deterministic fallback |
 
 ### Project layout
 
 ```
 src/
 ├─ app/              # routes: /, /quiz, /express, /persona, /toolkit,
-│                    #         /plan, /resources, /tracker, /career, /about,
-│                    #         /share/[code], /api/plan/tune
-├─ components/       # display only — no business logic
+│                    #         /plan, /plan/setup, /resources, /tracker,
+│                    #         /career, /about, legacy /share/[code],
+│                    #         /results redirect, and /api/plan/tune
+├─ components/       # views, accessible forms, and client-side orchestration
 ├─ hooks/            # useProfile, useTracker
 └─ lib/
    ├─ engine/        # pure functions: scoring, matching, ranking, planning
    ├─ ai/            # server-only client and bounded weekly-note tuning
    ├─ data/          # all content as typed arrays
-   ├─ types.ts       # every shared shape
+   ├─ types.ts       # shared domain types
    ├─ schema.ts      # Zod validation + profile versioning
    ├─ storage.ts     # typed localStorage wrapper
-   └─ share.ts       # profile ⇄ URL code
-tests/               # engine + share round-trip
+   └─ share.ts       # legacy profile ⇄ URL-code compatibility
+tests/               # engines, schemas, migrations, onboarding, sharing, AI
 ```
 
-**The rule:** content lives in `lib/data`, logic lives in `lib/engine` as pure functions, components only display. Content can grow without touching logic, and logic is tested without rendering anything.
+**The boundary:** reusable content lives in `lib/data`; deterministic domain
+rules live in `lib/engine`; shared shapes, validation, and persistence live in
+`lib`. Client components may coordinate forms, local profile state, and route
+transitions, but the scheduler and recommendation rules stay outside the UI and
+remain directly testable.
 
 ---
 
@@ -127,7 +139,7 @@ tests/               # engine + share round-trip
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # engine tests
+npm test         # full Vitest suite
 npm run build    # production build
 ```
 
@@ -153,13 +165,14 @@ The endpoint is OpenAI-compatible and can be changed with environment variables.
 
 ## Accessibility
 
-Treated as a core requirement, since the audience explicitly includes people who struggle to focus.
+Accessibility is treated as a core requirement, with final keyboard-only,
+real-device, and touch-target verification still pending.
 
-- Full keyboard navigation; the quiz answers to number keys and arrow keys
+- The guided quiz supports keyboard navigation, including number and arrow keys
 - Focus moves to each new quiz question; progress is announced via `aria-live`
 - Visible focus rings, never removed
 - `prefers-reduced-motion` disables all animation
-- 44px minimum touch targets
+- Primary onboarding and planning controls are designed for comfortable touch targets
 - Meaning is never conveyed by color alone — axis positions are stated in text
 - Semantic landmarks, skip-to-content link, labeled form controls
 
@@ -167,7 +180,14 @@ Treated as a core requirement, since the audience explicitly includes people who
 
 ## Privacy
 
-There is no database, analytics, or telemetry. Your profile and schedule live in `localStorage` and can be deleted in one click from `/about`. Legacy shared-persona URLs encode their data in the URL itself, but the active UI no longer creates them. A weekly note is sent to the configured AI provider only when the student selects **Preview AI changes**. Scholara does not save the raw note, and the model can return only a validated proposal that the student must apply.
+There is no database, analytics, or telemetry. Your profile, schedule and
+onboarding drafts, and tracker history live in browser storage. They can be
+removed from `/about` through the confirmed **Delete everything** action. Legacy
+shared-persona URLs encode their data in the URL itself, but the active UI no
+longer creates them. A weekly note is sent to the configured AI provider only
+when the student selects **Preview AI changes**. Scholara does not save the raw
+note, and the model can return only a validated proposal that the student must
+apply.
 
 ---
 

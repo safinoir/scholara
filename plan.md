@@ -183,9 +183,10 @@ The two-step, course-only setup records:
 At least one named course must be included in the plan. Asynchronous courses may
 have no meeting time, while every saved class meeting must belong to a course.
 The draft autosaves locally. The UI validates conflicts and time ranges, shows
-available time, class deductions, target, feasible planned time, buffer, and
-shortfall, and permits generation when a target exceeds capacity by scheduling
-only what safely fits.
+available time, total recurring class time, target, feasible planned time,
+buffer, and shortfall. Class time is subtracted from capacity only where it
+overlaps a confirmed study window. A target above capacity still permits
+generation and schedules only what safely fits.
 
 ### Deterministic scheduler
 
@@ -219,6 +220,13 @@ pattern in the current scheduler.
 
 ### Calendar experience
 
+- `/plan` is the single completed-plan page: summary metrics, warnings, obstacle
+  responses, the calendar, weekly tuning, and rationale remain together.
+- `/plan/setup` is the separate recurring-schedule editor. There is no
+  `/plan/calendar` route in the current product or plan.
+- Generating from either first-time setup or `/plan/setup` returns to `/plan`
+  and resets the viewport to the top so the summary and obstacle responses are
+  seen before the calendar.
 - Desktop: time rail with seven day columns, classes, availability, and study
   blocks.
 - Mobile: seven-day selector plus a chronological agenda for the chosen day.
@@ -262,8 +270,8 @@ or selects methods.
 | `/express` | Persona-first, three-step self-report intake with no context step |
 | `/persona` | Persona, blend, strengths, watch-outs, and axes |
 | `/toolkit` | User-facing **Methods** page with the top five, compact full library, and one-to-three selection |
-| `/plan/setup` | Canonical recurring schedule setup entry |
-| `/plan` | Obstacle responses, generated course calendar, manual tuning, AI tuning, and copy |
+| `/plan/setup` | Two-step recurring courses, meetings, availability, and target editor |
+| `/plan` | Single completed experience: summary, obstacle responses, embedded course calendar, manual/AI tuning, rationale, and copy |
 | `/resources` | Curated resource library; available without a profile |
 | `/tracker` | Existing micro-habit tracker |
 | `/career` | Existing field-and-year career checklist, labeled **After** in navigation |
@@ -373,6 +381,8 @@ Weekly Plan are fully polished.
 - [x] Every reported obstacle has a visible deterministic response in the plan.
 - [x] Every study block exposes its course, method, duration, and instruction.
 - [x] Desktop calendar and mobile agenda are implemented.
+- [x] Calendar, obstacle responses, tuning, and rationale remain consolidated on
+  `/plan`; generation returns to the top of that page.
 - [x] Profile v1/v2 migrations into profile v3 are covered by tests.
 - [x] About and Resources are always available in navigation.
 - [x] Users can compare all personas and override or restore their original

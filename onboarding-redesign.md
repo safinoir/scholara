@@ -186,8 +186,10 @@ Keep the weekly study target separate from raw availability:
 
 - New setups begin without an invented target. Ask how much of the available
   time the learner actually wants to commit.
-- Show available time, time removed by classes, target, feasible planned time,
-  buffer, and shortfall before generation.
+- Show total marked availability, total recurring class time, target, feasible
+  planned time, buffer, and shortfall before generation. Track class overlap
+  separately: only class minutes that intersect a study window reduce usable
+  study capacity.
 - A target above physical capacity does not block generation. Schedule only what
   fits and report the shortfall.
 - Generate after the course, class, availability, and target summary passes all
@@ -274,6 +276,13 @@ Generation must be deterministic: identical inputs produce identical blocks,
 ordering, IDs, totals, and warnings.
 
 ## 6. Weekly Calendar Experience
+
+The calendar is not a separate route. `/plan` is the single completed-plan
+experience containing summary metrics, warnings, obstacle responses, the
+calendar, weekly tuning, and rationale. `/plan/setup` remains the separate
+recurring-schedule editor, and `/plan/calendar` is not part of the approved
+architecture. After generation, navigation returns to `/plan` and resets the
+viewport to the top of the completed page.
 
 ### Desktop
 
@@ -525,7 +534,8 @@ privacy, and data-handling page.
 - `/toolkit` - user-facing Methods page with recommendations, the compact full
   method library, and selection
 - `/plan/setup` - first-time or recurring schedule editor
-- `/plan` - generated calendar and weekly tuning
+- `/plan` - single completed experience with summary, obstacle responses,
+  embedded calendar, weekly tuning, and rationale
 - `/results` - redirects to `/persona`
 - `/persona/setup` - planned canonical self-report route; not implemented yet
 
@@ -553,7 +563,8 @@ are sent to the configured provider, and the raw note is not stored by Scholara.
 - No usable study window: do not generate; show how to add one.
 - Availability smaller than target: schedule only safe capacity and show the
   shortfall before confirmation.
-- Class overlaps availability: subtract class time and show the remaining usable
+- Class overlaps availability: report total recurring class time, subtract only
+  the overlap from study-window capacity, and show the remaining usable
   fragments.
 - All week overrides block the schedule: preserve the previous plan and request
   a free window or smaller target.
@@ -599,6 +610,8 @@ are sent to the configured provider, and the raw note is not stored by Scholara.
 - [x] Add course allocation, warnings, and deterministic tests.
 - [x] Add one visible deterministic response per reported obstacle.
 - [x] Build the desktop seven-column calendar and mobile agenda.
+- [x] Keep the completed calendar, obstacle responses, tuning, and rationale on
+  one `/plan` page and return to its top after generation.
 
 ### Phase 5 - Weekly tuning and AI
 
