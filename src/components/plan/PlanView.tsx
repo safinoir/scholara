@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Check, Copy, Pencil, Printer, Sparkles } from "lucide-react";
+import { AlertTriangle, Check, Copy, Pencil, Sparkles } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { coachingPayload } from "@/lib/ai/payload";
 import {
@@ -323,9 +323,6 @@ function CompletedPlan({
           <Button variant="secondary" size="sm" onClick={copy}>
             {copied ? <Check className="size-4" aria-hidden /> : <Copy className="size-4" aria-hidden />}
             {copied ? "Copied" : "Copy"}
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => window.print()}>
-            <Printer className="size-4" aria-hidden /> Print
           </Button>
         </div>
       </div>

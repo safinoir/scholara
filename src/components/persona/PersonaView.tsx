@@ -11,7 +11,6 @@ import { LoadingShell, NoProfile } from "@/components/NoProfile";
 import { PersonaDetailsCard } from "@/components/persona/PersonaDetailsCard";
 import { PersonaPickerDialog } from "@/components/persona/PersonaPickerDialog";
 import { AxisBars } from "@/components/results/AxisBars";
-import { ShareButton } from "@/components/results/ShareButton";
 import { Badge, ButtonLink, Card, SectionHeading } from "@/components/ui";
 
 export function PersonaView() {
@@ -127,7 +126,6 @@ export function PersonaView() {
           {profile.frictions.length} obstacle
           {profile.frictions.length === 1 ? "" : "s"} accounted for
         </Badge>
-        <ShareButton profile={profile} />
         <Link
           href="/quiz"
           className="inline-flex items-center gap-1.5 text-ink-soft underline hover:text-ink"

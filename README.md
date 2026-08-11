@@ -158,7 +158,7 @@ Treated as a core requirement, since the audience explicitly includes people who
 
 ## Privacy
 
-There is no database, analytics, or telemetry. Your profile and schedule live in `localStorage` and can be deleted in one click from `/about`. Shared links encode the persona into the URL itself. Optional coaching sends bounded plan context to the configured AI provider. A weekly note is sent only when the student selects **Preview AI changes**, is not saved by Scholara, and can only produce a validated proposal that the student must apply.
+There is no database, analytics, or telemetry. Your profile and schedule live in `localStorage` and can be deleted in one click from `/about`. Legacy shared-persona URLs encode their data in the URL itself, but the active UI no longer creates them. Optional coaching sends bounded plan context to the configured AI provider. A weekly note is sent only when the student selects **Preview AI changes**, is not saved by Scholara, and can only produce a validated proposal that the student must apply.
 
 ---
 

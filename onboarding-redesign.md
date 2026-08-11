@@ -282,15 +282,13 @@ ordering, IDs, totals, and warnings.
   page.
 - Provide **Edit recurring schedule** and **Adjust this week** actions.
 
-### Mobile and print
+### Mobile
 
 - Do not compress detailed content into seven tiny columns.
 - Default to a seven-day summary strip and one selected day's chronological
   agenda.
 - Keep the seven-day strip compact and use the selected-day agenda for detailed
   mobile content.
-- Print uses the existing print stylesheet; a dedicated agenda-only print mode
-  is not currently implemented.
 
 Calendar meaning must never depend on color alone. Interactive targets remain at
 least 44px, and calendar items stay in chronological DOM order.

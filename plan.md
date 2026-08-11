@@ -135,7 +135,7 @@ Implemented:
 - detailed comparison of all six personas with a reversible manual persona
   choice;
 - explicit continuation to Methods;
-- retake and share actions; and
+- retake action; and
 - focused Persona page with no technique cards or AI coach.
 
 ### Methods
@@ -209,8 +209,8 @@ pattern in the current scheduler.
   blocks.
 - Mobile: seven-day selector plus a chronological agenda for the chosen day.
 - Study-block detail: primary method, supporting methods, and block instruction.
-- Utilities: edit recurring schedule, copy as text, print, weekly adjustment,
-  AI coaching brief, and fixed-topic plan questions.
+- Utilities: edit recurring schedule, copy as text, weekly adjustment, AI
+  coaching brief, and fixed-topic plan questions.
 
 ### Weekly tuning
 
@@ -245,11 +245,11 @@ or selects methods.
 | `/persona` | Persona, blend, strengths, watch-outs, and axes |
 | `/toolkit` | User-facing **Methods** page with the top five, compact full library, and one-to-three selection |
 | `/plan/setup` | Canonical recurring schedule setup entry |
-| `/plan` | Generated calendar, manual tuning, AI tuning, coaching, copy, and print |
+| `/plan` | Generated calendar, manual tuning, AI tuning, coaching, and copy |
 | `/resources` | Curated resource library; available without a profile |
 | `/tracker` | Existing micro-habit tracker |
 | `/career` | Existing field-and-year career checklist, labeled **After** in navigation |
-| `/share/[code]` | Read-only serverless shared persona |
+| `/share/[code]` | Legacy, unlinked read-only persona route for old URLs |
 | `/results` | Redirects to `/persona` |
 
 ### APIs
@@ -279,7 +279,8 @@ or selects methods.
 - API payloads are narrowly validated and timeout-guarded.
 - Missing keys, timeouts, malformed JSON, or rejected output leave the plan
   unchanged and preserve manual controls.
-- Shared personas are encoded into the URL rather than stored on a server.
+- Legacy shared-persona URLs encode their data in the URL rather than storing it
+  on a server. The active UI no longer creates share links.
 
 ---
 
@@ -291,7 +292,8 @@ redesign:
 - Resources: cost labels, fit sorting, campus resources, and paid-hidden default.
 - Tracker: up to three micro-habits, forgiving streaks, and reassessment prompt.
 - After/Career: field-by-year checklist with free supporting resources.
-- Share: URL-encoded read-only persona.
+- Legacy Share: existing URL-encoded persona links remain readable, but the
+  active UI no longer offers a share action.
 
 Future redesign work for these areas is deferred until Persona, Methods, and
 Weekly Plan are fully polished.

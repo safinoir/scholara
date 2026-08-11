@@ -162,7 +162,7 @@ function ToolkitContent({
           Study methods
         </p>
         <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">
-          Choose 1–3 methods for your week
+          Choose 1–3 study methods for your week
         </h1>
         <p className="mt-4 text-ink-soft">
           Scholara will build your choices into the study blocks in your weekly
