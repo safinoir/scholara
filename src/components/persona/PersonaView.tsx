@@ -103,11 +103,11 @@ export function PersonaView() {
               Next step
             </p>
             <h2 className="mt-2 text-xl font-semibold">
-              Build your Study Toolkit
+              Choose your study methods
             </h2>
             <p className="mt-1.5 text-sm text-ink-soft">
-              See the five methods that best fit this profile, then explore how
-              each one works.
+              Pick one to three methods Scholara can build into your weekly
+              study blocks.
             </p>
           </div>
           <ButtonLink
@@ -116,7 +116,7 @@ export function PersonaView() {
             className="shrink-0"
             onClick={continueToToolkit}
           >
-            Continue to Toolkit
+            Continue to methods
             <ArrowRight className="size-4" aria-hidden />
           </ButtonLink>
         </div>

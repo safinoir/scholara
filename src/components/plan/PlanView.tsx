@@ -314,7 +314,7 @@ function CompletedPlan({
         <SectionHeading
           eyebrow="Your week"
           title="A plan built inside your real availability"
-          lead="Classes are fixed, study windows are protected, and every block uses a method from your toolkit or a compatible foundation."
+          lead="Classes are fixed, study windows are protected, and every block uses a method you chose or a compatible foundation."
         />
         <div className="no-print flex flex-wrap gap-2">
           <Button variant="secondary" size="sm" onClick={onEditSchedule}>
@@ -392,7 +392,7 @@ function CompletedPlan({
         <div className="mt-5 flex flex-wrap gap-2">
           {profile.plan.minimumEffectiveDose && <Badge tone="tier">Minimum effective dose</Badge>}
           <Badge tone="brand">Deterministic schedule</Badge>
-          <Badge>{profile.selectedTechniqueIds.length} toolkit methods</Badge>
+          <Badge>{profile.selectedTechniqueIds.length} selected methods</Badge>
         </div>
       </Card>
 

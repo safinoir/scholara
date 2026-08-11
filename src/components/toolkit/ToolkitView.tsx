@@ -15,7 +15,7 @@ import type {
 import { LoadingShell, NoProfile } from "@/components/NoProfile";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { TechniqueCard } from "@/components/results/TechniqueCard";
-import { Button, ButtonLink, Card } from "@/components/ui";
+import { Button, ButtonLink } from "@/components/ui";
 
 const CATEGORY_ORDER: TechniqueCategory[] = [
   "encoding",
@@ -25,10 +25,10 @@ const CATEGORY_ORDER: TechniqueCategory[] = [
 ];
 
 const CATEGORY_LABELS: Record<TechniqueCategory, string> = {
-  encoding: "Memory and learning",
-  focus: "Focus and starting",
-  planning: "Planning and workload",
-  exam: "Exams and confidence",
+  encoding: "Learn and remember",
+  focus: "Focus and start",
+  planning: "Plan your workload",
+  exam: "Prepare for exams",
 };
 
 function orderSelection(ids: string[], recommendedIds: string[]): string[] {
@@ -52,7 +52,7 @@ export function ToolkitView() {
     return (
       <OnboardingGate
         title="See your persona first"
-        body="Review what your quiz says about your study style before choosing the methods you want to try."
+        body="Review your study preferences before choosing methods for your weekly plan."
         href="/persona"
         action="Continue to your persona"
       />
@@ -150,66 +150,76 @@ function ToolkitContent({
 
   const selectionMessage =
     draft.length === 0
-      ? "Choose at least one method."
+      ? "Choose at least 1 method."
       : limitReached
-        ? "Toolkit full. Remove one to choose another."
+        ? "All set. Remove one to switch."
         : `You can choose ${3 - draft.length} more.`;
 
   return (
     <div className="mx-auto max-w-4xl px-5 py-10 sm:py-14">
       <header className="max-w-2xl">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-600">
-          Your Study Toolkit
+          Study methods
         </p>
         <h1 className="mt-2 text-3xl font-semibold sm:text-4xl">
-          Choose the methods you want to try
+          Choose 1–3 methods for your week
         </h1>
         <p className="mt-4 text-ink-soft">
-          Start with the five strongest matches, then browse the full library.
-          Pick one to three methods that feel realistic for you.
+          Scholara will build your choices into the study blocks in your weekly
+          schedule. Start with your best matches or browse by goal.
+        </p>
+        <p className="mt-2 text-sm text-ink-faint">
+          These methods change what you do during study time. Your schedule
+          setup decides when that study time happens.
         </p>
       </header>
 
-      <div className="sticky top-[4.5rem] z-30 mt-8 rounded-2xl border border-brand-100 bg-paper/95 p-4 shadow-sm backdrop-blur sm:p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+      <div className="sticky top-[4.5rem] z-30 mt-7 rounded-xl border border-brand-100 bg-paper/95 p-3 shadow-sm backdrop-blur sm:px-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">{draft.length} of 3 selected</p>
-            <p className="mt-1 text-sm text-ink-soft" aria-live="polite">
-              {canContinue ? "Toolkit saved." : selectionMessage}
+            <p className="text-sm font-semibold">{draft.length} of 3 chosen</p>
+            <p className="mt-0.5 truncate text-sm text-ink-soft">
+              {orderedDraft.length > 0
+                ? orderedDraft.map((id) => TECHNIQUE_BY_ID[id].name).join(", ")
+                : selectionMessage}
             </p>
-            {orderedDraft.length > 0 && (
-              <ul className="mt-3 flex flex-wrap gap-2" aria-label="Selected methods">
-                {orderedDraft.map((id) => (
-                  <li
-                    key={id}
-                    className="rounded-full border border-brand-100 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700"
-                  >
-                    {TECHNIQUE_BY_ID[id].name}
-                  </li>
-                ))}
-              </ul>
-            )}
+            <span className="sr-only" role="status" aria-live="polite">
+              {canContinue
+                ? "Methods saved for your weekly schedule."
+                : selectionMessage}
+            </span>
           </div>
-          <Button
-            onClick={saveToolkit}
-            disabled={draft.length === 0 || !hasChanges}
-            className="w-full shrink-0 sm:w-auto"
-          >
-            <Check className="size-4" aria-hidden />
-            Save toolkit
-          </Button>
+          {canContinue ? (
+            <ButtonLink
+              href="/plan"
+              size="sm"
+              className="w-full shrink-0 sm:w-auto"
+            >
+              Continue to plan
+              <ArrowRight className="size-4" aria-hidden />
+            </ButtonLink>
+          ) : (
+            <Button
+              size="sm"
+              onClick={saveToolkit}
+              disabled={draft.length === 0 || !hasChanges}
+              className="w-full shrink-0 sm:w-auto"
+            >
+              <Check className="size-4" aria-hidden />
+              Save methods
+            </Button>
+          )}
         </div>
       </div>
 
-      <section className="mt-14" aria-labelledby="recommended-methods">
-        <h2 id="recommended-methods" className="text-2xl font-semibold sm:text-3xl">
-          Your top five matches
+      <section className="mt-10" aria-labelledby="recommended-methods">
+        <h2 id="recommended-methods" className="text-2xl font-semibold">
+          Best matches for you
         </h2>
         <p className="mt-3 max-w-2xl text-ink-soft">
-          Ranked from your six-axis profile, stated obstacles, available time,
-          and the strength of the evidence.
+          Based on your profile, obstacles, available time, and the research.
         </p>
-        <div className="mt-8 space-y-4">
+        <div className="mt-6 space-y-3">
           {recommended.map((technique, index) => {
             const selected = draft.includes(technique.id);
             return (
@@ -227,68 +237,50 @@ function ToolkitContent({
         </div>
       </section>
 
-      <section className="mt-16" aria-labelledby="all-methods">
-        <h2 id="all-methods" className="text-2xl font-semibold sm:text-3xl">
-          Explore every other method
+      <section className="mt-12" aria-labelledby="all-methods">
+        <h2 id="all-methods" className="sr-only">
+          Browse more study methods
         </h2>
-        <p className="mt-3 max-w-2xl text-ink-soft">
-          A recommendation is a starting point. You can select any method that
-          feels more practical for your courses or current week.
-        </p>
-
-        <div className="mt-8 space-y-4">
-          {CATEGORY_ORDER.map((category) => {
-            const methods = remainingByCategory[category];
-            if (methods.length === 0) return null;
-            return (
-              <details
-                key={category}
-                className="rounded-2xl border border-line bg-surface"
-              >
-                <summary className="flex min-h-14 cursor-pointer items-center justify-between gap-4 px-5 py-4 font-semibold marker:content-none">
-                  <span>{CATEGORY_LABELS[category]}</span>
-                  <span className="text-sm font-normal text-ink-faint">
-                    {methods.length} method{methods.length === 1 ? "" : "s"}
-                  </span>
-                </summary>
-                <div className="space-y-4 border-t border-line-soft bg-paper p-4 sm:p-5">
-                  {methods.map((technique) => {
-                    const selected = draft.includes(technique.id);
-                    return (
-                      <TechniqueCard
-                        key={technique.id}
-                        technique={technique}
-                        reasons={[]}
-                        selected={selected}
-                        selectionDisabled={limitReached && !selected}
-                        onToggleSelection={() => toggleSelection(technique.id)}
-                      />
-                    );
-                  })}
-                </div>
-              </details>
-            );
-          })}
-        </div>
-      </section>
-
-      {canContinue && (
-        <Card className="mt-16 border-brand-100 bg-brand-50">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold">Your toolkit is ready</h2>
-              <p className="mt-1.5 text-sm text-ink-soft">
-                These choices are saved in your browser and ready for weekly
-                planning.
-              </p>
-            </div>
-            <ButtonLink href="/plan" size="lg" className="shrink-0">
-              Continue to Plan
-              <ArrowRight className="size-4" aria-hidden />
-            </ButtonLink>
+        <details className="rounded-xl border border-line bg-surface">
+          <summary className="min-h-12 cursor-pointer px-4 py-3.5 font-semibold">
+            Browse {TECHNIQUES.length - recommended.length} more methods
+            <span className="ml-2 text-sm font-normal text-ink-faint">
+              by goal
+            </span>
+          </summary>
+          <div className="space-y-8 border-t border-line-soft bg-paper p-3 sm:p-4">
+            {CATEGORY_ORDER.map((category) => {
+              const methods = remainingByCategory[category];
+              if (methods.length === 0) return null;
+              return (
+                <section key={category} aria-labelledby={`category-${category}`}>
+                  <h3
+                    id={`category-${category}`}
+                    className="mb-3 text-sm font-semibold text-ink"
+                  >
+                    {CATEGORY_LABELS[category]}
+                  </h3>
+                  <div className="space-y-3">
+                    {methods.map((technique) => {
+                      const selected = draft.includes(technique.id);
+                      return (
+                        <TechniqueCard
+                          key={technique.id}
+                          technique={technique}
+                          reasons={[]}
+                          selected={selected}
+                          selectionDisabled={limitReached && !selected}
+                          onToggleSelection={() => toggleSelection(technique.id)}
+                        />
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })}
           </div>
-        </Card>
-      )}
+        </details>
+      </section>
     </div>
   );
 }

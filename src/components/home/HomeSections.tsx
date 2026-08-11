@@ -82,7 +82,7 @@ const PLAN_INPUTS = [
   },
   {
     icon: BookOpenCheck,
-    eyebrow: "Your toolkit",
+    eyebrow: "Your methods",
     title: "Shapes each block",
     body: "The methods you selected determine what you do inside learning, review, focus, and planning sessions.",
   },
@@ -268,8 +268,8 @@ function TechniqueRankingSection() {
           <p className="max-w-3xl text-sm leading-relaxed text-ink-soft">
             Scholara ranks the full library, limits repeated categories, and
             shows five varied recommendations. They are suggestions, not
-            assignments: you choose the one to three methods that belong in your
-            toolkit.
+            assignments: you choose the one to three methods Scholara can build
+            into your weekly study blocks.
           </p>
           <Link
             href="/about"

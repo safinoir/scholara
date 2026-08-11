@@ -71,7 +71,7 @@ describe("onboarding access", () => {
     expect(hasConfirmedToolkit(profile)).toBe(false);
     expect(resumeDestination(profile)).toEqual({
       href: "/toolkit",
-      label: "Choose your Study Toolkit",
+      label: "Choose your study methods",
     });
   });
 
@@ -103,7 +103,7 @@ describe("onboarding access", () => {
     expect(hasConfirmedToolkit(inconsistentProfile)).toBe(false);
     expect(resumeDestination(inconsistentProfile)).toEqual({
       href: "/toolkit",
-      label: "Choose your Study Toolkit",
+      label: "Choose your study methods",
     });
   });
 

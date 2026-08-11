@@ -10,7 +10,7 @@ import { canAccessToolkit, hasConfirmedToolkit } from "@/lib/onboarding";
 const NAV = [
   { href: "/about", label: "About" },
   { href: "/persona", label: "Persona" },
-  { href: "/toolkit", label: "Toolkit" },
+  { href: "/toolkit", label: "Methods" },
   { href: "/plan", label: "Plan" },
   { href: "/tracker", label: "Tracker" },
   { href: "/resources", label: "Resources" },

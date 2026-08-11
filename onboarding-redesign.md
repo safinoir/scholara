@@ -3,7 +3,7 @@
 **Status:** Core guided flow and Weekly Plan implemented; self-report routing,
 post-intake six-axis editing, legacy cleanup, and release QA remain
 
-**Current scope:** Homepage, Persona, Study Toolkit, and Weekly Plan
+**Current scope:** Homepage, Persona, Methods, and Weekly Plan
 **Existing but outside this redesign:** Tracker, Resources, and After/Career
 (their workflow redesign is deferred)
 
@@ -15,7 +15,7 @@ status. [plan.md](./plan.md) is the concise current-state source of truth.
 ```text
 Quiz or self-report
   -> Persona
-  -> Study Toolkit (choose 1-3 methods)
+  -> Methods (choose 1-3 methods for weekly study blocks)
   -> Weekly Plan setup
   -> Generated weekly calendar
   -> Optional weekly AI tuning
@@ -41,7 +41,7 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 - Show the primary persona, secondary blend when relevant, strengths,
   watch-outs, and the six-axis profile.
 - Keep this page focused on identity. Do not show study methods or AI coaching.
-- End with one primary action: **Continue to Study Toolkit**.
+- End with one primary action: **Continue to Methods**.
 
 ### Self-report path
 
@@ -71,40 +71,51 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 - Persona is read-only by default.
 - **Edit profile** reveals the six axis controls.
 - Saving recomputes the persona, recommendations, resources, and any generated
-  plan while preserving explicitly selected Study Toolkit methods.
+  plan while preserving explicitly selected methods.
 - Stale AI plan coaching is cleared after a profile change.
 
-## 3. Study Toolkit
+## 3. Methods
 
-Use `/toolkit` with the page title **Your Study Toolkit**.
+Use the user-facing navigation label **Methods** and the page title **Choose 1-3
+methods for your week**. The route remains `/toolkit`, and the saved onboarding
+stage remains `toolkit`.
 
 ### Recommendations and library
 
-- Show the personalized top five first, including rank reasons, evidence,
-  effort, instructions, and supporting tools.
-- Show the remaining catalog methods below, without duplicating the top five.
-- Group the remaining methods into expandable sections:
-  - Memory and learning
-  - Focus and starting
-  - Planning and workload
-  - Exams and confidence
+- Show the personalized top five first as compact method rows.
+- Keep every method row's **How it works** detail panel collapsed initially.
+- Show the method name, short description, evidence, effort, approximate time,
+  and the strongest personalized reason in the compact row. Keep full steps,
+  additional reasons, evidence detail, and supporting tools in the on-demand
+  panel.
+- Put every remaining catalog method behind one **Browse more methods**
+  disclosure, without duplicating the top five.
+- Inside that single disclosure, group methods by the user goals:
+  - Learn and remember
+  - Focus and start
+  - Plan your workload
+  - Prepare for exams
 - Users can choose from either the top five or the full catalog.
 
 ### Selection
 
 - Start with nothing selected.
 - Require 1-3 methods before continuing.
-- Show a persistent `X of 3 selected` summary and prevent a fourth choice.
+- Show a compact sticky `X of 3 chosen` control with the selected method names
+  and prevent a fourth choice.
 - Save only after explicit confirmation; unsaved changes remain a local UI draft.
+- After a valid save, change the sticky action from **Save methods** to
+  **Continue to plan**. Do not add a redundant bottom readiness card.
 - Revisiting the page allows changes, but an empty draft cannot replace a valid
-  saved toolkit.
+  saved method selection.
 - Changing the six axes recalculates the top five but preserves the user's
   existing selections.
 
 ### Method behavior in the plan
 
-Toolkit choices affect how study blocks are carried out, not when the user is
-available or how much time exists.
+The user's one to three selected methods are incorporated into compatible
+weekly study blocks according to their scheduling roles. They affect how study
+blocks are carried out, not when the user is available or how much time exists.
 
 - Learning methods are assigned to new-material blocks.
 - Review methods are assigned to review blocks.
@@ -112,11 +123,11 @@ available or how much time exists.
 - Planning methods augment the weekly review block.
 - Exam-only methods are used only when the week includes an assessment or
   deadline; otherwise they stay saved for a relevant week.
-- If the selected toolkit lacks a required role, use the highest-ranked
+- If the selected methods lack a required role, use the highest-ranked
   compatible recommendation or foundation method. The current calendar shows
   the method name, but an explicit **foundation method** label remains pending.
-- A small week does not need to use every selected method. Show which toolkit
-  choices were not needed that week rather than adding unnecessary sessions.
+- A small week does not need to use every selected method. Show which choices
+  were not needed that week rather than adding unnecessary sessions.
 
 Add scheduling metadata to technique content instead of branching on names:
 
@@ -134,9 +145,9 @@ an assessment is required.
 
 ## 4. Weekly Plan Setup
 
-After saving the toolkit, Plan opens a three-step setup. Drafts autosave locally
+After saving the methods, Plan opens a three-step setup. Drafts autosave locally
 after each change. Returning users can edit the recurring schedule without
-repeating Persona or Toolkit.
+repeating Persona or Methods.
 
 ### Step 1: Courses and study focus
 
@@ -267,7 +278,8 @@ ordering, IDs, totals, and warnings.
   - Generated study blocks: course color plus text and method labels
 - Each day header shows the planned study total.
 - A focused or clicked study block shows its primary method, supporting methods,
-  and block instruction. Full method steps and evidence remain in Study Toolkit.
+  and block instruction. Full method steps and evidence remain on the Methods
+  page.
 - Provide **Edit recurring schedule** and **Adjust this week** actions.
 
 ### Mobile and print
@@ -441,7 +453,8 @@ Migration behavior:
   existing local data.
 - Move legacy `techniqueIds` into `recommendedTechniqueIds`.
 - Start with no claimed user selections.
-- Resume legacy profiles at Study Toolkit, then require recurring schedule setup.
+- Resume legacy profiles at the `/toolkit` Methods page with the saved stage set
+  to `toolkit`, then require recurring schedule setup.
 - Do not discard a valid version 1 profile merely because new fields are absent.
 
 ## 9. Homepage, Routes, and Navigation
@@ -466,19 +479,21 @@ privacy, and data-handling page.
 
 - `/persona` - persona result and axis profile
 - `/express` - current persona-first, four-step self-report intake
-- `/toolkit` - recommendations, full method library, and selection
+- `/toolkit` - user-facing Methods page with recommendations, the compact full
+  method library, and selection
 - `/plan/setup` - first-time or recurring schedule editor
 - `/plan` - generated calendar and weekly tuning
 - `/results` - redirects to `/persona`
 - `/persona/setup` - planned canonical self-report route; not implemented yet
 
-The guided sequence is Persona -> Toolkit -> Plan. Plan appears after Toolkit is
+The guided sequence is Persona -> Methods -> Plan. Plan appears after Methods is
 confirmed and opens setup until a valid recurring schedule exists. Direct visits
-to a locked stage show a clear completion gate rather than partial content.
+to a locked stage show a clear completion gate rather than partial content. The
+route and internal onboarding stage retain the technical name `toolkit`.
 
 Before a profile exists, global navigation is **About -> Resources -> Take the
 quiz**. With a profile, About remains first, Resources remains available, and
-the guided Persona/Toolkit/Plan destinations are progressively unlocked.
+the guided Persona/Methods/Plan destinations are progressively unlocked.
 
 The results-page coach is no longer in the active UI. The unused
 `src/components/results/CoachNote.tsx` component and legacy `/api/coach` route
@@ -517,7 +532,7 @@ the configured provider for processing and are not stored by Scholara.
 - [x] Make `plan` optional until scheduling is configured.
 - [ ] Finish the canonical self-report route transition.
 
-### Phase 2 - Persona and Study Toolkit
+### Phase 2 - Persona and Methods
 
 - [x] Split the current Results page.
 - [x] Add detailed Persona comparison and a reversible manual choice.
@@ -595,7 +610,7 @@ Implemented in the current codebase:
 
 - Consolidated homepage explanation and updated global navigation
 - Persona-first Express setup with explicit six-axis review
-- Persona comparison and reversible override, plus Study Toolkit separation with
+- Persona comparison and reversible override, plus a separate Methods page with
   explicit method selection
 - Three-step recurring schedule setup with local draft recovery
 - Course-aware and general study modes

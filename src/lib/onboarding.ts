@@ -53,7 +53,7 @@ export function resumeDestination(
     profile.onboardingStage === "toolkit" ||
     !hasConfirmedToolkit(profile)
   ) {
-    return { href: "/toolkit", label: "Choose your Study Toolkit" };
+    return { href: "/toolkit", label: "Choose your study methods" };
   }
 
   if (profile.onboardingStage === "schedule") {

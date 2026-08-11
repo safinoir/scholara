@@ -1,9 +1,9 @@
 # Scholara Project Plan
 
-**Last updated:** 2026-08-09
+**Last updated:** 2026-08-11
 **Current branch:** `ui-changes` (based on the AI/onboarding work already merged
 into `main`)
-**Status:** The guided Persona -> Toolkit -> Weekly Plan workflow is implemented.
+**Status:** The guided Persona -> Methods -> Weekly Plan workflow is implemented.
 The remaining work is self-report routing and post-intake six-axis editing,
 release QA, and merging the current UI refinements.
 
@@ -35,7 +35,8 @@ Technique suggestions combine:
 - category diversity, capped at two recommendations from one category.
 
 The user sees five personalized suggestions and explicitly selects one to three
-methods for their Study Toolkit.
+methods that Scholara incorporates into compatible study blocks in their weekly
+schedule.
 
 ---
 
@@ -65,7 +66,7 @@ AI key.
 ```text
 Quiz or current self-report form
   -> Persona
-  -> Study Toolkit (choose 1-3 methods)
+  -> Methods (choose 1-3 methods for weekly study blocks)
   -> Weekly Plan setup
   -> Generated seven-day calendar
   -> Optional manual or AI-assisted weekly tuning
@@ -82,8 +83,8 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 - Confirming one to three methods unlocks weekly setup.
 - A valid recurring schedule and generated plan complete onboarding.
 - The home page resumes the first unfinished stage for returning users.
-- Legacy version 1 profiles migrate to the Toolkit stage without pretending the
-  old recommendations were user-selected.
+- Legacy version 1 profiles migrate to the `toolkit` stage without pretending
+  the old recommendations were user-selected.
 
 The current self-report route is `/express`. It uses a four-step flow: choose a
 starting persona, confirm or refine the six seeded axes, select obstacles, and
@@ -115,12 +116,14 @@ About -> Resources -> Take the quiz
 ```
 
 With a saved profile, About remains first and Resources remains available.
-Persona, Toolkit, and Plan follow the guided access rules; Tracker and After
-remain available as existing supporting features.
+Persona, Methods, and Plan follow the guided access rules; Tracker and After
+remain available as existing supporting features. The user-facing navigation
+label is **Methods**; its route remains `/toolkit`, and its persisted onboarding
+stage remains `toolkit`.
 
 ---
 
-## 5. Persona and Study Toolkit
+## 5. Persona and Methods
 
 ### Persona
 
@@ -131,24 +134,36 @@ Implemented:
 - six-axis visualization;
 - detailed comparison of all six personas with a reversible manual persona
   choice;
-- explicit continuation to Study Toolkit;
+- explicit continuation to Methods;
 - retake and share actions; and
 - focused Persona page with no technique cards or AI coach.
 
-### Study Toolkit
+### Methods
 
 Implemented:
 
-- personalized top five with reasons, evidence, effort, steps, and tools;
-- remaining methods grouped by category;
+- personalized top five as compact method rows showing the core summary, with
+  every **How it works** detail panel collapsed initially;
+- steps, supporting reasons, evidence detail, and tools available on demand in
+  each row;
+- all remaining methods behind one **Browse more methods** disclosure, grouped
+  by the user goals **Learn and remember**, **Focus and start**, **Plan your
+  workload**, and **Prepare for exams**;
 - selection from either recommendations or the full library;
-- one-to-three selection limit with explicit confirmation;
+- one-to-three selection limit with explicit confirmation and a compact sticky
+  control that shows the chosen methods, saves changes, and becomes **Continue
+  to plan** once the selection is saved;
+- no separate bottom readiness card duplicating the sticky save/continue
+  control;
 - persisted selected IDs kept separate from recommended IDs; and
 - scheduling roles for learning, review, focus support, planning, and
   assessment-related techniques.
 
-Toolkit selections affect what happens inside a study block. They do not create
-extra availability or override calendar constraints.
+The one to three selected methods are incorporated into compatible weekly study
+blocks according to their scheduling roles. They affect what happens inside a
+study block; they do not create extra availability or override calendar
+constraints. A small or incompatible week can leave a selected method unused,
+which the plan reports rather than forcing an unnecessary block.
 
 ---
 
@@ -213,7 +228,7 @@ previews and applies or discards the proposal; applying reruns the deterministic
 scheduler and provides a compact change summary plus one-step undo.
 
 AI never returns final calendar blocks, moves classes, adds study availability,
-or selects toolkit methods.
+or selects methods.
 
 ---
 
@@ -228,7 +243,7 @@ or selects toolkit methods.
 | `/quiz` | Fourteen-question guided intake with draft recovery |
 | `/express` | Persona-first, four-step self-report intake |
 | `/persona` | Persona, blend, strengths, watch-outs, and axes |
-| `/toolkit` | Top five, full method library, and one-to-three selection |
+| `/toolkit` | User-facing **Methods** page with the top five, compact full library, and one-to-three selection |
 | `/plan/setup` | Canonical recurring schedule setup entry |
 | `/plan` | Generated calendar, manual tuning, AI tuning, coaching, copy, and print |
 | `/resources` | Curated resource library; available without a profile |
@@ -250,8 +265,8 @@ or selects toolkit methods.
 
 ## 8. Data, Privacy, and Failure Behavior
 
-- Profile, toolkit, recurring schedule, approved weekly settings, and tracker
-  data are persisted only in browser storage.
+- Profile, selected methods, recurring schedule, approved weekly settings, and
+  tracker data are persisted only in browser storage.
 - There is no account, application database, or analytics pipeline.
 - AI keys remain server-side.
 - Bounded profile, method, week, and plan context is transmitted only when the
@@ -278,7 +293,7 @@ redesign:
 - After/Career: field-by-year checklist with free supporting resources.
 - Share: URL-encoded read-only persona.
 
-Future redesign work for these areas is deferred until Persona, Toolkit, and
+Future redesign work for these areas is deferred until Persona, Methods, and
 Weekly Plan are fully polished.
 
 ---
@@ -291,7 +306,7 @@ Weekly Plan are fully polished.
   `/persona/setup` route.
 - Add Persona-page six-axis editing that recomputes the natural quiz match and
   recommendations while preserving the existing manual persona choice, valid
-  toolkit selections, and schedule.
+  method selections, and schedule.
 - Remove the unused `CoachNote` component and legacy `/api/coach` route.
 - Remove the red **TEST ONLY: Wipe localStorage** home-page button before release.
 
@@ -325,8 +340,9 @@ Weekly Plan are fully polished.
 
 ## 12. Release Definition of Done
 
-- [x] Quiz -> Persona -> Toolkit -> schedule setup -> weekly calendar works.
-- [x] Users explicitly select one to three methods.
+- [x] Quiz -> Persona -> Methods -> schedule setup -> weekly calendar works.
+- [x] Users explicitly select one to three methods for incorporation into
+  compatible weekly study blocks.
 - [x] Plans stay inside confirmed availability and outside classes/busy time.
 - [x] Course-aware and general-study modes both work.
 - [x] Manual tuning works without AI.
