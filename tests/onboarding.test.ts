@@ -9,7 +9,6 @@ import {
 } from "@/lib/onboarding";
 import type {
   AxisScores,
-  LearnerContext,
   LearnerProfile,
   OnboardingStage,
 } from "@/lib/types";
@@ -23,14 +22,6 @@ const AXES: AxisScores = {
   clock: -40,
 };
 
-const CONTEXT: LearnerContext = {
-  year: "sophomore",
-  field: "stem",
-  courseLoad: 4,
-  hoursPerWeek: 10,
-  hasOutsideObligations: false,
-};
-
 function profileAt(
   onboardingStage: OnboardingStage,
   hasSelection = onboardingStage === "schedule" || onboardingStage === "complete",
@@ -38,7 +29,6 @@ function profileAt(
   const profile = generateProfile({
     axes: AXES,
     frictions: ["retention", "distraction"],
-    context: CONTEXT,
   });
 
   return {
@@ -112,16 +102,26 @@ describe("onboarding access", () => {
     const planned = {
       ...profile,
       plan: {
+        algorithmVersion: 2 as const,
         blocks: [],
         flexible: false,
         totalMinutes: 0,
         budgetMinutes: 0,
         minimumEffectiveDose: false,
         rationale: [],
+        frictionResponses: [],
       },
       schedule: {
-        mode: "general" as const,
-        courses: [],
+        mode: "by-course" as const,
+        courses: [
+          {
+            id: "history",
+            name: "History",
+            colorKey: "indigo" as const,
+            includedInPlan: true,
+            priority: "standard" as const,
+          },
+        ],
         classMeetings: [],
         studyWindows: [
           {

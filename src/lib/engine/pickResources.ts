@@ -2,8 +2,8 @@ import { RESOURCES } from "@/lib/data/resources";
 import {
   AXES,
   type AxisScores,
+  type Field,
   type Friction,
-  type LearnerContext,
   type Resource,
 } from "@/lib/types";
 
@@ -16,7 +16,8 @@ const COST_BONUS: Record<Resource["cost"], number> = {
 type PickInput = {
   axes: AxisScores;
   frictions: Friction[];
-  context: LearnerContext;
+  /** Optional education field retained for supporting-resource relevance. */
+  field?: Field;
   /** Tool ids referenced by the recommended techniques. */
   toolIds: string[];
 };
@@ -37,7 +38,7 @@ export function scoreResource(resource: Resource, input: PickInput): number {
     if (input.frictions.includes(friction)) score += 22;
   }
 
-  if (resource.fieldFit?.includes(input.context.field)) score += 16;
+  if (input.field && resource.fieldFit?.includes(input.field)) score += 16;
 
   // Crisis and basic-needs resources should never be buried.
   if (resource.category === "wellbeing" || resource.category === "basic-needs") {

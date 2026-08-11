@@ -3,9 +3,9 @@
 **Last updated:** 2026-08-11
 **Current branch:** `ui-changes` (based on the AI/onboarding work already merged
 into `main`)
-**Status:** The guided Persona -> Methods -> Weekly Plan workflow is implemented.
-The remaining work is self-report routing and post-intake six-axis editing,
-release QA, and merging the current UI refinements.
+**Status:** The obstacle-aware, course-specific Persona -> Methods -> Weekly Plan
+workflow is implemented. Remaining work is self-report routing, post-intake
+six-axis editing, release QA, and merging the current UI refinements.
 
 For the detailed design and implementation record behind onboarding and weekly
 planning, see [onboarding-redesign.md](./onboarding-redesign.md). This file is
@@ -31,7 +31,7 @@ Technique suggestions combine:
 - evidence quality;
 - fit with the six axes and closest persona;
 - obstacles the student reported;
-- time cost relative to the student's week; and
+- a short-method preference when the student reports time scarcity; and
 - category diversity, capped at two recommendations from one category.
 
 The user sees five personalized suggestions and explicitly selects one to three
@@ -48,7 +48,7 @@ schedule.
 | Styling | Tailwind CSS v4 and local UI primitives |
 | State | React context plus typed `localStorage` helpers |
 | Validation | Zod v4 on profiles, schedule data, and API payloads |
-| Profile format | Version 2 with an explicit version 1 migration |
+| Profile format | Version 3 with version 1 and 2 migrations |
 | Backend | Next.js Route Handlers only |
 | Database/auth | None |
 | AI provider | OpenAI-compatible chat-completions endpoint |
@@ -64,7 +64,7 @@ AI key.
 ## 3. Current Guided Flow
 
 ```text
-Quiz or current self-report form
+13-screen quiz or 3-step Express form
   -> Persona
   -> Methods (choose 1-3 methods for weekly study blocks)
   -> Weekly Plan setup
@@ -78,18 +78,20 @@ Saved onboarding stages are:
 type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 ```
 
-- Quiz completion creates a version 2 profile and opens `/persona`.
+- Quiz completion creates a version 3 profile and opens `/persona`.
 - Persona confirmation unlocks `/toolkit`.
 - Confirming one to three methods unlocks weekly setup.
 - A valid recurring schedule and generated plan complete onboarding.
 - The home page resumes the first unfinished stage for returning users.
-- Legacy version 1 profiles migrate to the `toolkit` stage without pretending
-  the old recommendations were user-selected.
+- Legacy version 1 and 2 profiles migrate without pretending old
+  recommendations were user-selected. Their year and field may remain as
+  optional education context for Resources/After, but never affect planning.
 
-The current self-report route is `/express`. It uses a four-step flow: choose a
-starting persona, confirm or refine the six seeded axes, select obstacles, and
-add context. The final profile keeps the user's persona choice distinct from the
-axis-derived match when necessary, then opens `/persona`.
+The current self-report route is `/express`. It uses three steps: choose a
+starting persona, confirm or refine the six seeded axes, and select obstacles.
+There is no intake context step. The final profile keeps the user's persona
+choice distinct from the axis-derived match when necessary, then opens
+`/persona`.
 
 ---
 
@@ -171,14 +173,19 @@ which the plan reports rather than forcing an unnecessary block.
 
 ### Recurring schedule setup
 
-The three-step setup records:
+The two-step, course-only setup records:
 
-1. named courses and priorities, or general study mode;
-2. recurring class meetings; and
-3. confirmed study windows plus a separate weekly target.
+1. named courses, priorities, include/exclude choices, and one or more linked
+   recurring meeting patterns; and
+2. confirmed study windows plus the amount of that available time the learner
+   wants to commit.
 
-The draft autosaves locally. The UI validates meeting conflicts, time ranges,
-window capacity, and target shortfalls before generation.
+At least one named course must be included in the plan. Asynchronous courses may
+have no meeting time, while every saved class meeting must belong to a course.
+The draft autosaves locally. The UI validates conflicts and time ranges, shows
+available time, class deductions, target, feasible planned time, buffer, and
+shortfall, and permits generation when a target exceeds capacity by scheduling
+only what safely fits.
 
 ### Deterministic scheduler
 
@@ -195,7 +202,14 @@ window capacity, and target shortfalls before generation.
 - allocates course time by baseline priority, temporary urgency, and deadlines;
 - assigns selected methods by scheduling role, with compatible recommendation
   or foundation fallbacks when required;
-- reserves one 30-minute weekly review when a valid slot exists;
+- labels whether each primary method was selected or supplied as a foundation;
+- creates exactly one visible response for every persistent or week-specific
+  obstacle and ties it to the relevant blocks and methods;
+- keeps every non-administration block course-specific, with a duration, method,
+  and concrete instruction;
+- adds a 30-minute weekly review only when the target reaches
+  `max(120, 30 × (included courses + 1))` minutes, preserving first-pass course
+  coverage before administration;
 - exposes unused methods, unassigned courses, deadline compromises, and capacity
   warnings; and
 - produces deterministic output for identical input.
@@ -209,8 +223,12 @@ pattern in the current scheduler.
   blocks.
 - Mobile: seven-day selector plus a chronological agenda for the chosen day.
 - Study-block detail: primary method, supporting methods, and block instruction.
-- Utilities: edit recurring schedule, copy as text, weekly adjustment, AI
-  coaching brief, and fixed-topic plan questions.
+- Before the calendar, **What this plan is helping you overcome** explains each
+  reported obstacle, Scholara's response, and where it appears in the plan.
+- Calendar blocks show course, method, and duration without requiring expansion;
+  details also show the instruction, method source, and obstacles addressed.
+- Utilities: edit recurring schedule, copy as text, manual weekly adjustment,
+  and optional AI note interpretation.
 
 ### Weekly tuning
 
@@ -240,12 +258,12 @@ or selects methods.
 | --- | --- |
 | `/` | Persuasive overview, product explanation, and onboarding resume |
 | `/about` | Detailed methodology, limitations, privacy, and reset controls |
-| `/quiz` | Fourteen-question guided intake with draft recovery |
-| `/express` | Persona-first, four-step self-report intake |
+| `/quiz` | Thirteen-screen guided intake with draft recovery; obstacles are the final screen |
+| `/express` | Persona-first, three-step self-report intake with no context step |
 | `/persona` | Persona, blend, strengths, watch-outs, and axes |
 | `/toolkit` | User-facing **Methods** page with the top five, compact full library, and one-to-three selection |
 | `/plan/setup` | Canonical recurring schedule setup entry |
-| `/plan` | Generated calendar, manual tuning, AI tuning, coaching, and copy |
+| `/plan` | Obstacle responses, generated course calendar, manual tuning, AI tuning, and copy |
 | `/resources` | Curated resource library; available without a profile |
 | `/tracker` | Existing micro-habit tracker |
 | `/career` | Existing field-and-year career checklist, labeled **After** in navigation |
@@ -256,26 +274,27 @@ or selects methods.
 
 | Route | Current purpose |
 | --- | --- |
-| `/api/plan` | Optional weekly brief and block-level coaching over an engine-built plan |
-| `/api/ask` | Fixed-topic answers grounded in the actual plan |
 | `/api/plan/tune` | Free-text weekly note to bounded structured proposal |
-| `/api/coach` | Legacy results-coach endpoint; no longer used by the active UI |
+
+The former `/api/plan`, `/api/ask`, and `/api/coach` coaching routes and their UI
+have been removed. AI is used only for the explicit weekly tuning proposal.
 
 ---
 
 ## 8. Data, Privacy, and Failure Behavior
 
+- New profile v3 records do not contain the former broad learner context.
+  `educationContext?: { year; field }` exists only for migrated Resources/After
+  compatibility and never affects method ranking or scheduling.
 - Profile, selected methods, recurring schedule, approved weekly settings, and
   tracker data are persisted only in browser storage.
 - There is no account, application database, or analytics pipeline.
 - AI keys remain server-side.
-- Bounded profile, method, week, and plan context is transmitted only when the
-  user invokes an AI coaching, question, or tuning action. Scholara does not
-  persist those requests.
+- A bounded set of known courses and current week values is transmitted only
+  when the user invokes AI weekly tuning. Scholara does not persist the request.
 - A weekly free-text note leaves the browser only after explicit submission to
   the tuning action.
-- The raw note is not persisted by Scholara or forwarded into later coaching
-  requests.
+- The raw note is not persisted by Scholara or reused in later requests.
 - API payloads are narrowly validated and timeout-guarded.
 - Missing keys, timeouts, malformed JSON, or rejected output leave the plan
   unchanged and preserve manual controls.
@@ -291,7 +310,9 @@ redesign:
 
 - Resources: cost labels, fit sorting, campus resources, and paid-hidden default.
 - Tracker: up to three micro-habits, forgiving streaks, and reassessment prompt.
-- After/Career: field-by-year checklist with free supporting resources.
+- After/Career: field-by-year checklist with free supporting resources. Migrated
+  profiles may seed it from optional legacy education context; new profiles use
+  its existing defaults and manual field control.
 - Legacy Share: existing URL-encoded persona links remain readable, but the
   active UI no longer offers a share action.
 
@@ -309,7 +330,6 @@ Weekly Plan are fully polished.
 - Add Persona-page six-axis editing that recomputes the natural quiz match and
   recommendations while preserving the existing manual persona choice, valid
   method selections, and schedule.
-- Remove the unused `CoachNote` component and legacy `/api/coach` route.
 - Remove the red **TEST ONLY: Wipe localStorage** home-page button before release.
 
 ### Release verification
@@ -346,16 +366,20 @@ Weekly Plan are fully polished.
 - [x] Users explicitly select one to three methods for incorporation into
   compatible weekly study blocks.
 - [x] Plans stay inside confirmed availability and outside classes/busy time.
-- [x] Course-aware and general-study modes both work.
+- [x] Setup is course-only, supports asynchronous classes, and links every class
+  meeting to a course.
 - [x] Manual tuning works without AI.
 - [x] AI tuning is bounded, reviewable, and failure-safe.
+- [x] Every reported obstacle has a visible deterministic response in the plan.
+- [x] Every study block exposes its course, method, duration, and instruction.
 - [x] Desktop calendar and mobile agenda are implemented.
-- [x] Profile v1 migration is covered by tests.
+- [x] Profile v1/v2 migrations into profile v3 are covered by tests.
 - [x] About and Resources are always available in navigation.
 - [x] Users can compare all personas and override or restore their original
   axis-derived result.
 - [x] Express users actively choose a persona and confirm the six axes.
 - [ ] Post-intake six-axis editing is complete.
-- [ ] Temporary and legacy UI/API cleanup is complete.
+- [x] Legacy AI coaching UI and API cleanup is complete.
+- [ ] Temporary test-only UI cleanup is complete.
 - [ ] Accessibility and real-device verification are complete.
 - [ ] Current UI branch is merged and production is smoke-tested.

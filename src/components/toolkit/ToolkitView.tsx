@@ -121,16 +121,20 @@ function ToolkitContent({
         ? "schedule"
         : profile.onboardingStage;
 
+    const activeFrictions = [
+      ...new Set([
+        ...profile.frictions,
+        ...(profile.weekContext?.focusFrictions ?? []),
+      ]),
+    ];
     const plan = profile.schedule
       ? buildSchedulePlan({
           axes: profile.axes,
           frictions: profile.frictions,
-          context: profile.context,
           schedule: profile.schedule,
           techniques: rankTechniques({
             axes: profile.axes,
-            frictions: profile.frictions,
-            context: profile.context,
+            frictions: activeFrictions,
             primary: effectiveArchetypeMatch(profile).primary,
           }),
           selectedTechniqueIds: orderedDraft,
@@ -143,7 +147,6 @@ function ToolkitContent({
       selectedTechniqueIds: orderedDraft,
       onboardingStage,
       plan,
-      coaching: undefined,
     });
     setDraft(orderedDraft);
   };
@@ -217,7 +220,7 @@ function ToolkitContent({
           Best matches for you
         </h2>
         <p className="mt-3 max-w-2xl text-ink-soft">
-          Based on your profile, obstacles, available time, and the research.
+          Based on your profile, reported obstacles, and the research.
         </p>
         <div className="mt-6 space-y-3">
           {recommended.map((technique, index) => {

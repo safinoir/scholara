@@ -10,26 +10,25 @@ import {
 import { effectiveArchetypeMatch } from "@/lib/persona";
 import { parseProfile, profileSchema } from "@/lib/schema";
 import type {
-  LearnerContext,
+  EducationContext,
   LearnerProfile,
   ScheduleSetup,
   WeekContext,
 } from "@/lib/types";
 
-const CONTEXT: LearnerContext = {
+const EDUCATION_CONTEXT: EducationContext = {
   year: "sophomore",
   field: "stem",
-  courseLoad: 4,
-  hoursPerWeek: 10,
-  hasOutsideObligations: false,
 };
 
 function makeProfile() {
-  return generateProfile({
-    axes: { ...ARCHETYPE_BY_ID.anchor.vector },
-    frictions: ["retention", "distraction"],
-    context: CONTEXT,
-  });
+  return {
+    ...generateProfile({
+      axes: { ...ARCHETYPE_BY_ID.anchor.vector },
+      frictions: ["retention", "distraction"],
+    }),
+    educationContext: EDUCATION_CONTEXT,
+  };
 }
 
 const SCHEDULE: ScheduleSetup = {
@@ -107,13 +106,12 @@ describe("persona overrides", () => {
     const expectedTechniques = rankTechniques({
       axes: profile.axes,
       frictions: profile.frictions,
-      context: profile.context,
       primary: "explorer",
     });
     const expectedResources = pickResources({
       axes: profile.axes,
       frictions: profile.frictions,
-      context: profile.context,
+      field: profile.educationContext?.field,
       toolIds: expectedTechniques.flatMap(({ technique }) => technique.toolIds),
     });
 
@@ -141,25 +139,18 @@ describe("persona overrides", () => {
     expect(parsed?.personaOverride).toBe("explorer");
   });
 
-  it("preserves schedule choices, rebuilds an existing plan, and clears coaching", () => {
+  it("preserves schedule choices and rebuilds an existing plan", () => {
     const profile = makeProfile();
-    const context = {
-      ...profile.context,
-      courseLoad: SCHEDULE.courses.length,
-      hoursPerWeek: SCHEDULE.targetStudyMinutes / 60,
-    };
     const selectedTechniqueIds = ["retrieval-practice"];
     const frictions = [...new Set([...profile.frictions, ...WEEK.focusFrictions])];
     const initialTechniques = rankTechniques({
       axes: profile.axes,
       frictions,
-      context,
       primary: profile.match.primary,
     });
     const initialPlan = buildSchedulePlan({
       axes: profile.axes,
-      frictions,
-      context,
+      frictions: profile.frictions,
       schedule: SCHEDULE,
       techniques: initialTechniques,
       selectedTechniqueIds,
@@ -167,32 +158,21 @@ describe("persona overrides", () => {
     });
     const planned: LearnerProfile = {
       ...profile,
-      context,
       selectedTechniqueIds,
       onboardingStage: "complete",
       schedule: SCHEDULE,
       weekContext: WEEK,
       plan: { ...initialPlan, rationale: ["Stale plan"] },
-      coaching: {
-        brief: "Stale coaching",
-        focus: "Old focus",
-        watchOut: "Old watch-out",
-        blockNotes: {},
-        source: "fallback",
-        generatedAt: new Date(0).toISOString(),
-      },
     };
 
     const changed = changePersona(planned, "explorer");
     const expectedPlan = buildSchedulePlan({
       axes: profile.axes,
-      frictions,
-      context,
+      frictions: profile.frictions,
       schedule: SCHEDULE,
       techniques: rankTechniques({
         axes: profile.axes,
         frictions,
-        context,
         primary: "explorer",
       }),
       selectedTechniqueIds,
@@ -205,7 +185,6 @@ describe("persona overrides", () => {
     expect(changed.weekContext).toEqual(WEEK);
     expect(changed.onboardingStage).toBe("complete");
     expect(changed.plan).toEqual(expectedPlan);
-    expect(changed.coaching).toBeUndefined();
     expect(profileSchema.safeParse(changed).success).toBe(true);
   });
 

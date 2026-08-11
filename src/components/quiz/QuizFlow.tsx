@@ -13,17 +13,8 @@ import {
   loadQuizDraft,
   saveQuizDraft,
 } from "@/lib/storage";
-import type { Friction, LearnerContext, QuizAnswers } from "@/lib/types";
+import type { Friction, QuizAnswers } from "@/lib/types";
 import { Button, Progress, cn } from "@/components/ui";
-import { ContextStep } from "./ContextStep";
-
-const DEFAULT_CONTEXT: LearnerContext = {
-  year: "freshman",
-  field: "undecided",
-  courseLoad: 4,
-  hoursPerWeek: 10,
-  hasOutsideObligations: false,
-};
 
 export function QuizFlow() {
   const router = useRouter();
@@ -32,25 +23,24 @@ export function QuizFlow() {
   const [step, setStep] = useState(0);
   const [axisAnswers, setAxisAnswers] = useState<Record<string, number>>({});
   const [frictions, setFrictions] = useState<Friction[]>([]);
-  const [context, setContext] = useState<LearnerContext>(DEFAULT_CONTEXT);
   const [hydrated, setHydrated] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   // Restore an in-progress quiz so a refresh doesn't cost the user their answers.
   useEffect(() => {
-    const draft = loadQuizDraft();
-    if (draft) {
-      if (draft.axisAnswers) setAxisAnswers(draft.axisAnswers);
-      if (draft.frictions) setFrictions(draft.frictions);
-      if (draft.context) setContext({ ...DEFAULT_CONTEXT, ...draft.context });
-    }
-    setHydrated(true);
+    const restore = window.setTimeout(() => {
+      const draft = loadQuizDraft();
+      if (draft?.axisAnswers) setAxisAnswers(draft.axisAnswers);
+      if (draft?.frictions) setFrictions(draft.frictions);
+      setHydrated(true);
+    }, 0);
+    return () => window.clearTimeout(restore);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    saveQuizDraft({ axisAnswers, frictions, context });
-  }, [hydrated, axisAnswers, frictions, context]);
+    saveQuizDraft({ axisAnswers, frictions });
+  }, [hydrated, axisAnswers, frictions]);
 
   // Move focus to the new question so keyboard and screen-reader users follow along.
   useEffect(() => {
@@ -59,7 +49,6 @@ export function QuizFlow() {
 
   const isAxisStep = step < AXIS_QUESTIONS.length;
   const isFrictionStep = step === AXIS_QUESTIONS.length;
-  const isContextStep = step === AXIS_QUESTIONS.length + 1;
   const question = isAxisStep ? AXIS_QUESTIONS[step] : null;
 
   const canAdvance = isAxisStep
@@ -92,11 +81,11 @@ export function QuizFlow() {
   }, []);
 
   const finish = useCallback(() => {
-    const answers: QuizAnswers = { axisAnswers, frictions, context };
+    const answers: QuizAnswers = { axisAnswers, frictions };
     setProfile(generateProfileFromQuiz(answers));
     clearQuizDraft();
     router.push("/persona");
-  }, [axisAnswers, frictions, context, setProfile, router]);
+  }, [axisAnswers, frictions, setProfile, router]);
 
   // Number keys pick an option; arrows move between screens.
   useEffect(() => {
@@ -120,9 +109,10 @@ export function QuizFlow() {
         }
       }
 
-      if (event.key === "ArrowRight" && canAdvance && !isContextStep) {
+      if (event.key === "ArrowRight" && canAdvance) {
         event.preventDefault();
-        goNext();
+        if (isFrictionStep) finish();
+        else goNext();
       }
       if (event.key === "ArrowLeft" && step > 0) {
         event.preventDefault();
@@ -132,7 +122,16 @@ export function QuizFlow() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [question, canAdvance, isContextStep, step, selectOption, goNext, goBack]);
+  }, [
+    question,
+    canAdvance,
+    isFrictionStep,
+    step,
+    selectOption,
+    finish,
+    goNext,
+    goBack,
+  ]);
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-2xl flex-col px-5 py-8">
@@ -214,8 +213,8 @@ export function QuizFlow() {
                 What actually gets in your way?
               </h1>
               <p className="mt-2 text-ink-soft">
-                Pick everything that applies, or none. This is the part that
-                changes your recommendations the most.
+                Pick everything that applies, or none. Scholara uses these
+                obstacles in both your method recommendations and weekly plan.
               </p>
             </legend>
 
@@ -263,13 +262,6 @@ export function QuizFlow() {
           </fieldset>
         )}
 
-        {isContextStep && (
-          <ContextStep
-            headingRef={headingRef}
-            context={context}
-            onChange={setContext}
-          />
-        )}
       </div>
 
       <div className="sticky bottom-0 mt-10 flex items-center gap-3 border-t border-line bg-paper/90 py-4 backdrop-blur">
@@ -279,18 +271,18 @@ export function QuizFlow() {
         </Button>
 
         <div className="ml-auto">
-          {isContextStep ? (
+          {isFrictionStep ? (
             <Button size="lg" onClick={finish}>
               See my persona
               <ArrowRight className="size-4" aria-hidden />
             </Button>
           ) : (
             <Button
-              variant={isFrictionStep ? "primary" : "secondary"}
+              variant="secondary"
               onClick={goNext}
               disabled={!canAdvance}
             >
-              {isFrictionStep ? "Continue" : "Skip"}
+              Skip
               <ArrowRight className="size-4" aria-hidden />
             </Button>
           )}

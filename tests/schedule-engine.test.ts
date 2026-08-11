@@ -6,9 +6,9 @@ import {
 } from "@/lib/engine";
 import {
   DAYS,
+  FRICTIONS,
   type AxisScores,
   type Course,
-  type LearnerContext,
   type ScheduleSetup,
   type ScoredTechnique,
   type WeekContext,
@@ -21,14 +21,6 @@ const AXES: AxisScores = {
   input: 0,
   drive: 0,
   clock: 0,
-};
-
-const CONTEXT: LearnerContext = {
-  year: "sophomore",
-  field: "stem",
-  courseLoad: 3,
-  hoursPerWeek: 12,
-  hasOutsideObligations: false,
 };
 
 const RECOMMENDED_IDS = [
@@ -71,8 +63,8 @@ const COURSES: Course[] = [
 
 function schedule(overrides: Partial<ScheduleSetup> = {}): ScheduleSetup {
   return {
-    mode: "general",
-    courses: [],
+    mode: "by-course",
+    courses: [COURSES[1]],
     classMeetings: [],
     studyWindows: [
       {
@@ -226,7 +218,6 @@ describe("buildSchedulePlan", () => {
     const plan = buildSchedulePlan({
       axes: AXES,
       frictions: [],
-      context: CONTEXT,
       schedule: setup,
       techniques: TECHNIQUES,
       selectedTechniqueIds: [
@@ -270,7 +261,6 @@ describe("buildSchedulePlan", () => {
     const plan = buildSchedulePlan({
       axes: AXES,
       frictions: [],
-      context: CONTEXT,
       schedule: schedule({
         studyWindows: [
           {
@@ -290,14 +280,34 @@ describe("buildSchedulePlan", () => {
     expect(plan.budgetMinutes).toBe(240);
     expect(plan.unallocatedMinutes).toBe(180);
     expect(plan.warnings?.some((warning) => warning.code === "insufficient-availability")).toBe(true);
-    expect(plan.blocks.filter((block) => block.label === "Weekly review")).toHaveLength(1);
+    expect(plan.blocks.filter((block) => block.label === "Weekly review")).toHaveLength(0);
+  });
+
+  it("uses a 30-minute target on the highest-priority course", () => {
+    const plan = buildSchedulePlan({
+      axes: AXES,
+      frictions: [],
+      schedule: schedule({
+        courses: COURSES,
+        targetStudyMinutes: 30,
+      }),
+      techniques: TECHNIQUES,
+      selectedTechniqueIds: ["retrieval-practice"],
+    });
+
+    expect(plan.totalMinutes).toBe(30);
+    expect(plan.blocks).toHaveLength(1);
+    expect(plan.blocks[0]).toMatchObject({
+      courseId: "focus",
+      minutes: 30,
+      techniqueSource: "selected",
+    });
   });
 
   it("returns an explicit empty plan when no usable window remains", () => {
     const plan = buildSchedulePlan({
       axes: AXES,
       frictions: [],
-      context: CONTEXT,
       schedule: schedule({
         studyWindows: [
           {
@@ -329,7 +339,6 @@ describe("buildSchedulePlan", () => {
     const plan = buildSchedulePlan({
       axes: AXES,
       frictions: [],
-      context: CONTEXT,
       schedule: schedule({
         mode: "by-course",
         courses: COURSES,
@@ -364,7 +373,6 @@ describe("buildSchedulePlan", () => {
     const plan = buildSchedulePlan({
       axes: AXES,
       frictions: [],
-      context: CONTEXT,
       schedule: schedule({
         studyWindows: [
           {
@@ -388,7 +396,6 @@ describe("buildSchedulePlan", () => {
     const plan = buildSchedulePlan({
       axes: AXES,
       frictions: [],
-      context: CONTEXT,
       schedule: schedule({
         studyWindows: [
           {
@@ -413,7 +420,6 @@ describe("buildSchedulePlan", () => {
     const plan = buildSchedulePlan({
       axes: AXES,
       frictions: [],
-      context: CONTEXT,
       schedule: schedule({
         mode: "by-course",
         courses: [COURSES[2]],
@@ -444,11 +450,172 @@ describe("buildSchedulePlan", () => {
     expect(plan.warnings?.some((warning) => warning.code === "deadline-after-slot")).toBe(true);
   });
 
+  it.each(FRICTIONS)(
+    "creates one visible deterministic response for %s",
+    (friction) => {
+      const plan = buildSchedulePlan({
+        axes: AXES,
+        frictions: [friction],
+        schedule: schedule({
+          courses: COURSES,
+          targetStudyMinutes: 180,
+        }),
+        techniques: TECHNIQUES,
+        selectedTechniqueIds: [
+          "retrieval-practice",
+          "pomodoro",
+          "dual-coding",
+        ],
+      });
+
+      const responses = plan.frictionResponses.filter(
+        (response) => response.frictionId === friction,
+      );
+      expect(responses).toHaveLength(1);
+      expect(responses[0].source).toBe("profile");
+      expect(responses[0].strategy.length).toBeGreaterThan(20);
+      expect(responses[0].blockIds.length).toBeGreaterThan(0);
+      for (const blockId of responses[0].blockIds) {
+        expect(
+          plan.blocks.find((block) => block.id === blockId)?.addressedFrictionIds,
+        ).toContain(friction);
+      }
+    },
+  );
+
+  it("deduplicates persistent and weekly obstacles while preserving their source", () => {
+    const plan = buildSchedulePlan({
+      axes: AXES,
+      frictions: ["distraction"],
+      schedule: schedule({ targetStudyMinutes: 180 }),
+      techniques: TECHNIQUES,
+      selectedTechniqueIds: ["retrieval-practice", "pomodoro"],
+      week: week({ focusFrictions: ["distraction", "motivation"] }),
+    });
+
+    expect(plan.frictionResponses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ frictionId: "distraction", source: "both" }),
+        expect.objectContaining({ frictionId: "motivation", source: "week" }),
+      ]),
+    );
+    expect(plan.frictionResponses).toHaveLength(2);
+  });
+
+  it("links every active obstacle to a tactic when only one block fits", () => {
+    const plan = buildSchedulePlan({
+      axes: AXES,
+      frictions: [...FRICTIONS],
+      schedule: schedule({
+        courses: COURSES,
+        targetStudyMinutes: 30,
+      }),
+      techniques: TECHNIQUES,
+      selectedTechniqueIds: ["interleaving"],
+      week: week({
+        courseTargets: [
+          {
+            courseId: "standard",
+            priority: "urgent",
+            deadlineDay: "Friday",
+          },
+        ],
+      }),
+    });
+
+    const contentBlock = plan.blocks.find(
+      (block) => block.intensity !== "admin",
+    );
+    expect(contentBlock).toBeDefined();
+    expect(plan.frictionResponses).toHaveLength(FRICTIONS.length);
+    for (const response of plan.frictionResponses) {
+      expect(response.blockIds).toContain(contentBlock!.id);
+      expect(contentBlock!.addressedFrictionIds).toContain(
+        response.frictionId,
+      );
+    }
+  });
+
+  it("prioritizes a selected method that fixes an unresolved obstacle", () => {
+    const plan = buildSchedulePlan({
+      axes: AXES,
+      frictions: ["motivation"],
+      schedule: schedule({ targetStudyMinutes: 60 }),
+      techniques: TECHNIQUES,
+      selectedTechniqueIds: ["retrieval-practice", "feynman"],
+    });
+
+    expect(plan.blocks[0]).toMatchObject({
+      techniqueId: "feynman",
+      techniqueSource: "selected",
+      courseId: "standard",
+    });
+  });
+
+  it("labels a required content fallback as a foundation method", () => {
+    const plan = buildSchedulePlan({
+      axes: AXES,
+      frictions: ["distraction"],
+      schedule: schedule({ targetStudyMinutes: 60 }),
+      techniques: TECHNIQUES,
+      selectedTechniqueIds: ["pomodoro"],
+    });
+
+    expect(plan.blocks[0]).toMatchObject({
+      techniqueSource: "foundation",
+      supportingTechniqueIds: ["pomodoro"],
+      courseId: "standard",
+    });
+    expect(plan.blocks[0].label).not.toContain("General study");
+  });
+
+  it("turns a later course block into retrieval review for retention", () => {
+    const plan = buildSchedulePlan({
+      axes: AXES,
+      frictions: ["retention"],
+      schedule: schedule({ targetStudyMinutes: 180 }),
+      techniques: TECHNIQUES,
+      selectedTechniqueIds: ["retrieval-practice"],
+    });
+
+    const courseBlocks = plan.blocks.filter(
+      (block) => block.courseId === "standard",
+    );
+    expect(courseBlocks.length).toBeGreaterThan(1);
+    expect(courseBlocks.slice(1).some((block) => block.intensity === "review")).toBe(true);
+  });
+
+  it("adds administration only after the review threshold preserves course coverage", () => {
+    const belowThreshold = buildSchedulePlan({
+      axes: AXES,
+      frictions: [],
+      schedule: schedule({ targetStudyMinutes: 90 }),
+      techniques: TECHNIQUES,
+      selectedTechniqueIds: ["retrieval-practice"],
+    });
+    const atThreshold = buildSchedulePlan({
+      axes: AXES,
+      frictions: [],
+      schedule: schedule({ courses: COURSES, targetStudyMinutes: 120 }),
+      techniques: TECHNIQUES,
+      selectedTechniqueIds: ["retrieval-practice"],
+    });
+
+    expect(belowThreshold.blocks.some((block) => block.intensity === "admin")).toBe(false);
+    expect(atThreshold.blocks.filter((block) => block.intensity === "admin")).toHaveLength(1);
+    expect(
+      new Set(
+        atThreshold.blocks
+          .filter((block) => block.intensity !== "admin")
+          .map((block) => block.courseId),
+      ),
+    ).toEqual(new Set(COURSES.map((course) => course.id)));
+  });
+
   it("is deterministic for identical inputs", () => {
     const input = {
       axes: { ...AXES, clock: 80 },
       frictions: ["distraction" as const],
-      context: CONTEXT,
       schedule: schedule({
         mode: "by-course" as const,
         courses: COURSES,

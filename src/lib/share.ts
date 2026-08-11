@@ -2,8 +2,8 @@ import { AXES, type ArchetypeId, type AxisScores, type Friction } from "@/lib/ty
 import { ARCHETYPE_IDS, FRICTIONS } from "@/lib/types";
 
 /**
- * A shareable card needs only the persona, the axes, and the obstacles — never
- * the free-text context. Encoding it in the URL keeps sharing serverless.
+ * A shareable card needs only the persona, axes, and reported obstacles.
+ * Encoding that bounded profile in the URL keeps this legacy route serverless.
  */
 export type SharePayload = {
   primary: ArchetypeId;

@@ -16,8 +16,8 @@ import { AXIS_META } from "@/lib/data/axes";
 const STEPS = [
   {
     icon: ClipboardList,
-    title: "Answer fourteen questions",
-    body: "Not a horoscope. We ask when you focus, how long you last, what keeps derailing you, and how many hours you genuinely have.",
+    title: "Answer thirteen questions",
+    body: "Not a horoscope. We ask when you focus, how long you last, and what keeps derailing you.",
   },
   {
     icon: BookOpenCheck,
@@ -68,17 +68,17 @@ const RANKING_SIGNALS = [
     body: "A method gets a meaningful boost when it directly addresses your friction points.",
   },
   {
-    title: "The time you have",
-    body: "Time-heavy methods are less likely to rank highly when your week is already tight.",
+    title: "Time pressure you report",
+    body: "If time scarcity gets in your way, shorter methods move higher in your recommendations.",
   },
 ] as const;
 
 const PLAN_INPUTS = [
   {
     icon: SlidersHorizontal,
-    eyebrow: "Your persona",
+    eyebrow: "Your profile",
     title: "Sets the rhythm",
-    body: "It shapes session length, structure, accountability, format, motivation cues, and preferred hours.",
+    body: "Your six axes shape cadence and structure, while each obstacle you reported gets a concrete response in the plan.",
   },
   {
     icon: BookOpenCheck,
@@ -101,7 +101,10 @@ function HowItWorksSection() {
       className="scroll-mt-20 border-y border-line bg-surface"
     >
       <div className="mx-auto max-w-6xl px-5 py-10 sm:py-12 lg:py-16">
-        <SectionHeading eyebrow="How it works" title="Three steps, one sitting" />
+        <SectionHeading
+          eyebrow="How it works"
+          title="Three steps from profile to plan"
+        />
         <ol className="mt-6 grid gap-3 sm:mt-8 sm:gap-4 md:grid-cols-3 lg:mt-10 lg:gap-6">
           {STEPS.map((step, index) => (
             <li key={step.title}>
@@ -363,7 +366,7 @@ function FinalCta() {
     <section className="mx-auto max-w-6xl px-5 py-20">
       <Card className="border-brand-100 bg-brand-50 text-center">
         <h2 className="text-2xl font-semibold sm:text-3xl">
-          Two minutes now, a plan you&rsquo;ll actually keep.
+          Two minutes to meet your persona. Then build a plan you&rsquo;ll keep.
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-ink-soft">
           No signup, no email, no cost. If you don&rsquo;t like the result, you

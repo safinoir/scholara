@@ -14,15 +14,15 @@ Most students are never taught *how* to study. They get generic advice — "revi
 
 | Friction | What Scholara does about it |
 | --- | --- |
-| "I don't know *how* to study" | Diagnoses a learner persona and prescribes 5 techniques with step-by-step instructions |
-| "I don't have time" | Builds a weekly plan from the hours you actually have, and never exceeds them |
+| "I don't know *how* to study" | Shows a practical persona, suggests five methods, and lets the learner choose one to three |
+| "I don't have time" | Builds a weekly plan only inside confirmed study availability and reports any shortfall |
 | "I can't focus / I procrastinate" | Maps each obstacle you name to a specific countermeasure |
 | "Good tools cost money" | Every resource is labeled free / free-tier / paid, and paid is hidden by default |
 | "I don't have a quiet space" | Routes you to campus accommodations and free study spaces you already pay for |
 | "I don't know what comes after" | A free, year-sequenced career track for your field |
 | "Advice never sticks" | Habit tracking with forgiving streaks and a 2-week re-assessment prompt |
 
-**No account. No database. No cost.** Your profile and schedule stay in your browser's local storage. Only AI features you explicitly invoke send bounded context to the configured provider.
+**No account. No database. No cost.** Your profile and schedule stay in your browser's local storage. Only the AI weekly-tuning action you explicitly invoke sends bounded context to the configured provider.
 
 ---
 
@@ -42,14 +42,22 @@ This distinction is stated openly inside the app, on `/about`.
 ## How it works
 
 ```
-QuizAnswers (14 questions)
+QuizAnswers (13 screens) or Express setup (3 steps)
   └─▶ scoreAxes()        → 6 axis scores, −100..100
         └─▶ matchArchetype()  → primary + secondary, by cosine similarity
               └─▶ rankTechniques()  → top 5, with category diversity cap
-                    └─▶ buildWeeklyPlan()  → day/time blocks
-                          └─▶ pickResources()  → fit-sorted, cost-aware
-                                └─▶ LearnerProfile → localStorage
+                    └─▶ learner chooses 1–3 methods
+                          └─▶ classes + confirmed study windows
+                                └─▶ buildSchedulePlan() → course-specific blocks
+                                      └─▶ LearnerProfile v3 → localStorage
 ```
+
+The guided path asks 12 axis questions followed by one obstacle screen. Express
+collects Persona, Six axes, and Obstacles. Neither path asks for estimated course
+load or weekly hours; those concrete inputs belong in the two-step Plan setup.
+New version 3 profiles contain no general learner context. Year and field may be
+retained only when migrating old profiles, for supporting Resources/After pages,
+and never influence the weekly schedule.
 
 ### The six axes
 
@@ -70,11 +78,12 @@ Matched by cosine similarity, so the *shape* of your preferences matters rather 
 
 ### Scheduling rules
 
-- **Only 85% of your stated hours get scheduled.** This is the single most important decision in the app: a full calendar breaks the first time life interferes, and a broken plan gets abandoned rather than adjusted.
-- Session length comes from your rhythm axis; hardest material goes in your peak window.
-- Spaced reviews are auto-placed on a 1 / 3 / 7-day cadence.
-- **The weekly review is never cut** — it's trimmed out of a deep block instead, and it's sourced from the full technique library so it survives even when it didn't rank in your top five.
-- If you report genuine time scarcity, you get a three-session "minimum effective dose" instead of a grid.
+- Study blocks stay inside the windows the learner confirms and never overlap a class or temporary busy time.
+- Every non-administration block names the course, method, duration, and concrete action.
+- Course priority, weekly urgency, deadlines, the six axes, and selected methods shape allocation and placement.
+- Every reported obstacle gets a visible response tied to the blocks and methods that address it.
+- If the target exceeds physical capacity, Scholara schedules only what fits and reports the shortfall.
+- A 30-minute weekly review is added only when there is enough time to cover every included course first.
 
 ---
 
@@ -86,21 +95,21 @@ Matched by cosine similarity, so the *shape* of your preferences matters rather 
 | Styling | Tailwind CSS v4, deep-blue theme via `@theme` |
 | State | React Context + `localStorage`, validated with Zod on read |
 | Icons | lucide-react |
-| Tests | Vitest on the engine (29 tests) |
+| Tests | Vitest for engines, schemas, migrations, onboarding, and AI tuning |
 | AI | Optional, provider-agnostic, fully degradable |
 
 ### Project layout
 
 ```
 src/
-├─ app/              # routes: /, /quiz, /express, /results, /plan,
-│                    #         /resources, /tracker, /career, /about,
-│                    #         /share/[code], /api/coach, /api/plan, /api/ask
+├─ app/              # routes: /, /quiz, /express, /persona, /toolkit,
+│                    #         /plan, /resources, /tracker, /career, /about,
+│                    #         /share/[code], /api/plan/tune
 ├─ components/       # display only — no business logic
 ├─ hooks/            # useProfile, useTracker
 └─ lib/
    ├─ engine/        # pure functions: scoring, matching, ranking, planning
-   ├─ ai/            # server-only client, validation, prompts, fallbacks
+   ├─ ai/            # server-only client and bounded weekly-note tuning
    ├─ data/          # all content as typed arrays
    ├─ types.ts       # every shared shape
    ├─ schema.ts      # Zod validation + profile versioning
@@ -124,9 +133,9 @@ npm run build    # production build
 
 No environment variables are required.
 
-### Optional AI coaching
+### Optional AI weekly tuning
 
-The results page can generate a coaching note, while the weekly plan adds a personalized brief, block-level guidance, and grounded follow-up answers. AI **never selects techniques or edits the schedule** — the deterministic engine remains the source of truth.
+The complete plan works without AI. After a plan exists, the learner may submit a short note about changes such as an exam, work shift, or low-energy week. AI converts that note into a bounded proposal that the learner reviews before applying. The deterministic engine still creates every calendar block; AI cannot move classes, add availability, select methods, or directly edit the schedule.
 
 ```bash
 cp .env.example .env.local
@@ -158,7 +167,7 @@ Treated as a core requirement, since the audience explicitly includes people who
 
 ## Privacy
 
-There is no database, analytics, or telemetry. Your profile and schedule live in `localStorage` and can be deleted in one click from `/about`. Legacy shared-persona URLs encode their data in the URL itself, but the active UI no longer creates them. Optional coaching sends bounded plan context to the configured AI provider. A weekly note is sent only when the student selects **Preview AI changes**, is not saved by Scholara, and can only produce a validated proposal that the student must apply.
+There is no database, analytics, or telemetry. Your profile and schedule live in `localStorage` and can be deleted in one click from `/about`. Legacy shared-persona URLs encode their data in the URL itself, but the active UI no longer creates them. A weekly note is sent to the configured AI provider only when the student selects **Preview AI changes**. Scholara does not save the raw note, and the model can return only a validated proposal that the student must apply.
 
 ---
 

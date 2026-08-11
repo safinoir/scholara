@@ -14,15 +14,12 @@ import { PersonaStarterStep } from "@/components/quiz/PersonaStarterStep";
 import {
   Button,
   Card,
-  Field as FieldWrap,
   Progress,
   cn,
-  inputClass,
 } from "@/components/ui";
 import { useProfile } from "@/hooks/useProfile";
 import { ARCHETYPE_BY_ID } from "@/lib/data/archetypes";
 import { AXIS_META, FRICTION_META } from "@/lib/data/axes";
-import { FIELD_OPTIONS, YEAR_OPTIONS } from "@/lib/data/questions";
 import {
   axesFromDirectInput,
   changePersona,
@@ -32,13 +29,10 @@ import type {
   ArchetypeId,
   Axis,
   AxisScores,
-  Field,
   Friction,
-  LearnerContext,
-  YearLevel,
 } from "@/lib/types";
 
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 3;
 
 const ZERO_AXES: AxisScores = {
   rhythm: 0,
@@ -47,14 +41,6 @@ const ZERO_AXES: AxisScores = {
   input: 0,
   drive: 0,
   clock: 0,
-};
-
-const DEFAULT_CONTEXT: LearnerContext = {
-  year: "freshman",
-  field: "undecided",
-  courseLoad: 4,
-  hoursPerWeek: 10,
-  hasOutsideObligations: false,
 };
 
 export function ExpressForm() {
@@ -69,7 +55,6 @@ export function ExpressForm() {
   const [touchedAxes, setTouchedAxes] = useState<Axis[]>([]);
   const [axesConfirmed, setAxesConfirmed] = useState(false);
   const [frictions, setFrictions] = useState<Friction[]>([]);
-  const [context, setContext] = useState<LearnerContext>(DEFAULT_CONTEXT);
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -131,7 +116,6 @@ export function ExpressForm() {
     const profile = generateProfile({
       axes: axesFromDirectInput(axes),
       frictions,
-      context,
     });
     setProfile(changePersona(profile, selectedPersonaId));
     router.push("/persona");
@@ -140,7 +124,7 @@ export function ExpressForm() {
   const canContinue =
     step === 0
       ? selectedPersonaId !== null
-      : step === 3
+      : step === 2
         ? selectedPersonaId !== null && axesConfirmed
         : true;
 
@@ -149,9 +133,7 @@ export function ExpressForm() {
       ? "Continue to the six axes"
       : step === 1
         ? "Confirm these six axes"
-        : step === 2
-          ? "Continue to your context"
-          : "Save profile and see my persona";
+        : "Save profile and see my persona";
 
   return (
     <form
@@ -188,9 +170,7 @@ export function ExpressForm() {
               ? "Persona"
               : step === 1
                 ? "Six axes"
-                : step === 2
-                  ? "Obstacles"
-                  : "Your context"}
+                : "Obstacles"}
           </span>
         </div>
         <Progress
@@ -281,7 +261,8 @@ export function ExpressForm() {
             </h2>
             <p className="mt-3 max-w-2xl text-ink-soft">
               Choose every obstacle that applies, or leave this blank. Obstacles
-              help break ties between otherwise similar techniques.
+              shape your method recommendations and how Scholara builds your
+              weekly plan.
             </p>
 
             <fieldset className="mt-8">
@@ -329,146 +310,6 @@ export function ExpressForm() {
           </>
         )}
 
-        {step === 3 && (
-          <>
-            <h2
-              id="express-step-heading"
-              ref={headingRef}
-              tabIndex={-1}
-              className="text-2xl font-semibold sm:text-3xl"
-            >
-              Add your current context
-            </h2>
-            <p className="mt-3 max-w-2xl text-ink-soft">
-              Give us a realistic estimate for now. Weekly Plan setup will ask
-              for your actual class times and available study windows later.
-            </p>
-
-            <Card className="mt-8">
-              <div className="space-y-7">
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <FieldWrap label="Where are you right now?" htmlFor="express-year">
-                    <select
-                      id="express-year"
-                      className={inputClass}
-                      value={context.year}
-                      onChange={(event) =>
-                        setContext({
-                          ...context,
-                          year: event.target.value as YearLevel,
-                        })
-                      }
-                    >
-                      {YEAR_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </FieldWrap>
-
-                  <FieldWrap label="Field of study" htmlFor="express-field">
-                    <select
-                      id="express-field"
-                      className={inputClass}
-                      value={context.field}
-                      onChange={(event) =>
-                        setContext({
-                          ...context,
-                          field: event.target.value as Field,
-                        })
-                      }
-                    >
-                      {FIELD_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </FieldWrap>
-                </div>
-
-                <FieldWrap
-                  label={`Courses this term: ${context.courseLoad}`}
-                  htmlFor="express-course-load"
-                >
-                  <input
-                    id="express-course-load"
-                    type="range"
-                    min={1}
-                    max={8}
-                    step={1}
-                    value={context.courseLoad}
-                    aria-valuetext={`${context.courseLoad} courses`}
-                    onChange={(event) =>
-                      setContext({
-                        ...context,
-                        courseLoad: Number(event.target.value),
-                      })
-                    }
-                    className="h-11 w-full accent-brand-600"
-                  />
-                  <div className="flex justify-between text-xs text-ink-faint">
-                    <span>1 course</span>
-                    <span>8 courses</span>
-                  </div>
-                </FieldWrap>
-
-                <FieldWrap
-                  label={`Study hours you realistically have per week: ${context.hoursPerWeek}`}
-                  hint="Outside class time. Honest beats aspirational."
-                  htmlFor="express-hours"
-                >
-                  <input
-                    id="express-hours"
-                    type="range"
-                    min={2}
-                    max={40}
-                    step={1}
-                    value={context.hoursPerWeek}
-                    aria-valuetext={`${context.hoursPerWeek} study hours per week`}
-                    onChange={(event) =>
-                      setContext({
-                        ...context,
-                        hoursPerWeek: Number(event.target.value),
-                      })
-                    }
-                    className="h-11 w-full accent-brand-600"
-                  />
-                  <div className="flex justify-between text-xs text-ink-faint">
-                    <span>2 hours</span>
-                    <span>40 hours</span>
-                  </div>
-                </FieldWrap>
-
-                <button
-                  type="button"
-                  aria-pressed={context.hasOutsideObligations}
-                  onClick={() =>
-                    setContext({
-                      ...context,
-                      hasOutsideObligations: !context.hasOutsideObligations,
-                    })
-                  }
-                  className={cn(
-                    "w-full rounded-xl border p-4 text-left transition-colors",
-                    context.hasOutsideObligations
-                      ? "border-brand-500 bg-brand-50"
-                      : "border-line bg-surface hover:border-brand-200",
-                  )}
-                >
-                  <span className="block text-sm font-medium">
-                    I work a job or have caregiving responsibilities
-                  </span>
-                  <span className="mt-1 block text-sm text-ink-faint">
-                    This helps Scholara keep recommendations realistic for your
-                    available time.
-                  </span>
-                </button>
-              </div>
-            </Card>
-          </>
-        )}
       </section>
 
       <div className="sticky bottom-0 mt-10 flex flex-col-reverse gap-3 border-t border-line bg-paper/95 py-4 backdrop-blur sm:flex-row sm:items-center">

@@ -21,7 +21,7 @@ export default function AboutPage() {
       <SectionHeading
         eyebrow="How it works"
         title="What Scholara actually does"
-        lead="Short version: research decides which techniques you're shown, and your persona decides how they're delivered."
+        lead="Short version: your profile and obstacles shape the methods Scholara suggests, then your choices and real schedule become a course-specific weekly plan."
       />
 
       <section className="mt-14">
@@ -86,7 +86,7 @@ export default function AboutPage() {
             addresses, and an evidence grade. Your score for a technique combines
             how well it fits your axes, a substantial bonus for each obstacle you
             reported that it directly targets, a bonus for stronger evidence, and
-            a penalty for high time cost if your hours are tight.
+            a penalty for high time cost when you report time scarcity.
           </p>
           <p>
             Then we cap it at two techniques per category. Without that cap, a
@@ -116,9 +116,10 @@ export default function AboutPage() {
           <p>
             Session length comes from your rhythm axis, available times closest
             to your peak hours are preferred, and course priorities and
-            deadlines guide how study time is shared. The weekly review is
-            reserved inside a valid window rather than placed on top of
-            something else.
+            deadlines guide how study time is shared. Every obstacle you report
+            receives a visible response tied to relevant study blocks. When
+            there is enough time for one, the weekly review is reserved inside
+            a valid window rather than placed on top of something else.
           </p>
         </div>
       </section>

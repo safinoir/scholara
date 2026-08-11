@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BookOpen, CalendarDays, Clock3 } from "lucide-react";
+import { FRICTION_BY_ID } from "@/lib/data/axes";
 import { TECHNIQUE_BY_ID } from "@/lib/data/techniques";
 import {
   COURSE_COLOR_KEYS,
@@ -12,7 +13,7 @@ import {
   type ScheduleSetup,
   type WeekPlan,
 } from "@/lib/types";
-import { Card, cn } from "@/components/ui";
+import { Badge, Card, cn } from "@/components/ui";
 
 const DAY_SHORT: Record<Day, string> = {
   Monday: "Mon",
@@ -47,7 +48,9 @@ function blockStart(block: PlanBlock) {
 }
 
 function blockCourseName(block: PlanBlock, schedule: ScheduleSetup) {
-  if (!block.courseId) return "General study";
+  if (!block.courseId) {
+    return block.intensity === "admin" ? "Weekly planning" : "Course study";
+  }
   return schedule.courses.find((course) => course.id === block.courseId)?.name ?? "Course";
 }
 
@@ -225,10 +228,14 @@ export function WeekCalendar({
                           blockStyle(item.block, schedule),
                         )}
                         style={{ top, height, minHeight: 44 }}
-                        aria-label={`${courseName} study, ${day}, ${formatMinute(item.start)} to ${formatMinute(item.end)}, ${TECHNIQUE_BY_ID[item.block.techniqueId]?.name ?? item.block.label}`}
+                        aria-label={`${courseName} study, ${day}, ${formatMinute(item.start)} to ${formatMinute(item.end)}, ${item.block.minutes} minutes, ${TECHNIQUE_BY_ID[item.block.techniqueId]?.name ?? item.block.label}`}
                       >
                         <p className="truncate font-semibold">{courseName}</p>
-                        <p className="mt-0.5 truncate text-[10px]">{item.block.label}</p>
+                        <p className="mt-0.5 truncate text-[10px]">
+                          {item.block.minutes}m ·{" "}
+                          {TECHNIQUE_BY_ID[item.block.techniqueId]?.name ??
+                            "Study method"}
+                        </p>
                       </button>
                     );
                   })}
@@ -285,7 +292,11 @@ export function WeekCalendar({
                   >
                     <p className="text-xs font-medium opacity-70">{formatMinute(item.start)}–{formatMinute(item.end)}</p>
                     <p className="mt-1 font-semibold">{blockCourseName(item.block, schedule)}</p>
-                    <p className="mt-1 text-sm">{item.block.label}</p>
+                    <p className="mt-1 text-sm">
+                      {item.block.minutes} min ·{" "}
+                      {TECHNIQUE_BY_ID[item.block.techniqueId]?.name ??
+                        "Study method"}
+                    </p>
                   </button>
                 </li>
               ),
@@ -307,7 +318,7 @@ export function WeekCalendar({
                 Study block
               </p>
               <h3 className="mt-1 text-xl font-semibold">
-                {blockCourseName(selectedBlock, schedule)} · {selectedBlock.label}
+                {blockCourseName(selectedBlock, schedule)}
               </h3>
               <p className="mt-2 flex items-center gap-2 text-sm text-ink-soft">
                 <Clock3 className="size-4" aria-hidden />
@@ -324,9 +335,12 @@ export function WeekCalendar({
           </div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="flex items-center gap-2 text-sm font-semibold">
+              <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                 <BookOpen className="size-4 text-brand-600" aria-hidden />
                 {TECHNIQUE_BY_ID[selectedBlock.techniqueId]?.name ?? "Study method"}
+                {selectedBlock.techniqueSource === "foundation" && (
+                  <Badge>Foundation method</Badge>
+                )}
               </p>
               <p className="mt-2 text-sm leading-relaxed text-ink-soft">{selectedBlock.note}</p>
             </div>
@@ -342,6 +356,20 @@ export function WeekCalendar({
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
+              </div>
+            )}
+            {selectedBlock.addressedFrictionIds.length > 0 && (
+              <div className="sm:col-span-2">
+                <p className="text-sm font-semibold">Obstacles addressed</p>
+                <ul className="mt-2 flex flex-wrap gap-2">
+                  {selectedBlock.addressedFrictionIds.map((frictionId) => (
+                    <li key={frictionId}>
+                      <Badge tone="brand">
+                        {FRICTION_BY_ID[frictionId].label}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>

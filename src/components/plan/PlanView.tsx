@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, Copy, Pencil, Sparkles } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
-import { coachingPayload } from "@/lib/ai/payload";
+import { FRICTION_BY_ID } from "@/lib/data/axes";
+import { TECHNIQUE_BY_ID } from "@/lib/data/techniques";
 import {
   buildSchedulePlan,
   calculateScheduleCapacity,
@@ -19,7 +20,6 @@ import { effectiveArchetypeMatch } from "@/lib/persona";
 import type {
   Day,
   LearnerProfile,
-  PlanCoaching,
   ScheduleSetup,
   ScheduledLearnerProfile,
   WeekContext,
@@ -28,8 +28,6 @@ import type {
 import { defaultWeekContext, normalizeWeekContext } from "@/lib/week";
 import { LoadingShell, NoProfile } from "@/components/NoProfile";
 import { OnboardingGate } from "@/components/OnboardingGate";
-import { AskCoach } from "@/components/plan/AskCoach";
-import { CoachPanel } from "@/components/plan/CoachPanel";
 import { PlanSetupWizard } from "@/components/plan/PlanSetupWizard";
 import { WeekAdjuster } from "@/components/plan/WeekAdjuster";
 import { WeekCalendar } from "@/components/plan/WeekCalendar";
@@ -48,17 +46,6 @@ function formatMinute(value: number) {
   const minute = value % 60;
   const hour12 = hour24 % 12 || 12;
   return `${hour12}:${String(minute).padStart(2, "0")} ${hour24 >= 12 ? "PM" : "AM"}`;
-}
-
-function contextForSchedule(profile: LearnerProfile, schedule: ScheduleSetup) {
-  return {
-    ...profile.context,
-    courseLoad:
-      schedule.mode === "by-course"
-        ? Math.max(1, schedule.courses.length)
-        : profile.context.courseLoad,
-    hoursPerWeek: schedule.targetStudyMinutes / 60,
-  };
 }
 
 function safeWeekForSchedule(
@@ -88,20 +75,17 @@ function generatePlan(
   schedule: ScheduleSetup,
   week: WeekContext,
 ) {
-  const context = contextForSchedule(profile, schedule);
-  const frictions = [
+  const activeFrictions = [
     ...new Set([...profile.frictions, ...week.focusFrictions]),
   ];
   const techniques = rankTechniques({
     axes: profile.axes,
-    frictions,
-    context,
+    frictions: activeFrictions,
     primary: effectiveArchetypeMatch(profile).primary,
   });
   return buildSchedulePlan({
     axes: profile.axes,
-    frictions,
-    context,
+    frictions: profile.frictions,
     schedule,
     techniques,
     selectedTechniqueIds: profile.selectedTechniqueIds,
@@ -128,6 +112,75 @@ function planChangeSummary(before: WeekPlan, after: WeekPlan) {
   return `Week updated: ${parts.join(" · ")}.`;
 }
 
+function FrictionResponses({
+  profile,
+}: {
+  profile: ScheduledLearnerProfile;
+}) {
+  if (profile.plan.frictionResponses.length === 0) return null;
+
+  const blocksById = new Map(
+    profile.plan.blocks.map((block) => [block.id, block]),
+  );
+  const courseById = new Map(
+    profile.schedule.courses.map((course) => [course.id, course]),
+  );
+
+  return (
+    <section className="mt-8" aria-labelledby="friction-responses-title">
+      <div className="max-w-3xl">
+        <h2 id="friction-responses-title" className="text-2xl font-semibold">
+          What this plan is helping you overcome
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+          These are the obstacles you reported and the concrete choices this
+          week makes in response.
+        </p>
+      </div>
+      <div className="mt-5 grid gap-3 lg:grid-cols-2">
+        {profile.plan.frictionResponses.map((response) => {
+          const courseNames = [
+            ...new Set(
+              response.blockIds
+                .map((blockId) => blocksById.get(blockId)?.courseId)
+                .filter((courseId): courseId is string => Boolean(courseId))
+                .map((courseId) => courseById.get(courseId)?.name)
+                .filter((name): name is string => Boolean(name)),
+            ),
+          ];
+          const methodNames = response.techniqueIds
+            .map((id) => TECHNIQUE_BY_ID[id]?.name)
+            .filter((name): name is string => Boolean(name));
+
+          return (
+            <Card key={response.frictionId} className="p-4 sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <h3 className="font-semibold">
+                  {FRICTION_BY_ID[response.frictionId].label}
+                </h3>
+                {(response.source === "week" || response.source === "both") && (
+                  <Badge tone="brand">This week</Badge>
+                )}
+              </div>
+              <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+                {response.strategy}
+              </p>
+              <p className="mt-3 text-xs text-ink-faint">
+                {courseNames.length > 0
+                  ? `Applied in ${courseNames.join(", ")}`
+                  : "Applied across the plan"}
+                {methodNames.length > 0
+                  ? ` · ${methodNames.join(", ")}`
+                  : ""}
+              </p>
+            </Card>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export function PlanView({ setupOnly = false }: { setupOnly?: boolean }) {
   const { profile, ready, setProfile } = useProfile();
   const router = useRouter();
@@ -147,21 +200,18 @@ export function PlanView({ setupOnly = false }: { setupOnly?: boolean }) {
   }
 
   const completeSchedule = (schedule: ScheduleSetup) => {
-    const context = contextForSchedule(profile, schedule);
     let week = safeWeekForSchedule(profile, schedule);
-    let plan = generatePlan({ ...profile, context }, schedule, week);
+    let plan = generatePlan(profile, schedule, week);
     if (plan.blocks.length === 0) {
       week = defaultWeekContext(schedule);
-      plan = generatePlan({ ...profile, context }, schedule, week);
+      plan = generatePlan(profile, schedule, week);
     }
     setProfile({
       ...profile,
-      context,
       schedule,
       weekContext: week,
       plan,
       onboardingStage: "complete",
-      coaching: undefined,
     });
     if (setupOnly) router.replace("/plan");
   };
@@ -199,7 +249,6 @@ function CompletedPlan({
   onEditSchedule: () => void;
 }) {
   const [copied, setCopied] = useState(false);
-  const [coachBusy, setCoachBusy] = useState(false);
   const [undoSnapshot, setUndoSnapshot] = useState<{
     plan: WeekPlan;
     week?: WeekContext;
@@ -216,24 +265,6 @@ function CompletedPlan({
     0,
   );
 
-  const fetchCoaching = useCallback(async () => {
-    setCoachBusy(true);
-    try {
-      const response = await fetch("/api/plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(coachingPayload(profile)),
-      });
-      if (!response.ok) return;
-      const coaching = (await response.json()) as PlanCoaching;
-      if (typeof coaching?.brief === "string") onSave({ ...profile, coaching });
-    } catch {
-      // The deterministic calendar remains complete without coaching.
-    } finally {
-      setCoachBusy(false);
-    }
-  }, [onSave, profile]);
-
   const applyWeek = (week: WeekContext) => {
     const plan = generatePlan(profile, profile.schedule, week);
     if (plan.blocks.length === 0) {
@@ -248,7 +279,6 @@ function CompletedPlan({
       ...profile,
       plan,
       weekContext: week,
-      coaching: undefined,
     });
   };
 
@@ -258,7 +288,6 @@ function CompletedPlan({
       ...profile,
       plan: undoSnapshot.plan,
       weekContext: undoSnapshot.week,
-      coaching: undefined,
     });
     setUndoSnapshot(null);
     setUpdateMessage("Previous weekly settings restored.");
@@ -361,6 +390,8 @@ function CompletedPlan({
         </Card>
       )}
 
+      <FrictionResponses profile={profile} />
+
       <WeekCalendar schedule={profile.schedule} plan={profile.plan} />
 
       <WeekAdjuster
@@ -372,16 +403,10 @@ function CompletedPlan({
         canUndo={undoSnapshot !== null}
       />
 
-      <CoachPanel
-        coaching={profile.coaching ?? null}
-        busy={coachBusy}
-        onRefresh={() => void fetchCoaching()}
-      />
-
       <Card className="mt-8">
         <h2 className="flex items-center gap-2 text-lg font-semibold">
           <Sparkles className="size-5 text-brand-600" aria-hidden />
-          Why this schedule looks like this
+          How Scholara built this week
         </h2>
         <ul className="mt-4 space-y-3 text-sm leading-relaxed text-ink-soft">
           {profile.plan.rationale.map((line) => <li key={line}>• {line}</li>)}
@@ -392,8 +417,6 @@ function CompletedPlan({
           <Badge>{profile.selectedTechniqueIds.length} selected methods</Badge>
         </div>
       </Card>
-
-      <AskCoach profile={profile} />
     </div>
   );
 }

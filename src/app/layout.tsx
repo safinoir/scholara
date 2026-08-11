@@ -12,7 +12,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Scholara — study habits built around who you are",
   description:
-    "A two-minute quiz that turns your actual schedule, energy, and obstacles into an evidence-based study plan. No account, no cost, nothing stored on a server.",
+    "A two-minute quiz that identifies your study preferences and obstacles, then helps you choose methods and build a course-specific weekly plan. No account, no cost.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

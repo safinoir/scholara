@@ -17,8 +17,8 @@ export function CareerView() {
 
   if (!ready) return <LoadingShell />;
 
-  const field = override ?? profile?.context.field ?? "undecided";
-  const year = profile?.context.year ?? "freshman";
+  const field = override ?? profile?.educationContext?.field ?? "undecided";
+  const year = profile?.educationContext?.year ?? "freshman";
   const track = getCareerTrack(field);
 
   const toggle = (id: string) =>

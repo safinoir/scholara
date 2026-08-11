@@ -34,10 +34,15 @@ export function hasGeneratedPlan(
 export function hasCompletedSchedule(
   profile: LearnerProfile,
 ): profile is ScheduledLearnerProfile {
+  const schedule = profile.schedule;
   return (
     profile.onboardingStage === "complete" &&
-    profile.schedule !== undefined &&
-    hasGeneratedPlan(profile)
+    schedule !== undefined &&
+    schedule.mode === "by-course" &&
+    schedule.courses.some((course) => course.includedInPlan) &&
+    schedule.classMeetings.every((meeting) => Boolean(meeting.courseId)) &&
+    hasGeneratedPlan(profile) &&
+    profile.plan.algorithmVersion === 2
   );
 }
 

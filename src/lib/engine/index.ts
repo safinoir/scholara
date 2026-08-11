@@ -2,7 +2,6 @@ import {
   PROFILE_VERSION,
   type AxisScores,
   type Friction,
-  type LearnerContext,
   type LearnerProfile,
   type QuizAnswers,
 } from "@/lib/types";
@@ -14,7 +13,6 @@ import { pickResources } from "./pickResources";
 export { scoreAxes, axesFromDirectInput } from "./scoreAxes";
 export { matchArchetype, archetypeScores } from "./matchArchetype";
 export { rankTechniques } from "./rankTechniques";
-export { buildWeeklyPlan, formatHour } from "./buildWeeklyPlan";
 export {
   buildSchedulePlan,
   calculateScheduleCapacity,
@@ -28,23 +26,21 @@ export { changePersona } from "./changePersona";
 type GenerateInput = {
   axes: AxisScores;
   frictions: Friction[];
-  context: LearnerContext;
 };
 
 /** Builds the learner profile. Weekly planning begins after schedule setup. */
 export function generateProfile(input: GenerateInput): LearnerProfile {
-  const { axes, frictions, context } = input;
+  const { axes, frictions } = input;
 
   const match = matchArchetype(axes);
   const techniques = rankTechniques({
     axes,
     frictions,
-    context,
     primary: match.primary,
   });
 
   const toolIds = techniques.flatMap((t) => t.technique.toolIds);
-  const resources = pickResources({ axes, frictions, context, toolIds });
+  const resources = pickResources({ axes, frictions, toolIds });
 
   const reasons: Record<string, string[]> = {};
   for (const scored of techniques) {
@@ -56,7 +52,6 @@ export function generateProfile(input: GenerateInput): LearnerProfile {
     createdAt: new Date().toISOString(),
     axes,
     frictions,
-    context,
     match,
     recommendedTechniqueIds: techniques.map((t) => t.technique.id),
     selectedTechniqueIds: [],
@@ -70,6 +65,5 @@ export function generateProfileFromQuiz(answers: QuizAnswers): LearnerProfile {
   return generateProfile({
     axes: scoreAxes(answers),
     frictions: answers.frictions,
-    context: answers.context,
   });
 }

@@ -56,9 +56,12 @@ export function useTracker() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const parsed = trackerSchema.safeParse(readRaw(KEYS.tracker));
-    if (parsed.success) setLogs(parsed.data.logs);
-    setReady(true);
+    const hydration = window.setTimeout(() => {
+      const parsed = trackerSchema.safeParse(readRaw(KEYS.tracker));
+      if (parsed.success) setLogs(parsed.data.logs);
+      setReady(true);
+    }, 0);
+    return () => window.clearTimeout(hydration);
   }, []);
 
   const persist = useCallback((next: HabitLog[]) => {

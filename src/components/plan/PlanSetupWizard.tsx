@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
-  CalendarDays,
   Check,
   Clock3,
   Pencil,
@@ -58,10 +57,14 @@ type PlanSetupWizardProps = {
   onCancel?: () => void;
 };
 
+type WizardDraft = Omit<ScheduleDraft, "step"> & {
+  version: 2;
+  step: 1 | 2;
+};
+
 const STEPS = [
-  { number: 1 as const, label: "Study focus", icon: BookOpen },
-  { number: 2 as const, label: "Class times", icon: CalendarDays },
-  { number: 3 as const, label: "Study windows", icon: Clock3 },
+  { number: 1 as const, label: "Classes", icon: BookOpen },
+  { number: 2 as const, label: "Study availability", icon: Clock3 },
 ];
 
 const DAY_SHORT: Record<Day, string> = {
@@ -84,9 +87,9 @@ const COLOR_DOT: Record<(typeof COURSE_COLOR_KEYS)[number], string> = {
 };
 
 const PRIORITY_LABELS: Record<CoursePriority, string> = {
-  maintenance: "Maintenance",
+  maintenance: "Keep light",
   standard: "Standard",
-  focus: "Focus",
+  focus: "Extra focus",
 };
 
 const PRESETS: Array<{
@@ -98,21 +101,21 @@ const PRESETS: Array<{
 }> = [
   {
     label: "Weekday mornings",
-    detail: "Mon–Fri, 7–9 AM",
+    detail: "Mon-Fri, 7-9 AM",
     days: DAYS.slice(0, 5) as Day[],
     startMinute: 7 * 60,
     endMinute: 9 * 60,
   },
   {
     label: "Weeknights",
-    detail: "Mon–Fri, 6–9 PM",
+    detail: "Mon-Fri, 6-9 PM",
     days: DAYS.slice(0, 5) as Day[],
     startMinute: 18 * 60,
     endMinute: 21 * 60,
   },
   {
     label: "Weekends",
-    detail: "Sat–Sun, 10 AM–2 PM",
+    detail: "Sat-Sun, 10 AM-2 PM",
     days: DAYS.slice(5) as Day[],
     startMinute: 10 * 60,
     endMinute: 14 * 60,
@@ -132,6 +135,7 @@ function makeId(prefix: string): string {
 function cloneSchedule(schedule: ScheduleSetup): ScheduleSetup {
   return {
     ...schedule,
+    mode: "by-course",
     courses: schedule.courses.map((course) => ({ ...course })),
     classMeetings: schedule.classMeetings.map((meeting) => ({
       ...meeting,
@@ -144,30 +148,46 @@ function cloneSchedule(schedule: ScheduleSetup): ScheduleSetup {
   };
 }
 
-function initialWizard(profile: LearnerProfile): ScheduleDraft {
+function initialWizard(profile: LearnerProfile): WizardDraft {
   const savedDraft = loadScheduleDraft();
   if (savedDraft) {
+    const currentDraft = savedDraft as ScheduleDraft & { version?: number };
+    const schedule = cloneSchedule(savedDraft.schedule);
+    const courseIds = new Set(schedule.courses.map((course) => course.id));
+    const classesAreLinked = schedule.classMeetings.every(
+      (meeting) => meeting.courseId && courseIds.has(meeting.courseId),
+    );
+    const coursesAreReady = courseValidationMessage(schedule) === null;
     return {
-      step: savedDraft.step,
-      schedule: cloneSchedule(savedDraft.schedule),
+      version: 2,
+      step:
+        classesAreLinked &&
+        coursesAreReady &&
+        ((currentDraft.version === 2 && currentDraft.step === 2) ||
+          (currentDraft.version !== 2 && currentDraft.step === 3))
+          ? 2
+          : 1,
+      schedule,
     };
   }
 
   if (profile.schedule) {
-    return { step: 1, schedule: cloneSchedule(profile.schedule) };
+    return {
+      version: 2,
+      step: 1,
+      schedule: cloneSchedule(profile.schedule),
+    };
   }
 
   return {
+    version: 2,
     step: 1,
     schedule: {
-      mode: "general",
+      mode: "by-course",
       courses: [],
       classMeetings: [],
       studyWindows: [],
-      targetStudyMinutes: Math.min(
-        2400,
-        Math.max(30, Math.round(profile.context.hoursPerWeek * 4) * 15),
-      ),
+      targetStudyMinutes: 0,
     },
   };
 }
@@ -179,6 +199,9 @@ function toggleDay(days: Day[], day: Day): Day[] {
 }
 
 function courseValidationMessage(schedule: ScheduleSetup): string | null {
+  if (schedule.courses.length === 0) {
+    return "Add at least one course to build a weekly plan.";
+  }
   if (schedule.courses.length > 20) {
     return "Keep this plan to 20 courses or fewer.";
   }
@@ -189,17 +212,19 @@ function courseValidationMessage(schedule: ScheduleSetup): string | null {
   if (new Set(names.map((name) => name.toLowerCase())).size !== names.length) {
     return "Course names must be unique.";
   }
-  if (
-    schedule.mode === "by-course" &&
-    !schedule.courses.some((course) => course.includedInPlan)
-  ) {
+  if (!schedule.courses.some((course) => course.includedInPlan)) {
     return "Include at least one course in your study plan.";
   }
   return null;
 }
 
-function hasInvalidMeeting(meeting: RecurringClassMeeting): boolean {
+function hasInvalidMeeting(
+  meeting: RecurringClassMeeting,
+  courseIds: Set<string>,
+): boolean {
   return (
+    !meeting.courseId ||
+    !courseIds.has(meeting.courseId) ||
     meeting.label.trim().length === 0 ||
     meeting.days.length === 0 ||
     meeting.startMinute < 0 ||
@@ -276,14 +301,13 @@ export function PlanSetupWizard({
   onComplete,
   onCancel,
 }: PlanSetupWizardProps) {
-  const [wizard, setWizard] = useState<ScheduleDraft>(() =>
+  const [wizard, setWizard] = useState<WizardDraft>(() =>
     initialWizard(profile),
   );
   const [courseName, setCourseName] = useState("");
   const [courseFormError, setCourseFormError] = useState<string | null>(null);
 
   const [meetingCourseId, setMeetingCourseId] = useState("");
-  const [meetingLabel, setMeetingLabel] = useState("Class");
   const [meetingDays, setMeetingDays] = useState<Day[]>([]);
   const [meetingStart, setMeetingStart] = useState(9 * 60);
   const [meetingEnd, setMeetingEnd] = useState(10 * 60);
@@ -299,10 +323,13 @@ export function PlanSetupWizard({
 
   const schedule = wizard.schedule;
   const courseError = courseValidationMessage(schedule);
+  const courseIds = new Set(schedule.courses.map((course) => course.id));
   const conflictDays = meetingConflictDays(schedule.classMeetings);
   const meetingsInvalid =
     schedule.classMeetings.length > 80 ||
-    schedule.classMeetings.some(hasInvalidMeeting);
+    schedule.classMeetings.some((meeting) =>
+      hasInvalidMeeting(meeting, courseIds),
+    );
   const normalizedWindows = normalizeStudyWindows(schedule.studyWindows);
   const windowsInvalid =
     schedule.studyWindows.length > 40 ||
@@ -312,6 +339,7 @@ export function PlanSetupWizard({
     (window) => window.endMinute - window.startMinute >= 30,
   );
   const capacity = summarizeCapacity(schedule);
+  const hasUsableCapacity = capacity.usableMinutes >= 30;
   const targetValid =
     Number.isInteger(schedule.targetStudyMinutes) &&
     schedule.targetStudyMinutes >= 30 &&
@@ -322,8 +350,8 @@ export function PlanSetupWizard({
     conflictDays.size === 0 &&
     !windowsInvalid &&
     hasUsableWindow &&
-    targetValid &&
-    capacity.shortfallMinutes === 0;
+    hasUsableCapacity &&
+    targetValid;
 
   useEffect(() => {
     const timeout = window.setTimeout(() => saveScheduleDraft(wizard), 150);
@@ -339,11 +367,11 @@ export function PlanSetupWizard({
   ): void {
     setWizard((current) => ({
       ...current,
-      schedule: update(current.schedule),
+      schedule: { ...update(current.schedule), mode: "by-course" },
     }));
   }
 
-  function goToStep(step: 1 | 2 | 3): void {
+  function goToStep(step: 1 | 2): void {
     setWizard((current) => ({ ...current, step }));
   }
 
@@ -377,9 +405,9 @@ export function PlanSetupWizard({
     };
     updateSchedule((current) => ({
       ...current,
-      mode: "by-course",
       courses: [...current.courses, course],
     }));
+    if (!meetingCourseId) setMeetingCourseId(course.id);
     setCourseName("");
     setCourseFormError(null);
   }
@@ -388,49 +416,35 @@ export function PlanSetupWizard({
     courseId: string,
     patch: Partial<Pick<Course, "name" | "includedInPlan" | "priority">>,
   ): void {
-    updateSchedule((current) => {
-      const nextCourses = current.courses.map((course) =>
+    updateSchedule((current) => ({
+      ...current,
+      courses: current.courses.map((course) =>
         course.id === courseId ? { ...course, ...patch } : course,
-      );
-      const nextMeetings =
+      ),
+      classMeetings:
         patch.name === undefined
           ? current.classMeetings
           : current.classMeetings.map((meeting) =>
               meeting.courseId === courseId
                 ? { ...meeting, label: patch.name ?? meeting.label }
                 : meeting,
-            );
-      return {
-        ...current,
-        courses: nextCourses,
-        classMeetings: nextMeetings,
-      };
-    });
+            ),
+    }));
   }
 
   function removeCourse(courseId: string): void {
-    updateSchedule((current) => {
-      const courses = current.courses.filter((course) => course.id !== courseId);
-      return {
-        ...current,
-        mode:
-          current.mode === "by-course" && courses.length === 0
-            ? "general"
-            : current.mode,
-        courses,
-        classMeetings: current.classMeetings.map((meeting) =>
-          meeting.courseId === courseId
-            ? { ...meeting, courseId: undefined }
-            : meeting,
-        ),
-      };
-    });
+    updateSchedule((current) => ({
+      ...current,
+      courses: current.courses.filter((course) => course.id !== courseId),
+      classMeetings: current.classMeetings.filter(
+        (meeting) => meeting.courseId !== courseId,
+      ),
+    }));
     if (meetingCourseId === courseId) setMeetingCourseId("");
   }
 
   function resetMeetingForm(): void {
-    setMeetingCourseId("");
-    setMeetingLabel("Class");
+    setMeetingCourseId(schedule.courses[0]?.id ?? "");
     setMeetingDays([]);
     setMeetingStart(9 * 60);
     setMeetingEnd(10 * 60);
@@ -443,10 +457,8 @@ export function PlanSetupWizard({
     const course = schedule.courses.find(
       (candidate) => candidate.id === meetingCourseId,
     );
-    const label = (course?.name ?? meetingLabel).trim();
-
-    if (!label) {
-      setMeetingFormError("Enter a label for this class meeting.");
+    if (!course) {
+      setMeetingFormError("Choose the course this meeting belongs to.");
       return;
     }
     if (meetingDays.length === 0) {
@@ -464,8 +476,8 @@ export function PlanSetupWizard({
 
     const candidate: RecurringClassMeeting = {
       id: editingMeetingId ?? makeId("class"),
-      courseId: course?.id,
-      label,
+      courseId: course.id,
+      label: course.name.trim(),
       days: DAYS.filter((day) => meetingDays.includes(day)),
       startMinute: meetingStart,
       endMinute: meetingEnd,
@@ -492,7 +504,6 @@ export function PlanSetupWizard({
 
   function editMeeting(meeting: RecurringClassMeeting): void {
     setMeetingCourseId(meeting.courseId ?? "");
-    setMeetingLabel(meeting.label);
     setMeetingDays([...meeting.days]);
     setMeetingStart(meeting.startMinute);
     setMeetingEnd(meeting.endMinute);
@@ -610,15 +621,19 @@ export function PlanSetupWizard({
 
   function finishSetup(): void {
     if (!canGenerate) return;
+    const courseNames = new Map(
+      schedule.courses.map((course) => [course.id, course.name.trim()]),
+    );
     const finalSchedule: ScheduleSetup = {
       ...schedule,
+      mode: "by-course",
       courses: schedule.courses.map((course) => ({
         ...course,
         name: course.name.trim(),
       })),
       classMeetings: sortMeetings(schedule.classMeetings).map((meeting) => ({
         ...meeting,
-        label: meeting.label.trim(),
+        label: courseNames.get(meeting.courseId ?? "") ?? meeting.label.trim(),
         days: DAYS.filter((day) => meeting.days.includes(day)),
       })),
       studyWindows: normalizeStudyWindows(schedule.studyWindows),
@@ -637,18 +652,18 @@ export function PlanSetupWizard({
           Build around the week you actually have
         </h1>
         <p className="mt-3 text-ink-soft">
-          Add your fixed class times and the hours you can realistically study.
-          Your draft saves on this device as you go.
+          Add your classes and the hours you can realistically study. Scholara
+          will assign every study block to a course and one of your methods.
         </p>
       </header>
 
       <nav aria-label="Schedule setup progress" className="mt-8">
         <Progress
           value={wizard.step}
-          max={3}
-          label={`Schedule setup step ${wizard.step} of 3`}
+          max={2}
+          label={`Schedule setup step ${wizard.step} of 2`}
         />
-        <ol className="mt-4 grid grid-cols-3 gap-2">
+        <ol className="mt-4 grid grid-cols-2 gap-2">
           {STEPS.map(({ number, label, icon: Icon }) => {
             const active = wizard.step === number;
             const complete = wizard.step > number;
@@ -681,8 +696,7 @@ export function PlanSetupWizard({
                       <Icon className="size-3.5" />
                     )}
                   </span>
-                  <span className="hidden sm:inline">{label}</span>
-                  <span className="sm:hidden">Step {number}</span>
+                  <span>{label}</span>
                 </button>
               </li>
             );
@@ -699,290 +713,172 @@ export function PlanSetupWizard({
               tabIndex={-1}
               className="text-2xl font-semibold sm:text-3xl"
             >
-              What should this plan be organized around?
+              Add your classes
             </h2>
             <p className="mt-2 max-w-2xl text-ink-soft">
-              Pick general study time, or add courses so Scholara can divide the
-              week by priority.
+              Tell Scholara which courses need study time and when their
+              recurring meetings happen. Asynchronous courses can have no class
+              time.
             </p>
 
-            <fieldset className="mt-7">
-              <legend className="sr-only">Planning mode</legend>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label
-                  className={cn(
-                    "flex min-h-28 cursor-pointer gap-4 rounded-2xl border p-5 transition-colors",
-                    schedule.mode === "by-course"
-                      ? "border-brand-500 bg-brand-50"
-                      : "border-line bg-surface hover:border-brand-200",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="schedule-mode"
-                    value="by-course"
-                    checked={schedule.mode === "by-course"}
-                    onChange={() =>
-                      updateSchedule((current) => ({
-                        ...current,
-                        mode: "by-course",
-                      }))
-                    }
-                    className="mt-1 size-5 accent-brand-600"
-                  />
-                  <span>
-                    <span className="block font-semibold">Plan by course</span>
-                    <span className="mt-1 block text-sm text-ink-soft">
-                      Name your courses and decide which ones need more study
-                      time.
-                    </span>
-                  </span>
-                </label>
-
-                <label
-                  className={cn(
-                    "flex min-h-28 cursor-pointer gap-4 rounded-2xl border p-5 transition-colors",
-                    schedule.mode === "general"
-                      ? "border-brand-500 bg-brand-50"
-                      : "border-line bg-surface hover:border-brand-200",
-                  )}
-                >
-                  <input
-                    type="radio"
-                    name="schedule-mode"
-                    value="general"
-                    checked={schedule.mode === "general"}
-                    onChange={() =>
-                      updateSchedule((current) => ({
-                        ...current,
-                        mode: "general",
-                      }))
-                    }
-                    className="mt-1 size-5 accent-brand-600"
-                  />
-                  <span>
-                    <span className="block font-semibold">
-                      General study time
-                    </span>
-                    <span className="mt-1 block text-sm text-ink-soft">
-                      Build flexible study blocks without assigning them to a
-                      specific course.
-                    </span>
-                  </span>
-                </label>
-              </div>
-            </fieldset>
-
-            {schedule.mode === "by-course" && (
-              <div className="mt-8 space-y-4">
-                <Card>
-                  <form
-                    onSubmit={addCourse}
-                    className="flex flex-col gap-3 sm:flex-row sm:items-end"
-                  >
-                    <div className="flex-1">
-                      <Field label="Course name" htmlFor="new-course-name">
-                        <input
-                          id="new-course-name"
-                          value={courseName}
-                          onChange={(event) => {
-                            setCourseName(event.target.value);
-                            setCourseFormError(null);
-                          }}
-                          maxLength={80}
-                          placeholder="e.g. Organic Chemistry"
-                          className={inputClass}
-                        />
-                      </Field>
-                    </div>
-                    <Button type="submit">
-                      <Plus className="size-4" aria-hidden />
-                      Add course
-                    </Button>
-                  </form>
-                  {courseFormError && (
-                    <div className="mt-3">
-                      <InlineError>{courseFormError}</InlineError>
-                    </div>
-                  )}
-                </Card>
-
-                {schedule.courses.length > 0 && (
-                  <div className="space-y-3" aria-label="Saved courses">
-                    {schedule.courses.map((course) => (
-                      <Card key={course.id} className="p-4 sm:p-5">
-                        <div className="grid gap-4 lg:grid-cols-[1fr_auto_auto] lg:items-end">
-                          <Field
-                            label="Course name"
-                            htmlFor={`course-name-${course.id}`}
-                          >
-                            <div className="relative">
-                              <span
-                                className={cn(
-                                  "absolute left-4 top-1/2 size-3 -translate-y-1/2 rounded-full",
-                                  COLOR_DOT[course.colorKey],
-                                )}
-                                aria-hidden
-                              />
-                              <input
-                                id={`course-name-${course.id}`}
-                                value={course.name}
-                                onChange={(event) =>
-                                  updateCourse(course.id, {
-                                    name: event.target.value,
-                                  })
-                                }
-                                maxLength={80}
-                                className={cn(inputClass, "pl-10")}
-                              />
-                            </div>
-                          </Field>
-
-                          <label className="flex min-h-12 items-center gap-3 rounded-xl border border-line px-4 text-sm font-medium">
-                            <input
-                              type="checkbox"
-                              checked={course.includedInPlan}
-                              onChange={(event) =>
-                                updateCourse(course.id, {
-                                  includedInPlan: event.target.checked,
-                                })
-                              }
-                              className="size-5 rounded accent-brand-600"
-                            />
-                            Include in plan
-                          </label>
-
-                          <div className="flex gap-2">
-                            <label className="sr-only" htmlFor={`priority-${course.id}`}>
-                              Priority for {course.name || "course"}
-                            </label>
-                            <select
-                              id={`priority-${course.id}`}
-                              value={course.priority}
-                              disabled={!course.includedInPlan}
-                              onChange={(event) =>
-                                updateCourse(course.id, {
-                                  priority: event.target.value as CoursePriority,
-                                })
-                              }
-                              className={cn(inputClass, "min-w-36")}
-                            >
-                              {Object.entries(PRIORITY_LABELS).map(
-                                ([value, label]) => (
-                                  <option key={value} value={value}>
-                                    {label}
-                                  </option>
-                                ),
-                              )}
-                            </select>
-                            <button
-                              type="button"
-                              onClick={() => removeCourse(course.id)}
-                              className="flex size-12 shrink-0 items-center justify-center rounded-xl text-ink-faint hover:bg-rose-50 hover:text-rose-700"
-                              aria-label={`Remove ${course.name || "course"}`}
-                            >
-                              <Trash2 className="size-4" aria-hidden />
-                            </button>
-                          </div>
-                        </div>
-                        {!course.includedInPlan && (
-                          <p className="mt-3 text-sm text-ink-faint">
-                            Class meetings stay on the calendar, but this course
-                            will not receive study blocks.
-                          </p>
-                        )}
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {schedule.mode === "general" && schedule.courses.length > 0 && (
-              <p className="mt-5 rounded-xl bg-line-soft px-4 py-3 text-sm text-ink-soft">
-                Your saved courses are preserved, but generated blocks will be
-                labeled as general study time.
-              </p>
-            )}
-
-            {courseError && (
-              <div className="mt-5">
-                <InlineError>{courseError}</InlineError>
-              </div>
-            )}
-
-            <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:items-center">
-              {onCancel && (
-                <Button variant="ghost" onClick={onCancel}>
-                  Cancel
-                </Button>
-              )}
-              <Button
-                className="sm:ml-auto"
-                onClick={() => goToStep(2)}
-                disabled={Boolean(courseError)}
+            <Card className="mt-7">
+              <form
+                onSubmit={addCourse}
+                className="flex flex-col gap-3 sm:flex-row sm:items-end"
               >
-                Continue to class times
-                <ArrowRight className="size-4" aria-hidden />
-              </Button>
-            </div>
-          </section>
-        )}
-
-        {wizard.step === 2 && (
-          <section aria-labelledby="schedule-step-heading">
-            <h2
-              id="schedule-step-heading"
-              ref={headingRef}
-              tabIndex={-1}
-              className="text-2xl font-semibold sm:text-3xl"
-            >
-              When are you in class?
-            </h2>
-            <p className="mt-2 max-w-2xl text-ink-soft">
-              Add each recurring pattern separately. Labs and lectures can have
-              different days and times.
-            </p>
-
-            <Card id="class-meeting-form" className="mt-7 scroll-mt-24">
-              <form onSubmit={submitMeeting} className="space-y-5">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Course" htmlFor="meeting-course">
-                    <select
-                      id="meeting-course"
-                      value={meetingCourseId}
-                      onChange={(event) => {
-                        setMeetingCourseId(event.target.value);
-                        setMeetingFormError(null);
-                      }}
-                      className={inputClass}
-                    >
-                      <option value="">General class</option>
-                      {schedule.courses.map((course) => (
-                        <option key={course.id} value={course.id}>
-                          {course.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Calendar label" htmlFor="meeting-label">
+                <div className="flex-1">
+                  <Field label="Course name" htmlFor="new-course-name">
                     <input
-                      id="meeting-label"
-                      value={
-                        schedule.courses.find(
-                          (course) => course.id === meetingCourseId,
-                        )?.name ?? meetingLabel
-                      }
+                      id="new-course-name"
+                      value={courseName}
                       onChange={(event) => {
-                        setMeetingLabel(event.target.value);
-                        setMeetingFormError(null);
+                        setCourseName(event.target.value);
+                        setCourseFormError(null);
                       }}
-                      readOnly={Boolean(meetingCourseId)}
                       maxLength={80}
-                      className={cn(inputClass, meetingCourseId && "bg-line-soft")}
+                      placeholder="e.g. Organic Chemistry"
+                      className={inputClass}
                     />
                   </Field>
                 </div>
+                <Button type="submit">
+                  <Plus className="size-4" aria-hidden />
+                  Add course
+                </Button>
+              </form>
+              {courseFormError && (
+                <div className="mt-3">
+                  <InlineError>{courseFormError}</InlineError>
+                </div>
+              )}
+            </Card>
+
+            {schedule.courses.length > 0 && (
+              <div className="mt-4 space-y-3" aria-label="Saved courses">
+                {schedule.courses.map((course) => (
+                  <Card key={course.id} className="p-4">
+                    <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-end">
+                      <Field
+                        label="Course name"
+                        htmlFor={`course-name-${course.id}`}
+                      >
+                        <div className="relative">
+                          <span
+                            className={cn(
+                              "absolute left-4 top-1/2 size-3 -translate-y-1/2 rounded-full",
+                              COLOR_DOT[course.colorKey],
+                            )}
+                            aria-hidden
+                          />
+                          <input
+                            id={`course-name-${course.id}`}
+                            value={course.name}
+                            onChange={(event) =>
+                              updateCourse(course.id, {
+                                name: event.target.value,
+                              })
+                            }
+                            maxLength={80}
+                            className={cn(inputClass, "pl-10")}
+                          />
+                        </div>
+                      </Field>
+
+                      <Field
+                        label="Study priority"
+                        htmlFor={`priority-${course.id}`}
+                      >
+                        <select
+                          id={`priority-${course.id}`}
+                          value={course.priority}
+                          disabled={!course.includedInPlan}
+                          onChange={(event) =>
+                            updateCourse(course.id, {
+                              priority: event.target.value as CoursePriority,
+                            })
+                          }
+                          className={cn(inputClass, "min-w-36")}
+                        >
+                          {Object.entries(PRIORITY_LABELS).map(
+                            ([value, label]) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ),
+                          )}
+                        </select>
+                      </Field>
+
+                      <div className="flex items-center gap-1">
+                        <label className="flex min-h-12 items-center gap-2 rounded-xl border border-line px-3 text-sm font-medium">
+                          <input
+                            type="checkbox"
+                            checked={course.includedInPlan}
+                            onChange={(event) =>
+                              updateCourse(course.id, {
+                                includedInPlan: event.target.checked,
+                              })
+                            }
+                            className="size-5 rounded accent-brand-600"
+                          />
+                          Study this course
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => removeCourse(course.id)}
+                          className="flex size-12 shrink-0 items-center justify-center rounded-xl text-ink-faint hover:bg-rose-50 hover:text-rose-700"
+                          aria-label={`Remove ${course.name || "course"}`}
+                        >
+                          <Trash2 className="size-4" aria-hidden />
+                        </button>
+                      </div>
+                    </div>
+                    {!course.includedInPlan && (
+                      <p className="mt-3 text-sm text-ink-faint">
+                        Its meetings stay on the calendar, but it will not
+                        receive study blocks.
+                      </p>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-10 flex items-baseline justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">Class times</h3>
+                <p className="mt-1 text-sm text-ink-soft">
+                  Optional for asynchronous courses. Add lectures and labs as
+                  separate patterns.
+                </p>
+              </div>
+              <Badge>
+                {schedule.classMeetings.length}{" "}
+                {schedule.classMeetings.length === 1 ? "pattern" : "patterns"}
+              </Badge>
+            </div>
+
+            <Card id="class-meeting-form" className="mt-4 scroll-mt-24">
+              <form onSubmit={submitMeeting} className="space-y-5">
+                <Field label="Course" htmlFor="meeting-course">
+                  <select
+                    id="meeting-course"
+                    value={meetingCourseId}
+                    disabled={schedule.courses.length === 0}
+                    onChange={(event) => {
+                      setMeetingCourseId(event.target.value);
+                      setMeetingFormError(null);
+                    }}
+                    className={inputClass}
+                  >
+                    <option value="">Choose a course</option>
+                    {schedule.courses.map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.name || "Unnamed course"}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
 
                 <DayPicker
                   legend="Meeting days"
@@ -1024,10 +920,15 @@ export function PlanSetupWizard({
                   </Field>
                 </div>
 
-                {meetingFormError && <InlineError>{meetingFormError}</InlineError>}
+                {meetingFormError && (
+                  <InlineError>{meetingFormError}</InlineError>
+                )}
 
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button type="submit">
+                  <Button
+                    type="submit"
+                    disabled={schedule.courses.length === 0}
+                  >
                     {editingMeetingId ? (
                       <Check className="size-4" aria-hidden />
                     ) : (
@@ -1036,7 +937,11 @@ export function PlanSetupWizard({
                     {editingMeetingId ? "Save changes" : "Add class meeting"}
                   </Button>
                   {editingMeetingId && (
-                    <Button type="button" variant="ghost" onClick={resetMeetingForm}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={resetMeetingForm}
+                    >
                       Cancel edit
                     </Button>
                   )}
@@ -1044,99 +949,100 @@ export function PlanSetupWizard({
               </form>
             </Card>
 
-            <div className="mt-7">
-              <div className="flex items-baseline justify-between gap-4">
-                <h2 className="text-lg font-semibold">Recurring meetings</h2>
-                <Badge>
-                  {schedule.classMeetings.length}{" "}
-                  {schedule.classMeetings.length === 1 ? "pattern" : "patterns"}
-                </Badge>
-              </div>
-
-              {schedule.classMeetings.length === 0 ? (
-                <div className="mt-3 rounded-2xl border border-dashed border-line px-5 py-8 text-center text-sm text-ink-soft">
-                  No recurring classes? You can continue. Asynchronous courses
-                  do not need a meeting time.
-                </div>
-              ) : (
-                <div className="mt-3 space-y-3">
-                  {sortMeetings(schedule.classMeetings).map((meeting) => {
-                    const conflict = conflictDays.get(meeting.id);
-                    return (
-                      <Card
-                        key={meeting.id}
-                        className={cn(
-                          "p-4 sm:p-5",
-                          conflict && "border-rose-300",
-                        )}
-                      >
-                        <div className="flex items-start gap-4">
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium">{meeting.label}</p>
-                            <p className="mt-1 text-sm text-ink-soft">
-                              {formatDayList(meeting.days)} ·{" "}
-                              {formatClock(meeting.startMinute)}–
-                              {formatClock(meeting.endMinute)}
+            {schedule.classMeetings.length > 0 && (
+              <div className="mt-3 space-y-3">
+                {sortMeetings(schedule.classMeetings).map((meeting) => {
+                  const conflict = conflictDays.get(meeting.id);
+                  const linkedCourse = schedule.courses.find(
+                    (course) => course.id === meeting.courseId,
+                  );
+                  return (
+                    <Card
+                      key={meeting.id}
+                      className={cn(
+                        "p-4",
+                        (conflict || !linkedCourse) && "border-rose-300",
+                      )}
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium">
+                            {linkedCourse?.name || meeting.label}
+                          </p>
+                          <p className="mt-1 text-sm text-ink-soft">
+                            {formatDayList(meeting.days)} ·{" "}
+                            {formatClock(meeting.startMinute)}-
+                            {formatClock(meeting.endMinute)}
+                          </p>
+                          {!linkedCourse && (
+                            <p role="alert" className="mt-2 text-sm text-rose-700">
+                              Choose a course for this legacy class time.
                             </p>
-                            {conflict && (
-                              <p role="alert" className="mt-2 text-sm text-rose-700">
-                                Overlaps another class on {formatDayList(conflict)}.
-                              </p>
-                            )}
-                          </div>
-                          <div className="flex shrink-0 gap-1">
-                            <button
-                              type="button"
-                              onClick={() => editMeeting(meeting)}
-                              className="flex size-11 items-center justify-center rounded-xl text-ink-faint hover:bg-line-soft hover:text-ink"
-                              aria-label={`Edit ${meeting.label}`}
-                            >
-                              <Pencil className="size-4" aria-hidden />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => removeMeeting(meeting.id)}
-                              className="flex size-11 items-center justify-center rounded-xl text-ink-faint hover:bg-rose-50 hover:text-rose-700"
-                              aria-label={`Remove ${meeting.label}`}
-                            >
-                              <Trash2 className="size-4" aria-hidden />
-                            </button>
-                          </div>
+                          )}
+                          {conflict && (
+                            <p role="alert" className="mt-2 text-sm text-rose-700">
+                              Overlaps another class on {formatDayList(conflict)}.
+                            </p>
+                          )}
                         </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {meetingsInvalid && (
-              <div className="mt-5">
-                <InlineError>
-                  Fix class meetings with missing days, labels, invalid times,
-                  or too many saved patterns.
-                </InlineError>
+                        <div className="flex shrink-0 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => editMeeting(meeting)}
+                            className="flex size-11 items-center justify-center rounded-xl text-ink-faint hover:bg-line-soft hover:text-ink"
+                            aria-label={`Edit ${meeting.label}`}
+                          >
+                            <Pencil className="size-4" aria-hidden />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeMeeting(meeting.id)}
+                            className="flex size-11 items-center justify-center rounded-xl text-ink-faint hover:bg-rose-50 hover:text-rose-700"
+                            aria-label={`Remove ${meeting.label}`}
+                          >
+                            <Trash2 className="size-4" aria-hidden />
+                          </button>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
               </div>
             )}
 
-            <div className="mt-8 flex items-center gap-3 border-t border-line pt-5">
-              <Button variant="ghost" onClick={() => goToStep(1)}>
-                <ArrowLeft className="size-4" aria-hidden />
-                Back
-              </Button>
+            <div className="mt-5 space-y-3">
+              {courseError && <InlineError>{courseError}</InlineError>}
+              {meetingsInvalid && (
+                <InlineError>
+                  Link every class time to a course and fix missing days,
+                  invalid times, or too many saved patterns.
+                </InlineError>
+              )}
+            </div>
+
+            <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:items-center">
+              {onCancel && (
+                <Button variant="ghost" onClick={onCancel}>
+                  Cancel
+                </Button>
+              )}
               <Button
-                className="ml-auto"
-                onClick={() => goToStep(3)}
-                disabled={meetingsInvalid || conflictDays.size > 0}
+                className="sm:ml-auto"
+                onClick={() => goToStep(2)}
+                disabled={
+                  Boolean(courseError) ||
+                  meetingsInvalid ||
+                  conflictDays.size > 0
+                }
               >
-                Continue to study windows
+                Continue to study availability
                 <ArrowRight className="size-4" aria-hidden />
               </Button>
             </div>
           </section>
         )}
 
-        {wizard.step === 3 && (
+        {wizard.step === 2 && (
           <section aria-labelledby="schedule-step-heading">
             <h2
               id="schedule-step-heading"
@@ -1152,7 +1058,7 @@ export function PlanSetupWizard({
             </p>
 
             <div className="mt-7">
-              <h2 className="text-sm font-semibold">Quick presets</h2>
+              <h3 className="text-sm font-semibold">Quick presets</h3>
               <p className="mt-1 text-sm text-ink-faint">
                 Add one, then review or edit every window below.
               </p>
@@ -1164,7 +1070,9 @@ export function PlanSetupWizard({
                     onClick={() => applyPreset(preset)}
                     className="min-h-20 rounded-xl border border-line bg-surface p-4 text-left transition-colors hover:border-brand-200 hover:bg-brand-50/40"
                   >
-                    <span className="block text-sm font-medium">{preset.label}</span>
+                    <span className="block text-sm font-medium">
+                      {preset.label}
+                    </span>
                     <span className="mt-1 block text-sm text-ink-faint">
                       {preset.detail}
                     </span>
@@ -1184,7 +1092,7 @@ export function PlanSetupWizard({
                   }}
                 />
                 <p className="-mt-3 text-sm text-ink-faint">
-                  Select several days to copy this same time window across them.
+                  Select several days to copy this time window across them.
                 </p>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -1208,7 +1116,9 @@ export function PlanSetupWizard({
                       step={900}
                       value={minutesToTimeInput(windowEnd)}
                       onChange={(event) => {
-                        setWindowEnd(timeInputToMinutes(event.target.value, true));
+                        setWindowEnd(
+                          timeInputToMinutes(event.target.value, true),
+                        );
                         setWindowFormError(null);
                       }}
                       className={inputClass}
@@ -1216,7 +1126,9 @@ export function PlanSetupWizard({
                   </Field>
                 </div>
 
-                {windowFormError && <InlineError>{windowFormError}</InlineError>}
+                {windowFormError && (
+                  <InlineError>{windowFormError}</InlineError>
+                )}
 
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Button type="submit">
@@ -1228,7 +1140,11 @@ export function PlanSetupWizard({
                     {editingWindowId ? "Save changes" : "Add study window"}
                   </Button>
                   {editingWindowId && (
-                    <Button type="button" variant="ghost" onClick={resetWindowForm}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={resetWindowForm}
+                    >
                       Cancel edit
                     </Button>
                   )}
@@ -1238,7 +1154,7 @@ export function PlanSetupWizard({
 
             <div className="mt-7">
               <div className="flex items-baseline justify-between gap-4">
-                <h2 className="text-lg font-semibold">Confirmed windows</h2>
+                <h3 className="text-lg font-semibold">Confirmed windows</h3>
                 <Badge>
                   {schedule.studyWindows.length}{" "}
                   {schedule.studyWindows.length === 1 ? "window" : "windows"}
@@ -1252,14 +1168,18 @@ export function PlanSetupWizard({
               ) : (
                 <div className="mt-3 space-y-3">
                   {sortStudyWindows(schedule.studyWindows).map((window) => (
-                    <Card key={window.id} className="p-4 sm:p-5">
+                    <Card key={window.id} className="p-4">
                       <div className="flex items-start gap-4">
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium">{formatDayList(window.days)}</p>
+                          <p className="font-medium">
+                            {formatDayList(window.days)}
+                          </p>
                           <p className="mt-1 text-sm text-ink-soft">
-                            {formatClock(window.startMinute)}–
+                            {formatClock(window.startMinute)}-
                             {formatClock(window.endMinute)} ·{" "}
-                            {formatDuration(window.endMinute - window.startMinute)}
+                            {formatDuration(
+                              window.endMinute - window.startMinute,
+                            )}
                           </p>
                         </div>
                         <div className="flex shrink-0 gap-1">
@@ -1288,10 +1208,10 @@ export function PlanSetupWizard({
             </div>
 
             <Card className="mt-8">
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_2fr] lg:items-end">
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_2fr] lg:items-end">
                 <Field
-                  label="Weekly study target"
-                  hint="Separate from your total availability."
+                  label="How many of these available hours do you actually want to commit?"
+                  hint="This is your goal, not your total free time."
                   htmlFor="study-target"
                 >
                   <div className="relative">
@@ -1323,13 +1243,18 @@ export function PlanSetupWizard({
                   </div>
                 </Field>
 
-                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {[
                     ["Available", capacity.availableMinutes, "Window time"],
-                    ["Usable", capacity.usableMinutes, "After classes"],
+                    [
+                      "In class",
+                      capacity.availableMinutes - capacity.usableMinutes,
+                      "Removed",
+                    ],
                     ["Target", schedule.targetStudyMinutes, "Your goal"],
-                    ["Planned", capacity.plannedMinutes, "Can fit"],
+                    ["Can plan", capacity.plannedMinutes, "Feasible"],
                     ["Buffer", capacity.bufferMinutes, "Still open"],
+                    ["Shortfall", capacity.shortfallMinutes, "Cannot fit"],
                   ].map(([label, minutes, detail]) => (
                     <div key={String(label)} className="rounded-xl bg-line-soft p-3">
                       <dt className="text-xs font-medium text-ink-faint">
@@ -1338,7 +1263,9 @@ export function PlanSetupWizard({
                       <dd className="mt-1 font-semibold">
                         {formatDuration(Number(minutes))}
                       </dd>
-                      <dd className="mt-0.5 text-xs text-ink-faint">{detail}</dd>
+                      <dd className="mt-0.5 text-xs text-ink-faint">
+                        {detail}
+                      </dd>
                     </div>
                   ))}
                 </dl>
@@ -1347,11 +1274,21 @@ export function PlanSetupWizard({
 
             {capacity.availableMinutes > capacity.usableMinutes && (
               <p className="mt-4 rounded-xl bg-brand-50 px-4 py-3 text-sm text-brand-700">
-                Classes remove {formatDuration(
+                Classes remove{" "}
+                {formatDuration(
                   capacity.availableMinutes - capacity.usableMinutes,
-                )} from your study windows. The usable total already accounts
+                )}{" "}
+                from these study windows. The feasible total already accounts
                 for that overlap.
               </p>
+            )}
+
+            {capacity.shortfallMinutes > 0 && targetValid && (
+              <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Your target is {formatDuration(capacity.shortfallMinutes)} over
+                usable capacity. Scholara will still create the strongest plan
+                that fits and show the unplanned time.
+              </div>
             )}
 
             <div className="mt-5 space-y-3">
@@ -1360,10 +1297,15 @@ export function PlanSetupWizard({
                   Add at least one study window of 30 minutes or longer.
                 </InlineError>
               )}
+              {hasUsableWindow && !hasUsableCapacity && (
+                <InlineError>
+                  Make at least 30 minutes available outside your class times.
+                </InlineError>
+              )}
               {windowsInvalid && (
                 <InlineError>
-                  Fix study windows with missing days, invalid times, or too many
-                  saved windows.
+                  Fix study windows with missing days, invalid times, or too
+                  many saved windows.
                 </InlineError>
               )}
               {!targetValid && (
@@ -1371,17 +1313,10 @@ export function PlanSetupWizard({
                   Set a weekly target between 30 minutes and 40 hours.
                 </InlineError>
               )}
-              {capacity.shortfallMinutes > 0 && targetValid && (
-                <InlineError>
-                  Your target is {formatDuration(capacity.shortfallMinutes)} over
-                  usable capacity. Add a window or lower the target before
-                  generating.
-                </InlineError>
-              )}
             </div>
 
             <div className="mt-8 flex items-center gap-3 border-t border-line pt-5">
-              <Button variant="ghost" onClick={() => goToStep(2)}>
+              <Button variant="ghost" onClick={() => goToStep(1)}>
                 <ArrowLeft className="size-4" aria-hidden />
                 Back
               </Button>

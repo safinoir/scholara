@@ -93,6 +93,9 @@ export type LearnerContext = {
   hasOutsideObligations: boolean;
 };
 
+/** Optional education details retained only for Resources/After compatibility. */
+export type EducationContext = Pick<LearnerContext, "year" | "field">;
+
 // ---------------------------------------------------------------------------
 // Quiz
 // ---------------------------------------------------------------------------
@@ -119,21 +122,13 @@ export type FrictionQuestion = {
   hint?: string;
 };
 
-export type ContextQuestion = {
-  id: string;
-  kind: "context";
-  prompt: string;
-  hint?: string;
-};
+export type Question = AxisQuestion | FrictionQuestion;
 
-export type Question = AxisQuestion | FrictionQuestion | ContextQuestion;
-
-/** Raw quiz state: axis answers by question id, plus friction and context. */
+/** Raw quiz state: axis answers by question id plus reported obstacles. */
 export type QuizAnswers = {
   /** questionId -> selected option index */
   axisAnswers: Record<string, number>;
   frictions: Friction[];
-  context: LearnerContext;
 };
 
 // ---------------------------------------------------------------------------
@@ -295,12 +290,25 @@ export type PlanBlock = {
   label: string;
   techniqueId: string;
   supportingTechniqueIds: string[];
+  /** Whether the primary method was explicitly chosen or supplied as a fallback. */
+  techniqueSource: "selected" | "foundation";
+  /** Obstacles this particular block actively responds to. */
+  addressedFrictionIds: Friction[];
   intensity: BlockIntensity;
   /** Short instruction shown on the block. */
   note: string;
 };
 
+export type FrictionResponse = {
+  frictionId: Friction;
+  source: "profile" | "week" | "both";
+  strategy: string;
+  blockIds: string[];
+  techniqueIds: string[];
+};
+
 export type WeekPlan = {
+  algorithmVersion: 2;
   blocks: PlanBlock[];
   /** True when the user's structure score is low: fewer fixed times. */
   flexible: boolean;
@@ -319,6 +327,8 @@ export type WeekPlan = {
   unusedTechniqueIds?: string[];
   /** Visible constraints and compromises made by the scheduler. */
   warnings?: PlanWarning[];
+  /** One explicit scheduling response for every active obstacle. */
+  frictionResponses: FrictionResponse[];
 };
 
 export type PlanWarningCode =
@@ -393,28 +403,6 @@ export type WeekContext = {
   courseTargets?: CourseTarget[];
   /** Local ISO date for the Monday represented by this plan. */
   weekStart?: string;
-};
-
-// ---------------------------------------------------------------------------
-// AI coaching (optional layer — the engine is always the source of truth)
-// ---------------------------------------------------------------------------
-
-/**
- * Written by the model, never structural. Every field is prose that explains
- * or reframes a decision the engine already made, and every one has a
- * deterministic fallback so the app is complete without a key.
- */
-export type PlanCoaching = {
-  /** 2-3 sentence brief on how to approach the week. */
-  brief: string;
-  /** The single highest-leverage move, phrased as an action. */
-  focus: string;
-  /** The most likely way this week goes wrong for this student. */
-  watchOut: string;
-  /** blockId -> a rewritten, personal instruction for that block. */
-  blockNotes: Record<string, string>;
-  source: "ai" | "fallback";
-  generatedAt: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -494,7 +482,7 @@ export type CareerTrack = {
 // The profile
 // ---------------------------------------------------------------------------
 
-export const PROFILE_VERSION = 2;
+export const PROFILE_VERSION = 3;
 
 export const ONBOARDING_STAGES = [
   "persona",
@@ -510,7 +498,8 @@ export type LearnerProfile = {
   createdAt: string;
   axes: AxisScores;
   frictions: Friction[];
-  context: LearnerContext;
+  /** Preserved for supporting pages; never used to build the weekly plan. */
+  educationContext?: EducationContext;
   match: ArchetypeMatch;
   /** Explicit learner choice. The measured axis match remains unchanged. */
   personaOverride?: ArchetypeId;
@@ -529,8 +518,6 @@ export type LearnerProfile = {
   resourceIds: string[];
   /** Present once the student has tuned the plan for a specific week. */
   weekContext?: WeekContext;
-  /** Optional AI polish over the current plan. Safe to be absent. */
-  coaching?: PlanCoaching;
 };
 
 export type PlannedLearnerProfile = LearnerProfile & { plan: WeekPlan };

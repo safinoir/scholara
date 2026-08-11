@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { TECHNIQUE_BY_ID } from "@/lib/data/techniques";
+import { buildSchedulePlan } from "@/lib/engine/buildSchedulePlan";
+import { rankTechniques } from "@/lib/engine/rankTechniques";
 import {
   ARCHETYPE_IDS,
   AXES,
@@ -36,6 +38,11 @@ const contextSchema = z.object({
   hasOutsideObligations: z.boolean(),
 });
 
+const educationContextSchema = contextSchema.pick({
+  year: true,
+  field: true,
+});
+
 const planBlockSchema = z.object({
   id: z.string(),
   day: z.enum(DAYS),
@@ -46,6 +53,11 @@ const planBlockSchema = z.object({
   label: z.string(),
   techniqueId: z.string(),
   supportingTechniqueIds: z.array(z.string()).max(2).optional(),
+  techniqueSource: z.enum(["selected", "foundation"]).default("foundation"),
+  addressedFrictionIds: z
+    .array(z.enum(FRICTIONS))
+    .max(FRICTIONS.length)
+    .default([]),
   intensity: z.enum(["deep", "review", "admin"]),
   note: z.string(),
 }).transform((block) => ({
@@ -54,7 +66,16 @@ const planBlockSchema = z.object({
   supportingTechniqueIds: block.supportingTechniqueIds ?? [],
 }));
 
+const frictionResponseSchema = z.object({
+  frictionId: z.enum(FRICTIONS),
+  source: z.enum(["profile", "week", "both"]),
+  strategy: z.string().min(1),
+  blockIds: z.array(z.string()),
+  techniqueIds: z.array(z.string()),
+});
+
 const weekPlanSchema = z.object({
+  algorithmVersion: z.literal(2).default(2),
   blocks: z.array(planBlockSchema),
   flexible: z.boolean(),
   totalMinutes: z.number(),
@@ -79,6 +100,10 @@ const weekPlanSchema = z.object({
       }),
     )
     .optional(),
+  frictionResponses: z
+    .array(frictionResponseSchema)
+    .max(FRICTIONS.length)
+    .default([]),
 });
 
 const minuteRangeShape = {
@@ -226,7 +251,20 @@ const matchSchema = z.object({
   confidence: z.number().min(0).max(1),
 });
 
-const sharedProfileShape = {
+const currentProfileShape = {
+  createdAt: z.string(),
+  axes: axisScoresSchema,
+  frictions: z.array(z.enum(FRICTIONS)),
+  educationContext: educationContextSchema.optional(),
+  match: matchSchema,
+  reasons: z.record(z.string(), z.array(z.string())),
+  plan: weekPlanSchema.optional(),
+  schedule: scheduleSetupSchema.optional(),
+  resourceIds: z.array(z.string()),
+  weekContext: weekContextSchema.optional(),
+};
+
+const legacySharedProfileShape = {
   createdAt: z.string(),
   axes: axisScoresSchema,
   frictions: z.array(z.enum(FRICTIONS)),
@@ -254,7 +292,7 @@ function uniqueTechniqueIds(max: number) {
 export const profileSchema = z
   .object({
     version: z.literal(PROFILE_VERSION),
-    ...sharedProfileShape,
+    ...currentProfileShape,
     personaOverride: z.enum(ARCHETYPE_IDS).optional(),
     recommendedTechniqueIds: uniqueTechniqueIds(5),
     selectedTechniqueIds: uniqueTechniqueIds(3),
@@ -289,11 +327,30 @@ export const profileSchema = z
       });
     }
 
-    if (profile.coaching && !profile.plan) {
-      context.addIssue({
-        code: "custom",
-        path: ["coaching"],
-        message: "Plan coaching requires a generated weekly plan",
+    if (profile.onboardingStage === "complete" && profile.schedule) {
+      const includedCourseIds = new Set(
+        profile.schedule.courses
+          .filter((course) => course.includedInPlan)
+          .map((course) => course.id),
+      );
+      if (
+        profile.schedule.mode !== "by-course" ||
+        includedCourseIds.size === 0
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["schedule", "courses"],
+          message: "Completed planning requires at least one included course",
+        });
+      }
+      profile.schedule.classMeetings.forEach((meeting, index) => {
+        if (!meeting.courseId) {
+          context.addIssue({
+            code: "custom",
+            path: ["schedule", "classMeetings", index, "courseId"],
+            message: "Every class meeting must belong to a course",
+          });
+        }
       });
     }
 
@@ -315,9 +372,18 @@ export const profileSchema = z
 
 export const legacyProfileSchema = z.object({
   version: z.literal(1),
-  ...sharedProfileShape,
+  ...legacySharedProfileShape,
   plan: weekPlanSchema,
   techniqueIds: z.array(z.string()),
+});
+
+const profileV2Schema = z.object({
+  version: z.literal(2),
+  ...legacySharedProfileShape,
+  personaOverride: z.enum(ARCHETYPE_IDS).optional(),
+  recommendedTechniqueIds: z.array(z.string()),
+  selectedTechniqueIds: z.array(z.string()),
+  onboardingStage: z.enum(ONBOARDING_STAGES),
 });
 
 export const habitLogSchema = z.object({
@@ -340,10 +406,19 @@ export function migrateProfileV1(raw: unknown): LearnerProfile | null {
   const legacy = legacyProfileSchema.safeParse(raw);
   if (!legacy.success) return null;
 
-  const { techniqueIds, ...rest } = legacy.data;
+  const { techniqueIds } = legacy.data;
   const migrated = profileSchema.safeParse({
-    ...rest,
     version: PROFILE_VERSION,
+    createdAt: legacy.data.createdAt,
+    axes: legacy.data.axes,
+    frictions: legacy.data.frictions,
+    educationContext: {
+      year: legacy.data.context.year,
+      field: legacy.data.context.field,
+    },
+    match: legacy.data.match,
+    reasons: legacy.data.reasons,
+    resourceIds: legacy.data.resourceIds,
     recommendedTechniqueIds: cleanTechniqueIds(techniqueIds, 5),
     selectedTechniqueIds: [],
     onboardingStage: "toolkit",
@@ -352,8 +427,99 @@ export function migrateProfileV1(raw: unknown): LearnerProfile | null {
   return migrated.success ? migrated.data : null;
 }
 
+export function migrateProfileV2(raw: unknown): LearnerProfile | null {
+  const legacy = profileV2Schema.safeParse(raw);
+  if (!legacy.success) return null;
+
+  const selectedTechniqueIds = cleanTechniqueIds(
+    legacy.data.selectedTechniqueIds,
+    3,
+  );
+  const initialStage =
+    legacy.data.onboardingStage === "persona" ||
+    legacy.data.onboardingStage === "toolkit"
+      ? legacy.data.onboardingStage
+      : selectedTechniqueIds.length > 0
+        ? "schedule"
+        : "toolkit";
+  const knownCourseIds = new Set(
+    legacy.data.schedule?.courses.map((course) => course.id) ?? [],
+  );
+  const weekContext = legacy.data.weekContext
+    ? {
+        ...legacy.data.weekContext,
+        courseTargets: (legacy.data.weekContext.courseTargets ?? []).filter(
+          (target) => knownCourseIds.has(target.courseId),
+        ),
+      }
+    : undefined;
+  const scheduleReady = Boolean(
+    legacy.data.schedule &&
+      legacy.data.schedule.mode === "by-course" &&
+      legacy.data.schedule.courses.some((course) => course.includedInPlan) &&
+      legacy.data.schedule.classMeetings.every(
+        (meeting) =>
+          Boolean(meeting.courseId) && knownCourseIds.has(meeting.courseId!),
+      ),
+  );
+  const activeFrictions = [
+    ...new Set([
+      ...legacy.data.frictions,
+      ...(weekContext?.focusFrictions ?? []),
+    ]),
+  ];
+  const rebuiltPlan =
+    scheduleReady && selectedTechniqueIds.length > 0 && legacy.data.schedule
+      ? buildSchedulePlan({
+          axes: legacy.data.axes,
+          frictions: legacy.data.frictions,
+          schedule: legacy.data.schedule,
+          techniques: rankTechniques({
+            axes: legacy.data.axes,
+            frictions: activeFrictions,
+            primary:
+              legacy.data.personaOverride ?? legacy.data.match.primary,
+          }),
+          selectedTechniqueIds,
+          week: weekContext,
+        })
+      : undefined;
+  const plan = rebuiltPlan?.blocks.length ? rebuiltPlan : undefined;
+  const onboardingStage =
+    initialStage === "persona" || initialStage === "toolkit"
+      ? initialStage
+      : plan
+        ? "complete"
+        : "schedule";
+  const migrated = profileSchema.safeParse({
+    version: PROFILE_VERSION,
+    createdAt: legacy.data.createdAt,
+    axes: legacy.data.axes,
+    frictions: legacy.data.frictions,
+    educationContext: {
+      year: legacy.data.context.year,
+      field: legacy.data.context.field,
+    },
+    match: legacy.data.match,
+    personaOverride: legacy.data.personaOverride,
+    reasons: legacy.data.reasons,
+    resourceIds: legacy.data.resourceIds,
+    recommendedTechniqueIds: cleanTechniqueIds(
+      legacy.data.recommendedTechniqueIds,
+      5,
+    ),
+    selectedTechniqueIds,
+    onboardingStage,
+    schedule: legacy.data.schedule,
+    weekContext,
+    plan,
+  });
+
+  return migrated.success ? migrated.data : null;
+}
+
 export function parseProfile(raw: unknown): LearnerProfile | null {
   const current = profileSchema.safeParse(raw);
   if (current.success) return current.data;
-  return migrateProfileV1(raw);
+  return migrateProfileV2(raw) ?? migrateProfileV1(raw);
 }

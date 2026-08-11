@@ -1,7 +1,8 @@
 # Scholara Guided Flow and Weekly Plan Redesign
 
-**Status:** Core guided flow and Weekly Plan implemented; self-report routing,
-post-intake six-axis editing, legacy cleanup, and release QA remain
+**Status:** Obstacle-aware, course-specific guided flow and Weekly Plan
+implemented; self-report routing, post-intake six-axis editing, and release QA
+remain
 
 **Current scope:** Homepage, Persona, Methods, and Weekly Plan
 **Existing but outside this redesign:** Tracker, Resources, and After/Career
@@ -37,6 +38,7 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 
 ### Guided quiz path
 
+- The guided quiz contains 12 axis questions and one final obstacle screen.
 - Quiz completion opens `/persona`, not the old combined results page.
 - Show the primary persona, secondary blend when relevant, strengths,
   watch-outs, and the six-axis profile.
@@ -46,8 +48,10 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 ### Self-report path
 
 - **Current:** **Skip the quiz** opens `/express`.
-- The current four-step form asks the learner to choose a starting persona,
-  confirm or refine its seeded axes, select obstacles, and add context.
+- The current three-step form asks the learner to choose a starting persona,
+  confirm or refine its seeded axes, and select obstacles.
+- There is no learner-context step. Courses, class meetings, availability, and
+  the weekly target belong in Plan setup instead.
 - Switching personas reseeds untouched axes while preserving values the learner
   deliberately changed.
 - Saving retains the explicit persona choice when it differs from the final
@@ -72,7 +76,6 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 - **Edit profile** reveals the six axis controls.
 - Saving recomputes the persona, recommendations, resources, and any generated
   plan while preserving explicitly selected methods.
-- Stale AI plan coaching is cleared after a profile change.
 
 ## 3. Methods
 
@@ -124,8 +127,8 @@ blocks are carried out, not when the user is available or how much time exists.
 - Exam-only methods are used only when the week includes an assessment or
   deadline; otherwise they stay saved for a relevant week.
 - If the selected methods lack a required role, use the highest-ranked
-  compatible recommendation or foundation method. The current calendar shows
-  the method name, but an explicit **foundation method** label remains pending.
+  compatible recommendation or foundation method and label its source as
+  **foundation** in block details.
 - A small week does not need to use every selected method. Show which choices
   were not needed that week rather than adding unnecessary sessions.
 
@@ -145,50 +148,27 @@ an assessment is required.
 
 ## 4. Weekly Plan Setup
 
-After saving the methods, Plan opens a three-step setup. Drafts autosave locally
-after each change. Returning users can edit the recurring schedule without
-repeating Persona or Methods.
+After saving the methods, Plan opens a two-step, course-only setup. Drafts
+autosave locally after each change. Returning users can edit the recurring
+schedule without repeating Persona or Methods.
 
-### Step 1: Courses and study focus
+### Step 1: Your classes
 
-Offer two modes:
+- Require at least one named course included in the plan.
+- Add courses with an automatically assigned accessible color key.
+- Let the learner include or exclude each course from study allocation.
+- Give included courses a baseline priority: **Keep light** (`maintenance`),
+  **Standard** (`standard`), or **Extra focus** (`focus`).
+- Add one or more recurring meeting patterns directly inside a course, using
+  weekday buttons and visible start/end fields on a 15-minute grid.
+- Allow asynchronous courses with no meeting time.
+- Keep meetings visible even when a course is excluded from study blocks.
+- Require every class meeting to reference a known course. Generic class entries
+  and general-study mode are not part of the active workflow.
+- Reject cross-midnight, reversed, or conflicting class meetings.
+- Calendar/LMS import remains deferred.
 
-1. **Plan by course** (default when courses are entered)
-2. **General study time**
-
-For course-aware planning:
-
-- Add one course at a time with a name and automatically assigned accessible
-  color key.
-- Let the user include or exclude each course from study allocation.
-- Give included courses a baseline priority: `maintenance`, `standard`, or
-  `focus`.
-- Keep class meetings visible even when a course is excluded from study blocks.
-- Synchronize the numeric course count in learner context when named courses are
-  saved.
-
-General mode still allows class commitments but labels generated blocks as
-general study rather than assigning them to a course.
-
-### Step 2: Recurring class schedule
-
-Use a structured form rather than free text or calendar import:
-
-- Course or generic **Class** label
-- One or more weekday buttons, allowing patterns such as Monday/Wednesday/Friday
-- Visible start and end time fields using 15-minute increments
-- **Add class meeting**, followed by an editable chronological list
-- Multiple meeting patterns per course, so labs can use different days/times
-
-Validation:
-
-- End must be later than start.
-- Class meetings cannot cross midnight.
-- Conflicting class meetings show an inline error and must be resolved.
-- Class meetings are immutable scheduling constraints.
-- Calendar/LMS import is deferred.
-
-### Step 3: Study windows and weekly target
+### Step 2: When you can study
 
 Study windows mean: **I am free and realistically willing to study during this
 time.** They are the hard boundary for generated study blocks.
@@ -204,12 +184,14 @@ time.** They are the hard boundary for generated study blocks.
 
 Keep the weekly study target separate from raw availability:
 
-- Initialize the target from the profile's existing hours-per-week answer.
-- Show `available`, `target`, `planned`, and `buffer` totals before generation.
-- The target cannot silently exceed usable window capacity. Show the shortfall
-  and let the user add windows or lower the target.
-- Generate only after the course, class, availability, and target summary passes
-  validation.
+- New setups begin without an invented target. Ask how much of the available
+  time the learner actually wants to commit.
+- Show available time, time removed by classes, target, feasible planned time,
+  buffer, and shortfall before generation.
+- A target above physical capacity does not block generation. Schedule only what
+  fits and report the shortfall.
+- Generate after the course, class, availability, and target summary passes all
+  hard validation.
 
 ## 5. Deterministic Scheduling Engine
 
@@ -237,11 +219,12 @@ hours.
 - Prefer slots closest to the user's peak-hours axis, but availability always
   wins.
 - Spread blocks across days before stacking many blocks on one day.
-- Reserve one 30-minute weekly review in the latest compatible slot, preferring
-  Sunday but never inventing a time.
+- Reserve one 30-minute weekly review in the latest compatible slot only when
+  the target reaches `max(120, 30 × (included courses + 1))` minutes. Prefer
+  Sunday but never invent a time or sacrifice first-pass course coverage.
 - Keep review blocks course-linked when possible. An explicit link back to the
   particular learning block they reinforce is not currently stored.
-- In course-aware mode, allocate time with weighted fairness:
+- Allocate course time with weighted fairness:
   - `maintenance` = weight 1
   - `standard` = weight 2
   - `focus` = weight 3
@@ -249,6 +232,31 @@ hours.
 - Give each included course one block when capacity permits, then distribute the
   remainder by weight and deadlines.
 - Deadline-related study belongs before the deadline when a valid slot exists.
+
+### Obstacle responses
+
+Every unique profile or week-specific obstacle produces exactly one visible
+`FrictionResponse`. Each response names the strategy and links to the blocks and
+methods that apply it. Blocks also carry `addressedFrictionIds`.
+
+| Reported obstacle | Deterministic response |
+| --- | --- |
+| Procrastination | Five-minute starter action on each course's first block |
+| Distraction | Single-task, device-preparation instruction on the first block of each study day |
+| Retention | Later course blocks become retrieval review when capacity permits |
+| Test anxiety | Low-stakes practice before a known deadline, or on the highest-priority course |
+| Overwhelm | One course and one finish line per block; first-pass course coverage first |
+| Time scarcity | Course coverage and priorities first, optional administration omitted, shortfall explained |
+| No quiet space | Portable environment setup on the first block of each study day |
+| Motivation | Small visible output or finish line on each course's first block |
+| Reading load | Active-reading output such as questions, a summary, or a concept map |
+| Math-heavy | Solve, check, and record errors instead of rereading |
+
+Selected compatible methods are preferred when addressing an obstacle.
+Foundation methods appear only when no selected method can fill the required
+learning or review role, and their source is labeled explicitly. Reading- and
+math-specific tactics use Extra focus courses first, then stable course order;
+Scholara does not invent topics, chapters, assignments, or exams.
 
 ### Output and warnings
 
@@ -260,6 +268,7 @@ Plans must expose rather than hide constraints:
 - Selected methods not used this week
 - Deadline work that could not fit before the deadline
 - Missing or insufficient study windows
+- One explicit response for every active obstacle
 
 Generation must be deterministic: identical inputs produce identical blocks,
 ordering, IDs, totals, and warnings.
@@ -277,9 +286,15 @@ ordering, IDs, totals, and warnings.
   - Confirmed study windows: subtle background availability
   - Generated study blocks: course color plus text and method labels
 - Each day header shows the planned study total.
-- A focused or clicked study block shows its primary method, supporting methods,
-  and block instruction. Full method steps and evidence remain on the Methods
-  page.
+- Every study block shows its course, primary method, and duration without
+  expansion. A focused or clicked block also shows the supporting methods,
+  selected/foundation source, concrete instruction, and obstacles addressed.
+- Put **What this plan is helping you overcome** before the calendar. Each row
+  shows the obstacle, response, relevant method, linked classes/blocks, and a
+  **This week** marker for temporary obstacles.
+- Keep the consolidated **How Scholara built this week** rationale for cadence,
+  peak time, course priorities, selected methods, and availability constraints.
+  Full method steps and evidence remain on the Methods page.
 - Provide **Edit recurring schedule** and **Adjust this week** actions.
 
 ### Mobile
@@ -344,7 +359,7 @@ type WeekTuningProposal = {
 
 The request includes the note, current week start, local time zone, current
 structured week values, and known course IDs/names. It does not require the full
-persona or prior AI coaching.
+persona or prior AI output.
 
 ### Safety and validation
 
@@ -361,7 +376,7 @@ persona or prior AI coaching.
 - AI cannot move classes, add availability, select methods, create plan blocks,
   or exceed the weekly target.
 - The raw note is not written to localStorage or an application database and is
-  not forwarded into later coaching prompts. Persist only the approved structured
+  not forwarded into later requests. Persist only the approved structured
   override.
 - Missing key, timeout, invalid JSON, or rejected output returns no proposal and
   leaves the existing plan unchanged.
@@ -381,7 +396,19 @@ The app remains fully usable without an AI key.
 
 ## 8. Data and Persistence
 
-The profile moves to version 2 with an explicit version 1 migration.
+The profile is version 3 with explicit version 1 and version 2 migrations. New
+profiles do not contain `LearnerContext` or fabricated course/hour defaults.
+Migrated profiles may retain only:
+
+```ts
+type EducationContext = {
+  year: YearLevel;
+  field: Field;
+};
+```
+
+This optional education context supports Resources/After compatibility and is
+never used for recommendations or weekly planning.
 
 ```ts
 type Course = {
@@ -409,6 +436,7 @@ type StudyWindow = {
 };
 
 type ScheduleSetup = {
+  // "general" is retained only for legacy data and draft compatibility.
   mode: "general" | "by-course";
   courses: Course[];
   classMeetings: RecurringClassMeeting[];
@@ -430,12 +458,22 @@ type PlanBlock = {
   label: string;
   techniqueId: string;
   supportingTechniqueIds: string[];
+  techniqueSource: "selected" | "foundation";
+  addressedFrictionIds: Friction[];
   intensity: "deep" | "review" | "admin";
   note: string;
 };
+
+type FrictionResponse = {
+  frictionId: Friction;
+  source: "profile" | "week" | "both";
+  strategy: string;
+  blockIds: string[];
+  techniqueIds: string[];
+};
 ```
 
-Profile version 2 adds:
+Profile version 3 contains:
 
 - `personaOverride?: ArchetypeId`
 - `recommendedTechniqueIds: string[]`
@@ -443,16 +481,22 @@ Profile version 2 adds:
 - `onboardingStage: OnboardingStage`
 - `schedule?: ScheduleSetup`
 - `plan?: WeekPlan`
+- `educationContext?: EducationContext` for migrated year/field only
 - Structured week overrides separate from the recurring schedule
+- No active `context` or AI `coaching` field
 
 Migration behavior:
 
-- Preserve axes, persona, context, recommendations, reasons, resources, and
-  existing local data.
+- Preserve axes, persona choice, recommendations, reasons, resources, selected
+  methods, compatible schedules, and structured week settings.
+- Preserve only legacy year and field as optional `educationContext`; discard
+  legacy course count, estimated study hours, and outside-obligation values.
 - Move legacy `techniqueIds` into `recommendedTechniqueIds`.
-- Start with no claimed user selections.
-- Resume legacy profiles at the `/toolkit` Methods page with the saved stage set
-  to `toolkit`, then require recurring schedule setup.
+- Version 1 starts with no claimed user selections and resumes at Methods.
+- Version 2 preserves valid selected methods. Later stages return to schedule
+  setup so a course-only plan can be generated from current inputs.
+- Preserve course-aware version 2 schedules; retain windows/target from general
+  schedules but require the learner to add at least one course.
 - Do not discard a valid version 1 profile merely because new fields are absent.
 
 ## 9. Homepage, Routes, and Navigation
@@ -476,7 +520,8 @@ privacy, and data-handling page.
 ### Current guided routes
 
 - `/persona` - persona result and axis profile
-- `/express` - current persona-first, four-step self-report intake
+- `/quiz` - 13-screen guided intake: 12 axis questions plus obstacles
+- `/express` - persona-first, three-step self-report intake with no context step
 - `/toolkit` - user-facing Methods page with recommendations, the compact full
   method library, and selection
 - `/plan/setup` - first-time or recurring schedule editor
@@ -493,19 +538,17 @@ Before a profile exists, global navigation is **About -> Resources -> Take the
 quiz**. With a profile, About remains first, Resources remains available, and
 the guided Persona/Methods/Plan destinations are progressively unlocked.
 
-The results-page coach is no longer in the active UI. The unused
-`src/components/results/CoachNote.tsx` component and legacy `/api/coach` route
-still exist and remain cleanup work. `/api/plan` coaching and `/api/ask` use the
-actual methods present in the plan and avoid presenting an unselected method as
-if the user chose it.
+The legacy results coach, weekly coaching brief, fixed-topic questions,
+`CoachNote`, `/api/coach`, `/api/plan`, and `/api/ask` have been removed. The only
+active AI route is `/api/plan/tune`.
 
 Privacy copy now states the precise behavior: profile and schedule data stay in
-the browser; explicitly submitted AI notes and bounded plan context are sent to
-the configured provider for processing and are not stored by Scholara.
+the browser; only an explicitly submitted weekly note and bounded tuning context
+are sent to the configured provider, and the raw note is not stored by Scholara.
 
 ## 10. Edge Cases
 
-- No named courses: use general study mode.
+- No named included course: do not generate; keep the learner on the class step.
 - Asynchronous course: course may have no class meeting.
 - No usable study window: do not generate; show how to add one.
 - Availability smaller than target: schedule only safe capacity and show the
@@ -525,7 +568,7 @@ the configured provider for processing and are not stored by Scholara.
 
 ### Phase 1 - Profile and navigation foundation
 
-- [x] Add profile v2 and tested v1 migration.
+- [x] Add profile v3 and tested v1/v2 migrations.
 - [x] Add onboarding stages, resume logic, and gates.
 - [x] Make `plan` optional until scheduling is configured.
 - [ ] Finish the canonical self-report route transition.
@@ -535,15 +578,18 @@ the configured provider for processing and are not stored by Scholara.
 - [x] Split the current Results page.
 - [x] Add detailed Persona comparison and a reversible manual choice.
 - [x] Add persona-first Express intake with explicit axis confirmation.
+- [x] Reduce Express to Persona, Six axes, and Obstacles; remove intake context.
 - [ ] Add editable Persona axes after intake.
 - [x] Add top-five/full-library selection with 1-3 persistence.
 - [x] Add technique scheduling roles.
 - [x] Remove the results coach from the active UI.
-- [ ] Delete the unused CoachNote component and `/api/coach` route.
+- [x] Delete legacy coaching components and `/api/coach`, `/api/plan`, and
+  `/api/ask`.
 
 ### Phase 3 - Recurring schedule setup
 
-- [x] Build course, class meeting, study window, target, and review steps.
+- [x] Build two course-only steps: classes/meeting patterns, then study windows
+  and target.
 - [x] Persist drafts locally.
 - [x] Add validation and capacity preview.
 
@@ -551,6 +597,7 @@ the configured provider for processing and are not stored by Scholara.
 
 - [x] Refactor the engine around explicit time ranges and selected methods.
 - [x] Add course allocation, warnings, and deterministic tests.
+- [x] Add one visible deterministic response per reported obstacle.
 - [x] Build the desktop seven-column calendar and mobile agenda.
 
 ### Phase 5 - Weekly tuning and AI
@@ -558,7 +605,7 @@ the configured provider for processing and are not stored by Scholara.
 - [x] Replace the old tuner with structured week overrides.
 - [x] Add the manual adjustment workflow.
 - [x] Add `/api/plan/tune`, proposal review, apply summary, and undo.
-- [x] Update plan coaching and fixed-topic answers for selected/used methods.
+- [x] Remove plan coaching and fixed-topic answers so AI is tuning-only.
 - [x] Update privacy copy.
 
 ### Phase 6 - Verification
@@ -578,9 +625,11 @@ the configured provider for processing and are not stored by Scholara.
   target.
 - [x] Every generated study block lies inside a confirmed study window and
   outside every class or temporary busy period.
-- [x] Course-aware plans distribute study time by course priority; general mode
-  remains available.
+- [x] Plans are course-specific; asynchronous courses may omit meetings, while
+  every saved meeting belongs to a course.
 - [x] Selected methods are used according to their scheduling role.
+- [x] Every active obstacle is visibly addressed and linked to plan blocks.
+- [x] Every study block exposes its course, method, duration, and instruction.
 - [x] Desktop displays all seven days as a calendar; mobile uses a readable
   selected-day agenda.
 - [x] A weekly free-text note produces only a reviewable structured proposal.
@@ -595,8 +644,8 @@ the configured provider for processing and are not stored by Scholara.
 - [ ] Decide whether to move self-report to `/persona/setup` or retain
   `/express` as canonical.
 - [ ] Add six-axis editing with a deliberate recompute-and-save flow.
-- [ ] Delete the legacy results coach files and the temporary local-storage test
-  button.
+- [x] Delete the legacy results coach and plan-coaching files/routes.
+- [ ] Delete the temporary local-storage test button.
 - [ ] Complete real-device, keyboard-only, and accessibility review.
 
 Tracker, Resources, and After/Career already exist. Their broader workflow
@@ -610,22 +659,21 @@ Implemented in the current codebase:
 - Persona-first Express setup with explicit six-axis review
 - Persona comparison and reversible override, plus a separate Methods page with
   explicit method selection
-- Three-step recurring schedule setup with local draft recovery
-- Course-aware and general study modes
+- Two-step, course-only recurring schedule setup with local draft recovery
 - Recurring class conflicts, study-window validation, and capacity preview
 - Deterministic scheduling inside confirmed availability only
 - Course weighting, deadline handling, selected-method roles, and visible warnings
+- Deterministic obstacle responses linked to course study blocks
 - Seven-column desktop calendar and mobile chronological agenda
 - Manual weekly overrides with one-step undo
 - Bounded AI note interpretation with proposal review before applying
-- Updated AI coaching context and privacy disclosures
+- AI tuning-only context and privacy disclosures
 
 Known remaining work is the canonical self-report route decision, post-intake
-six-axis editing, legacy coach cleanup, removal of the test-only storage button,
-and final release QA.
+six-axis editing, removal of the test-only storage button, and final release QA.
 
 Automated verification covers the recommendation engines, profile migration,
 onboarding helpers, sharing, schedule schemas and constraints, and the AI tuning
-route. The live AI integration test skips when no API key is configured. There
-are not yet component, browser end-to-end, or automated accessibility tests, so
-real-device and keyboard-only review remains part of release verification.
+route's validation and failure behavior. There are not yet component, browser
+end-to-end, live-provider, or automated accessibility tests, so real-device and
+keyboard-only review remains part of release verification.

@@ -100,7 +100,7 @@ export default async function SharePage({ params }: Props) {
       <Card className="mt-8 border-brand-100 bg-brand-50 text-center">
         <h2 className="text-xl font-semibold">What&rsquo;s your persona?</h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
-          Fourteen questions, about two minutes, no account. You&rsquo;ll get
+          Thirteen questions, about two minutes, no account. You&rsquo;ll get
           evidence-based techniques and a weekly plan built around your real
           schedule.
         </p>

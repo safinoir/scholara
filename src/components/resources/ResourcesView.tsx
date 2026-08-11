@@ -76,7 +76,7 @@ export function ResourcesView() {
     return sortResourcesByFit({
       axes: profile.axes,
       frictions: profile.frictions,
-      context: profile.context,
+      field: profile.educationContext?.field,
       toolIds,
     });
   }, [profile, toolIds]);
@@ -95,12 +95,10 @@ export function ResourcesView() {
     return true;
   });
 
-  const categories = useMemo(() => {
-    const present = new Set(rest.map((r) => r.category));
-    return (Object.keys(CATEGORY_LABELS) as ResourceCategory[]).filter((c) =>
-      present.has(c),
-    );
-  }, [rest]);
+  const presentCategories = new Set(rest.map((resource) => resource.category));
+  const categories = (
+    Object.keys(CATEGORY_LABELS) as ResourceCategory[]
+  ).filter((resourceCategory) => presentCategories.has(resourceCategory));
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-10 sm:py-14">
