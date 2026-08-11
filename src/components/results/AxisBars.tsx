@@ -52,7 +52,7 @@ export function AxisBars({ axes }: { axes: AxisScores }) {
 
             <p className="mt-2 text-sm leading-relaxed text-ink-soft">
               {magnitude < 18
-                ? `You sit in the middle here, so we won't force either extreme. ${meta.drives}`
+                ? `${meta.drives} You sit in the middle here, so we won't force either extreme.`
                 : value > 0
                   ? meta.highBlurb
                   : meta.lowBlurb}
