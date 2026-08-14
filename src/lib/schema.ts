@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TECHNIQUE_BY_ID } from "@/lib/data/techniques";
 import { buildSchedulePlan } from "@/lib/engine/buildSchedulePlan";
 import { rankTechniques } from "@/lib/engine/rankTechniques";
+import { parseLocalDateKey } from "@/lib/week";
 import {
   ARCHETYPE_IDS,
   AXES,
@@ -14,6 +15,8 @@ import {
   PROFILE_VERSION,
   WEEK_LOADS,
   type LearnerProfile,
+  type ScheduleSetup,
+  type WeekContext,
 } from "@/lib/types";
 
 const axisScoresSchema = z.object(
@@ -162,6 +165,28 @@ export const scheduleSetupSchema = z
     }
 
     if (
+      new Set(schedule.classMeetings.map((meeting) => meeting.id)).size !==
+      schedule.classMeetings.length
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["classMeetings"],
+        message: "Class meeting ids must be unique",
+      });
+    }
+
+    if (
+      new Set(schedule.studyWindows.map((window) => window.id)).size !==
+      schedule.studyWindows.length
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["studyWindows"],
+        message: "Study window ids must be unique",
+      });
+    }
+
+    if (
       schedule.mode === "by-course" &&
       !schedule.courses.some((course) => course.includedInPlan)
     ) {
@@ -205,11 +230,32 @@ export const scheduleSetupSchema = z
     }
   });
 
-const weekContextSchema = z.object({
-  unavailableDays: z.array(z.enum(DAYS)).max(7),
+const weekStartSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => parseLocalDateKey(value) !== null, "Use a real calendar date")
+  .refine(
+    (value) => parseLocalDateKey(value)?.getDay() === 1,
+    "Week start must be a Monday",
+  );
+
+export const weekContextSchema = z.object({
+  unavailableDays: z
+    .array(z.enum(DAYS))
+    .max(7)
+    .refine(
+      (days) => new Set(days).size === days.length,
+      "Unavailable days must be unique",
+    ),
   load: z.enum(WEEK_LOADS),
   energy: z.enum(ENERGY_LEVELS),
-  focusFrictions: z.array(z.enum(FRICTIONS)).max(10),
+  focusFrictions: z
+    .array(z.enum(FRICTIONS))
+    .max(10)
+    .refine(
+      (frictions) => new Set(frictions).size === frictions.length,
+      "Weekly obstacles must be unique",
+    ),
   targetStudyMinutes: z.number().int().min(30).max(2400).optional(),
   busyWindows: z
     .array(
@@ -222,6 +268,10 @@ const weekContextSchema = z.object({
         .refine((window) => window.endMinute > window.startMinute),
     )
     .max(40)
+    .refine(
+      (windows) => new Set(windows.map((window) => window.id)).size === windows.length,
+      "Temporary commitment ids must be unique",
+    )
     .optional(),
   courseTargets: z
     .array(
@@ -232,9 +282,38 @@ const weekContextSchema = z.object({
       }),
     )
     .max(20)
+    .refine(
+      (targets) =>
+        new Set(targets.map((target) => target.courseId)).size === targets.length,
+      "A course can have only one weekly target",
+    )
     .optional(),
-  weekStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  weekStart: weekStartSchema.optional(),
 });
+
+/** Adds recurring-schedule references to the standalone WeekContext checks. */
+export function weekContextForScheduleSchema(schedule: ScheduleSetup) {
+  const knownCourseIds = new Set(schedule.courses.map((course) => course.id));
+  return weekContextSchema.superRefine((week, context) => {
+    week.courseTargets?.forEach((target, index) => {
+      if (!knownCourseIds.has(target.courseId)) {
+        context.addIssue({
+          code: "custom",
+          path: ["courseTargets", index, "courseId"],
+          message: "Week target references an unknown course",
+        });
+      }
+    });
+  });
+}
+
+export function parseWeekContext(
+  raw: unknown,
+  schedule: ScheduleSetup,
+): WeekContext | null {
+  const parsed = weekContextForScheduleSchema(schedule).safeParse(raw);
+  return parsed.success ? parsed.data : null;
+}
 
 const coachingSchema = z.object({
   brief: z.string(),
@@ -264,7 +343,7 @@ const currentProfileShape = {
   weekContext: weekContextSchema.optional(),
 };
 
-const legacySharedProfileShape = {
+const legacyProfileCommonShape = {
   createdAt: z.string(),
   axes: axisScoresSchema,
   frictions: z.array(z.enum(FRICTIONS)),
@@ -316,6 +395,18 @@ export const profileSchema = z
         code: "custom",
         path: ["plan"],
         message: "Completed onboarding requires a generated weekly plan",
+      });
+    }
+
+    if (
+      profile.onboardingStage === "complete" &&
+      profile.plan &&
+      profile.plan.blocks.length === 0
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["plan", "blocks"],
+        message: "Completed onboarding requires at least one study block",
       });
     }
 
@@ -372,14 +463,14 @@ export const profileSchema = z
 
 export const legacyProfileSchema = z.object({
   version: z.literal(1),
-  ...legacySharedProfileShape,
+  ...legacyProfileCommonShape,
   plan: weekPlanSchema,
   techniqueIds: z.array(z.string()),
 });
 
 const profileV2Schema = z.object({
   version: z.literal(2),
-  ...legacySharedProfileShape,
+  ...legacyProfileCommonShape,
   personaOverride: z.enum(ARCHETYPE_IDS).optional(),
   recommendedTechniqueIds: z.array(z.string()),
   selectedTechniqueIds: z.array(z.string()),

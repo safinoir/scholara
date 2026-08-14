@@ -71,19 +71,19 @@ describe("onboarding access", () => {
     expect(canAccessToolkit(profile)).toBe(true);
     expect(hasConfirmedToolkit(profile)).toBe(true);
     expect(resumeDestination(profile)).toEqual({
-      href: "/plan",
+      href: "/plan/setup",
       label: "Continue to weekly setup",
     });
   });
 
-  it("returns completed learners to their plan", () => {
+  it("does not unlock Plan from a stage flag without a valid schedule", () => {
     const profile = profileAt("complete");
 
     expect(canAccessToolkit(profile)).toBe(true);
     expect(hasConfirmedToolkit(profile)).toBe(true);
     expect(resumeDestination(profile)).toEqual({
-      href: "/plan",
-      label: "Back to your plan",
+      href: "/plan/setup",
+      label: "Continue to weekly setup",
     });
   });
 
@@ -103,10 +103,26 @@ describe("onboarding access", () => {
       ...profile,
       plan: {
         algorithmVersion: 2 as const,
-        blocks: [],
+        blocks: [
+          {
+            id: "block-01",
+            day: "Monday" as const,
+            start: 18,
+            startMinute: 18 * 60,
+            minutes: 60,
+            courseId: "history",
+            label: "History",
+            techniqueId: profile.selectedTechniqueIds[0],
+            supportingTechniqueIds: [],
+            techniqueSource: "selected" as const,
+            addressedFrictionIds: [],
+            intensity: "deep" as const,
+            note: "Use retrieval practice.",
+          },
+        ],
         flexible: false,
-        totalMinutes: 0,
-        budgetMinutes: 0,
+        totalMinutes: 60,
+        budgetMinutes: 120,
         minimumEffectiveDose: false,
         rationale: [],
         frictionResponses: [],
@@ -141,5 +157,8 @@ describe("onboarding access", () => {
     expect(
       hasCompletedSchedule({ ...planned, onboardingStage: "complete" }),
     ).toBe(true);
+    expect(
+      resumeDestination({ ...planned, onboardingStage: "complete" }),
+    ).toEqual({ href: "/plan", label: "Back to your plan" });
   });
 });

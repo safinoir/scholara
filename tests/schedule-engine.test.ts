@@ -141,6 +141,11 @@ describe("calculateScheduleCapacity", () => {
 
     expect(capacity.rawWindowMinutes).toBe(360);
     expect(capacity.availableMinutes).toBe(240);
+    expect(capacity.classMinutes).toBe(60);
+    expect(capacity.classOverlapMinutes).toBe(60);
+    expect(capacity.plannedMinutes).toBe(240);
+    expect(capacity.shortfallMinutes).toBe(240);
+    expect(capacity.bufferMinutes).toBe(0);
     expect(capacity.usableWindows).toEqual([
       { day: "Monday", startMinute: 540, endMinute: 600 },
       { day: "Monday", startMinute: 660, endMinute: 720 },
@@ -180,6 +185,45 @@ describe("calculateScheduleCapacity", () => {
 
     expect(capacity.availableMinutes).toBe(0);
     expect(capacity.usableWindows).toEqual([]);
+  });
+
+  it("excludes class-split fragments shorter than a schedulable block", () => {
+    const capacity = calculateScheduleCapacity(
+      schedule({
+        targetStudyMinutes: 60,
+        studyWindows: [
+          {
+            id: "two-hours",
+            days: ["Monday"],
+            startMinute: 9 * 60,
+            endMinute: 11 * 60,
+          },
+        ],
+        classMeetings: [
+          {
+            id: "splitter",
+            label: "Class",
+            days: ["Monday"],
+            startMinute: 9 * 60 + 30,
+            endMinute: 10 * 60 + 45,
+          },
+        ],
+      }),
+    );
+
+    expect(capacity).toMatchObject({
+      rawWindowMinutes: 120,
+      classMinutes: 75,
+      classOverlapMinutes: 75,
+      availableMinutes: 30,
+      plannedMinutes: 30,
+      bufferMinutes: 0,
+      shortfallMinutes: 30,
+      removedMinutes: 90,
+    });
+    expect(capacity.usableWindows).toEqual([
+      { day: "Monday", startMinute: 9 * 60, endMinute: 9 * 60 + 30 },
+    ]);
   });
 });
 

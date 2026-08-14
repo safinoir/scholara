@@ -1,11 +1,12 @@
 # Scholara Project Plan
 
-**Last updated:** 2026-08-11
+**Last updated:** 2026-08-14
 **Current branch:** `ui-changes` (based on the AI/onboarding work already merged
 into `main`)
-**Status:** The obstacle-aware, course-specific Persona -> Methods -> Weekly Plan
-workflow is implemented. Remaining work is self-report routing, post-intake
-six-axis editing, release QA, and merging the current UI refinements.
+**Status:** The obstacle-aware, course-specific Persona -> Methods -> Weekly
+Setup -> Weekly Plan workflow and the plan-first workspace redesign are
+implemented. Remaining work is post-intake six-axis editing and final release
+QA.
 
 For the detailed design and implementation record behind onboarding and weekly
 planning, see [onboarding-redesign.md](./onboarding-redesign.md). This file is
@@ -53,7 +54,7 @@ schedule.
 | Database/auth | None |
 | AI provider | OpenAI-compatible chat-completions endpoint |
 | Default AI configuration | `https://api.ai.it.ufl.edu`, model `llama-3.3-70b-instruct` |
-| Tests | Vitest for engines, schemas, migrations, onboarding, sharing, and AI routes |
+| Tests | Vitest units, RTL/jsdom components, and Playwright/axe responsive smoke coverage |
 | Deployment target | Vercel; `main` is the intended production branch |
 
 The deterministic engines remain the source of truth. The app works without an
@@ -154,7 +155,8 @@ Implemented:
 - selection from either recommendations or the full library;
 - one-to-three selection limit with explicit confirmation and a compact sticky
   control that shows the chosen methods, saves changes, and becomes **Continue
-  to plan** once the selection is saved;
+  to weekly setup** for first-time users or **View updated plan** for completed
+  users;
 - no separate bottom readiness card duplicating the sticky save/continue
   control;
 - persisted selected IDs kept separate from recommended IDs; and
@@ -186,7 +188,10 @@ The draft autosaves locally. The UI validates conflicts and time ranges, shows
 available time, total recurring class time, target, feasible planned time,
 buffer, and shortfall. Class time is subtracted from capacity only where it
 overlaps a confirmed study window. A target above capacity still permits
-generation and schedules only what safely fits.
+generation and schedules only what safely fits. Drafts survive ordinary
+navigation; **Discard changes** explicitly clears an editing draft and returns
+to the saved plan. Invalid schedules and zero-block generation never replace a
+valid plan.
 
 ### Deterministic scheduler
 
@@ -227,16 +232,25 @@ pattern in the current scheduler.
 - Generating from either first-time setup or `/plan/setup` returns to `/plan`
   and resets the viewport to the top so the summary and obstacle responses are
   seen before the calendar.
-- Desktop: time rail with seven day columns, classes, availability, and study
-  blocks.
-- Mobile: seven-day selector plus a chronological agenda for the chosen day.
-- Study-block detail: primary method, supporting methods, and block instruction.
+- Desktop defaults to a cropped, internally scrolling seven-column calendar
+  with actual dates, classes, recurring availability, temporary busy time,
+  unavailable-day overlays, and study blocks. Agenda remains available as a
+  manual view.
+- Below `lg`, the semantic chronological agenda is the default, with a
+  seven-day selector and actual dates.
+- Study-block detail opens in an accessible desktop side sheet or mobile bottom
+  sheet and includes primary/supporting methods, source, instruction, and
+  obstacles addressed.
 - Before the calendar, **What this plan is helping you overcome** explains each
   reported obstacle, Scholara's response, and where it appears in the plan.
 - Calendar blocks show course, method, and duration without requiring expansion;
   details also show the instruction, method source, and obstacles addressed.
-- Utilities: edit recurring schedule, copy as text, manual weekly adjustment,
-  and optional AI note interpretation.
+- A compact sticky toolbar exposes the represented week, Current/Saved Week
+  state, weekly adjustment, recurring schedule editing, and quiet copy action.
+- A stale saved plan remains viewable but cannot be adjusted. **Start this
+  week** clears temporary busy windows, unavailable days, deadlines, urgency,
+  workload, energy, and weekly obstacle overrides while preserving recurring
+  inputs.
 
 ### Weekly tuning
 
@@ -250,8 +264,9 @@ Manual tuning supports:
 
 The user can also submit a note of up to 500 characters to
 `POST /api/plan/tune`. AI may propose only bounded structured changes. The user
-previews and applies or discards the proposal; applying reruns the deterministic
-scheduler and provides a compact change summary plus one-step undo.
+reviews the resulting deterministic plan diff before applying it. Manual and AI
+changes use the same validated review workflow, and applying provides a compact
+change summary plus one-step undo.
 
 AI never returns final calendar blocks, moves classes, adds study availability,
 or selects methods.
@@ -275,7 +290,6 @@ or selects methods.
 | `/resources` | Curated resource library; available without a profile |
 | `/tracker` | Existing micro-habit tracker |
 | `/career` | Existing field-and-year career checklist, labeled **After** in navigation |
-| `/share/[code]` | Legacy, unlinked read-only persona route for old URLs |
 | `/results` | Redirects to `/persona` |
 
 ### APIs
@@ -306,8 +320,6 @@ have been removed. AI is used only for the explicit weekly tuning proposal.
 - API payloads are narrowly validated and timeout-guarded.
 - Missing keys, timeouts, malformed JSON, or rejected output leave the plan
   unchanged and preserve manual controls.
-- Legacy shared-persona URLs encode their data in the URL rather than storing it
-  on a server. The active UI no longer creates share links.
 
 ---
 
@@ -317,12 +329,12 @@ These routes already work but were intentionally outside the recent workflow
 redesign:
 
 - Resources: cost labels, fit sorting, campus resources, and paid-hidden default.
-- Tracker: up to three micro-habits, forgiving streaks, and reassessment prompt.
+- Tracker: up to three micro-habits, forgiving streaks, local-calendar dates,
+  atomic clearing, and a reassessment prompt.
 - After/Career: field-by-year checklist with free supporting resources. Migrated
-  profiles may seed it from optional legacy education context; new profiles use
-  its existing defaults and manual field control.
-- Legacy Share: existing URL-encoded persona links remain readable, but the
-  active UI no longer offers a share action.
+  profiles may seed it from optional legacy education context; otherwise the
+  learner chooses a year before relevance labels appear. These Career-only
+  preferences are validated and stored separately from the profile.
 
 Future redesign work for these areas is deferred until Persona, Methods, and
 Weekly Plan are fully polished.
@@ -333,12 +345,12 @@ Weekly Plan are fully polished.
 
 ### Product cleanup
 
-- Decide whether `/express` remains canonical or redirects to the planned
-  `/persona/setup` route.
 - Add Persona-page six-axis editing that recomputes the natural quiz match and
   recommendations while preserving the existing manual persona choice, valid
   method selections, and schedule.
-- Remove the red **TEST ONLY: Wipe localStorage** home-page button before release.
+
+The red **TEST ONLY: Wipe localStorage** home-page control intentionally remains
+available as temporary development functionality.
 
 ### Release verification
 

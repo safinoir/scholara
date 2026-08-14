@@ -28,8 +28,20 @@ export type UsableStudyWindow = Readonly<{
 
 export type ScheduleCapacity = Readonly<{
   usableWindows: readonly UsableStudyWindow[];
+  /** Confirmed availability that can hold a 30-minute block after constraints. */
   availableMinutes: number;
+  /** Confirmed availability after 15-minute normalization, before constraints. */
   rawWindowMinutes: number;
+  /** All recurring class time, including time outside study availability. */
+  classMinutes: number;
+  /** Recurring class time that intersects confirmed study availability. */
+  classOverlapMinutes: number;
+  /** The requested target capped to genuinely usable capacity. */
+  plannedMinutes: number;
+  /** Usable capacity left after the requested target is satisfied. */
+  bufferMinutes: number;
+  /** Requested target that cannot fit in genuinely usable capacity. */
+  shortfallMinutes: number;
   removedMinutes: number;
 }>;
 
@@ -136,12 +148,20 @@ function subtractRanges(
   return remaining;
 }
 
+function rangeMinutes(ranges: readonly MinuteRange[]): number {
+  return ranges.reduce(
+    (total, range) => total + range.endMinute - range.startMinute,
+    0,
+  );
+}
+
 /** Returns normalized study time after recurring and week-specific constraints. */
 export function calculateScheduleCapacity(
   schedule: ScheduleSetup,
   week?: WeekContext,
 ): ScheduleCapacity {
   const studyByDay = emptyRangesByDay();
+  const classesByDay = emptyRangesByDay();
   const blockedByDay = emptyRangesByDay();
 
   for (const window of schedule.studyWindows) {
@@ -153,7 +173,10 @@ export function calculateScheduleCapacity(
   for (const meeting of schedule.classMeetings) {
     const range = blockedRange(meeting.startMinute, meeting.endMinute);
     if (!range) continue;
-    for (const day of meeting.days) blockedByDay[day].push(range);
+    for (const day of meeting.days) {
+      classesByDay[day].push(range);
+      blockedByDay[day].push(range);
+    }
   }
 
   for (const busy of week?.busyWindows ?? []) {
@@ -163,14 +186,18 @@ export function calculateScheduleCapacity(
 
   const unavailableDays = new Set(week?.unavailableDays ?? []);
   let rawWindowMinutes = 0;
+  let classMinutes = 0;
+  let classOverlapMinutes = 0;
   const usableWindows: UsableStudyWindow[] = [];
 
   for (const day of DAYS) {
     const normalized = mergeRanges(studyByDay[day]);
-    rawWindowMinutes += normalized.reduce(
-      (total, range) => total + range.endMinute - range.startMinute,
-      0,
-    );
+    const normalizedClasses = mergeRanges(classesByDay[day]);
+    const dayWindowMinutes = rangeMinutes(normalized);
+    rawWindowMinutes += dayWindowMinutes;
+    classMinutes += rangeMinutes(normalizedClasses);
+    classOverlapMinutes +=
+      dayWindowMinutes - rangeMinutes(subtractRanges(normalized, normalizedClasses));
     if (unavailableDays.has(day)) continue;
 
     const available = subtractRanges(normalized, blockedByDay[day]).filter(
@@ -183,11 +210,21 @@ export function calculateScheduleCapacity(
     (total, range) => total + range.endMinute - range.startMinute,
     0,
   );
+  const requestedMinutes = Math.max(
+    0,
+    Math.floor(week?.targetStudyMinutes ?? schedule.targetStudyMinutes),
+  );
+  const plannedMinutes = Math.min(requestedMinutes, availableMinutes);
 
   return {
     usableWindows,
     availableMinutes,
     rawWindowMinutes,
+    classMinutes,
+    classOverlapMinutes,
+    plannedMinutes,
+    bufferMinutes: Math.max(0, availableMinutes - plannedMinutes),
+    shortfallMinutes: Math.max(0, requestedMinutes - availableMinutes),
     removedMinutes: Math.max(0, rawWindowMinutes - availableMinutes),
   };
 }

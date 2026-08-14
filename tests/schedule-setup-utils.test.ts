@@ -49,4 +49,38 @@ describe("summarizeCapacity", () => {
       shortfallMinutes: 60,
     });
   });
+
+  it("uses scheduler capacity rules and drops post-class fragments under 30 minutes", () => {
+    const schedule: ScheduleSetup = {
+      mode: "by-course",
+      courses: [],
+      classMeetings: [
+        {
+          id: "middle-class",
+          label: "Chemistry",
+          days: ["Monday"],
+          startMinute: 9 * 60 + 30,
+          endMinute: 10 * 60,
+        },
+      ],
+      studyWindows: [
+        {
+          id: "split-window",
+          days: ["Monday"],
+          startMinute: 9 * 60,
+          endMinute: 10 * 60 + 15,
+        },
+      ],
+      targetStudyMinutes: 60,
+    };
+
+    expect(summarizeCapacity(schedule)).toMatchObject({
+      availableMinutes: 75,
+      classOverlapMinutes: 30,
+      usableMinutes: 30,
+      plannedMinutes: 30,
+      bufferMinutes: 0,
+      shortfallMinutes: 30,
+    });
+  });
 });

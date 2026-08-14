@@ -80,6 +80,9 @@ function ToolkitContent({
     profile.recommendedTechniqueIds,
   );
   const [draft, setDraft] = useState(initialSelection);
+  const [saveFeedback, setSaveFeedback] = useState<
+    "plan-updated" | "plan-preserved" | null
+  >(null);
 
   const recommended = profile.recommendedTechniqueIds
     .map((id) => TECHNIQUE_BY_ID[id])
@@ -105,6 +108,7 @@ function ToolkitContent({
   const canContinue = savedSelection.length > 0 && !hasChanges;
 
   const toggleSelection = (id: string) => {
+    setSaveFeedback(null);
     setDraft((current) => {
       if (current.includes(id)) return current.filter((item) => item !== id);
       if (current.length >= 3) return current;
@@ -127,7 +131,7 @@ function ToolkitContent({
         ...(profile.weekContext?.focusFrictions ?? []),
       ]),
     ];
-    const plan = profile.schedule
+    const rebuiltPlan = profile.schedule
       ? buildSchedulePlan({
           axes: profile.axes,
           frictions: profile.frictions,
@@ -141,6 +145,16 @@ function ToolkitContent({
           week: profile.weekContext,
         })
       : profile.plan;
+    const plan = rebuiltPlan?.blocks.length ? rebuiltPlan : profile.plan;
+
+    if (
+      profile.onboardingStage === "complete" &&
+      profile.plan?.blocks.length &&
+      !rebuiltPlan?.blocks.length
+    ) {
+      setSaveFeedback("plan-preserved");
+      return;
+    }
 
     onSave({
       ...profile,
@@ -149,6 +163,9 @@ function ToolkitContent({
       plan,
     });
     setDraft(orderedDraft);
+    setSaveFeedback(
+      profile.onboardingStage === "complete" ? "plan-updated" : null,
+    );
   };
 
   const selectionMessage =
@@ -194,11 +211,19 @@ function ToolkitContent({
           </div>
           {canContinue ? (
             <ButtonLink
-              href="/plan"
+              href={
+                profile.onboardingStage === "complete"
+                  ? "/plan"
+                  : "/plan/setup"
+              }
               size="sm"
               className="w-full shrink-0 sm:w-auto"
             >
-              Continue to plan
+              {profile.onboardingStage === "complete"
+                ? saveFeedback === "plan-updated"
+                  ? "View updated plan"
+                  : "View plan"
+                : "Continue to weekly setup"}
               <ArrowRight className="size-4" aria-hidden />
             </ButtonLink>
           ) : (
@@ -213,6 +238,18 @@ function ToolkitContent({
             </Button>
           )}
         </div>
+        {saveFeedback === "plan-updated" && (
+          <p className="mt-2 text-sm text-brand-700" role="status">
+            Methods saved. Scholara regenerated your existing weekly plan with
+            your updated choices.
+          </p>
+        )}
+        {saveFeedback === "plan-preserved" && (
+          <p className="mt-2 text-sm text-red-700" role="alert">
+            These choices could not produce any study blocks, so your saved
+            methods and current plan were left unchanged.
+          </p>
+        )}
       </div>
 
       <section className="mt-10" aria-labelledby="recommended-methods">

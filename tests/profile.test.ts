@@ -258,6 +258,15 @@ describe("profile version 3", () => {
         schedule: makeSchedule(),
       }).success,
     ).toBe(true);
+    expect(
+      profileSchema.safeParse({
+        ...profile,
+        onboardingStage: "complete",
+        selectedTechniqueIds,
+        plan: { ...makePlan(profile), blocks: [], totalMinutes: 0 },
+        schedule: makeSchedule(),
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects duplicate or unknown selected technique ids", () => {

@@ -88,9 +88,11 @@ Matched by cosine similarity, so the *shape* of your preferences matters rather 
 
 Recurring courses, meetings, availability, and the study target are edited on
 `/plan/setup`. The completed experience remains one page at `/plan`: summary,
-obstacle responses, the embedded seven-day calendar, weekly tuning, and the
-build rationale. Generating a plan returns the learner to the top of that page.
-There is no separate calendar route.
+obstacle responses, the responsive calendar/agenda workspace, reviewed weekly
+tuning, and the build rationale. Saved weeks show their real Monday-Sunday date
+range and remain read-only until the learner deliberately starts the current
+week, which clears temporary exceptions. Generating a plan returns the learner
+to the top of that page. There is no separate calendar route.
 
 ---
 
@@ -102,7 +104,7 @@ There is no separate calendar route.
 | Styling | Tailwind CSS v4, deep-blue theme via `@theme` |
 | State | React Context + `localStorage`, validated with Zod on read |
 | Icons | lucide-react |
-| Tests | Vitest for engines, schemas, migrations, onboarding, setup capacity, sharing, and AI-route validation |
+| Tests | Vitest units plus RTL/jsdom components; Playwright and axe responsive smoke coverage |
 | AI | Optional OpenAI-compatible weekly tuning with deterministic fallback |
 
 ### Project layout
@@ -111,7 +113,7 @@ There is no separate calendar route.
 src/
 ├─ app/              # routes: /, /quiz, /express, /persona, /toolkit,
 │                    #         /plan, /plan/setup, /resources, /tracker,
-│                    #         /career, /about, legacy /share/[code],
+│                    #         /career, /about,
 │                    #         /results redirect, and /api/plan/tune
 ├─ components/       # views, accessible forms, and client-side orchestration
 ├─ hooks/            # useProfile, useTracker
@@ -121,9 +123,8 @@ src/
    ├─ data/          # all content as typed arrays
    ├─ types.ts       # shared domain types
    ├─ schema.ts      # Zod validation + profile versioning
-   ├─ storage.ts     # typed localStorage wrapper
-   └─ share.ts       # legacy profile ⇄ URL-code compatibility
-tests/               # engines, schemas, migrations, onboarding, sharing, AI
+   └─ storage.ts     # typed localStorage wrapper
+tests/               # engines, schemas, migrations, onboarding, planning, AI
 ```
 
 **The boundary:** reusable content lives in `lib/data`; deterministic domain
@@ -181,13 +182,16 @@ real-device, and touch-target verification still pending.
 ## Privacy
 
 There is no database, analytics, or telemetry. Your profile, schedule and
-onboarding drafts, and tracker history live in browser storage. They can be
-removed from `/about` through the confirmed **Delete everything** action. Legacy
-shared-persona URLs encode their data in the URL itself, but the active UI no
-longer creates them. A weekly note is sent to the configured AI provider only
-when the student selects **Preview AI changes**. Scholara does not save the raw
-note, and the model can return only a validated proposal that the student must
-apply.
+onboarding drafts, and tracker history live in browser storage and can be
+removed from `/about` through the confirmed **Delete everything** action.
+Career-only field/year preferences are also stored locally, separately from the
+learner profile. A weekly note is sent to the configured AI provider only when
+the student selects **Preview AI changes**. Scholara does not save the raw note,
+and the model can return only a validated proposal that the student must apply.
+
+The red **TEST ONLY: Wipe localStorage** home-page control is intentionally
+retained as temporary development functionality and is not a production
+account-management feature.
 
 ---
 

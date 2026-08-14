@@ -1,25 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, Circle, ExternalLink } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { getCareerTrack, isStepDue } from "@/lib/data/careerTracks";
 import { RESOURCE_BY_ID } from "@/lib/data/resources";
-import { FIELD_OPTIONS } from "@/lib/data/questions";
-import type { Field } from "@/lib/types";
+import { FIELD_OPTIONS, YEAR_OPTIONS } from "@/lib/data/questions";
+import {
+  loadCareerPreferences,
+  saveCareerPreferences,
+  type CareerPreferences,
+} from "@/lib/careerPreferences";
+import type { Field, YearLevel } from "@/lib/types";
 import { LoadingShell } from "@/components/NoProfile";
 import { Badge, Card, SectionHeading, cn, inputClass } from "@/components/ui";
 
 export function CareerView() {
   const { profile, ready } = useProfile();
-  const [override, setOverride] = useState<Field | null>(null);
+  const [preferences, setPreferences] = useState<CareerPreferences>({
+    version: 1,
+  });
+  const [preferencesReady, setPreferencesReady] = useState(false);
   const [done, setDone] = useState<Set<string>>(new Set());
 
-  if (!ready) return <LoadingShell />;
+  useEffect(() => {
+    const hydration = window.setTimeout(() => {
+      setPreferences(loadCareerPreferences());
+      setPreferencesReady(true);
+    }, 0);
+    return () => window.clearTimeout(hydration);
+  }, []);
 
-  const field = override ?? profile?.educationContext?.field ?? "undecided";
-  const year = profile?.educationContext?.year ?? "freshman";
+  if (!ready || !preferencesReady) return <LoadingShell />;
+
+  const field =
+    preferences.field ?? profile?.educationContext?.field ?? "undecided";
+  const year = preferences.year ?? profile?.educationContext?.year ?? null;
   const track = getCareerTrack(field);
+
+  const updatePreferences = (next: Partial<CareerPreferences>) => {
+    const updated = { ...preferences, ...next, version: 1 as const };
+    setPreferences(updated);
+    saveCareerPreferences(updated);
+  };
 
   const toggle = (id: string) =>
     setDone((prev) => {
@@ -32,6 +55,7 @@ export function CareerView() {
   return (
     <div className="mx-auto max-w-4xl px-5 py-10 sm:py-14">
       <SectionHeading
+        as="h1"
         eyebrow="What comes after"
         title={track.title}
         lead={track.intro}
@@ -45,27 +69,66 @@ export function CareerView() {
         </p>
       </Card>
 
-      <div className="mt-8">
-        <label htmlFor="field" className="text-sm font-medium">
-          Showing the track for
-        </label>
-        <select
-          id="field"
-          className={cn(inputClass, "mt-2 sm:max-w-xs")}
-          value={field}
-          onChange={(e) => setOverride(e.target.value as Field)}
-        >
-          {FIELD_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+      <div
+        className={cn(
+          "mt-8 grid gap-5",
+          !profile?.educationContext && "sm:grid-cols-2",
+        )}
+      >
+        <div>
+          <label htmlFor="field" className="text-sm font-medium">
+            Showing the track for
+          </label>
+          <select
+            id="field"
+            className={cn(inputClass, "mt-2 sm:max-w-xs")}
+            value={field}
+            onChange={(event) =>
+              updatePreferences({ field: event.target.value as Field })
+            }
+          >
+            {FIELD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {!profile?.educationContext && (
+          <div>
+            <label htmlFor="career-year" className="text-sm font-medium">
+              Your current stage
+            </label>
+            <select
+              id="career-year"
+              className={cn(inputClass, "mt-2 sm:max-w-xs")}
+              value={year ?? ""}
+              onChange={(event) =>
+                updatePreferences({ year: event.target.value as YearLevel })
+              }
+            >
+              <option value="" disabled>
+                Choose a stage
+              </option>
+              {YEAR_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            {!year && (
+              <p className="mt-2 text-sm text-ink-faint">
+                Choose a stage to see what is relevant now and what can wait.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <ol className="mt-10 space-y-4">
         {track.steps.map((step) => {
-          const due = isStepDue(step, year);
+          const due = year ? isStepDue(step, year) : null;
           const checked = done.has(step.id);
           const resources = step.resourceIds
             .map((id) => RESOURCE_BY_ID[id])
@@ -77,7 +140,7 @@ export function CareerView() {
                 className={cn(
                   "transition-colors",
                   checked && "border-brand-200 bg-brand-50/50",
-                  !due && "opacity-70",
+                  due === false && "opacity-70",
                 )}
               >
                 <div className="flex items-start gap-4">
@@ -86,7 +149,7 @@ export function CareerView() {
                     onClick={() => toggle(step.id)}
                     aria-pressed={checked}
                     aria-label={`Mark done: ${step.title}`}
-                    className="mt-0.5 shrink-0 rounded-full text-brand-600"
+                    className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-brand-600"
                   >
                     {checked ? (
                       <CheckCircle2 className="size-6" aria-hidden />
@@ -105,11 +168,10 @@ export function CareerView() {
                       >
                         {step.title}
                       </h3>
-                      {due ? (
+                      {due === true && (
                         <Badge tone="brand">Relevant now</Badge>
-                      ) : (
-                        <Badge>Later</Badge>
                       )}
+                      {due === false && <Badge>Later</Badge>}
                     </div>
 
                     <p className="mt-2 text-sm leading-relaxed text-ink-soft">

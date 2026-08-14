@@ -5,7 +5,7 @@ import type {
 } from "@/lib/types";
 
 export type OnboardingDestination = {
-  href: "/persona" | "/toolkit" | "/plan";
+  href: "/persona" | "/toolkit" | "/plan/setup" | "/plan";
   label: string;
 };
 
@@ -35,14 +35,18 @@ export function hasCompletedSchedule(
   profile: LearnerProfile,
 ): profile is ScheduledLearnerProfile {
   const schedule = profile.schedule;
+  const courseIds = new Set(schedule?.courses.map((course) => course.id));
   return (
     profile.onboardingStage === "complete" &&
     schedule !== undefined &&
     schedule.mode === "by-course" &&
     schedule.courses.some((course) => course.includedInPlan) &&
-    schedule.classMeetings.every((meeting) => Boolean(meeting.courseId)) &&
+    schedule.classMeetings.every(
+      (meeting) => Boolean(meeting.courseId) && courseIds.has(meeting.courseId!),
+    ) &&
     hasGeneratedPlan(profile) &&
-    profile.plan.algorithmVersion === 2
+    profile.plan.algorithmVersion === 2 &&
+    profile.plan.blocks.length > 0
   );
 }
 
@@ -61,8 +65,11 @@ export function resumeDestination(
     return { href: "/toolkit", label: "Choose your study methods" };
   }
 
-  if (profile.onboardingStage === "schedule") {
-    return { href: "/plan", label: "Continue to weekly setup" };
+  if (
+    profile.onboardingStage === "schedule" ||
+    !hasCompletedSchedule(profile)
+  ) {
+    return { href: "/plan/setup", label: "Continue to weekly setup" };
   }
 
   return { href: "/plan", label: "Back to your plan" };

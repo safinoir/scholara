@@ -6,6 +6,7 @@ import { ArrowRight, RefreshCw, RotateCcw } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { ARCHETYPE_BY_ID } from "@/lib/data/archetypes";
 import { changePersona } from "@/lib/engine";
+import { hasCompletedSchedule, hasConfirmedToolkit } from "@/lib/onboarding";
 import { effectiveArchetypeMatch } from "@/lib/persona";
 import { LoadingShell, NoProfile } from "@/components/NoProfile";
 import { PersonaDetailsCard } from "@/components/persona/PersonaDetailsCard";
@@ -24,6 +25,26 @@ export function PersonaView() {
   const primary = ARCHETYPE_BY_ID[effectiveMatch.primary];
   const secondary = ARCHETYPE_BY_ID[effectiveMatch.secondary];
   const blended = !effectiveMatch.overridden && effectiveMatch.confidence < 0.35;
+  const nextStep = hasCompletedSchedule(profile)
+    ? {
+        href: "/plan" as const,
+        title: "Your weekly plan is ready",
+        body: "Review this week's study blocks, obstacles, and schedule adjustments.",
+        action: "View plan",
+      }
+    : hasConfirmedToolkit(profile)
+      ? {
+          href: "/plan/setup" as const,
+          title: "Set up your weekly schedule",
+          body: "Add your courses, recurring classes, and realistic study availability.",
+          action: "Continue to weekly setup",
+        }
+      : {
+          href: "/toolkit" as const,
+          title: "Choose your study methods",
+          body: "Pick one to three methods Scholara can build into your weekly study blocks.",
+          action: "Continue to methods",
+        };
 
   const continueToToolkit = () => {
     if (profile.onboardingStage !== "persona") return;
@@ -69,7 +90,7 @@ export function PersonaView() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-ink-faint">
                 This is a starting point, not a label. Retake the quiz any time
-                your term or workload changes.
+                your study preferences or obstacles change.
               </p>
               <button
                 type="button"
@@ -102,20 +123,19 @@ export function PersonaView() {
               Next step
             </p>
             <h2 className="mt-2 text-xl font-semibold">
-              Choose your study methods
+              {nextStep.title}
             </h2>
             <p className="mt-1.5 text-sm text-ink-soft">
-              Pick one to three methods Scholara can build into your weekly
-              study blocks.
+              {nextStep.body}
             </p>
           </div>
           <ButtonLink
-            href="/toolkit"
+            href={nextStep.href}
             size="lg"
             className="shrink-0"
             onClick={continueToToolkit}
           >
-            Continue to methods
+            {nextStep.action}
             <ArrowRight className="size-4" aria-hidden />
           </ButtonLink>
         </div>

@@ -51,8 +51,12 @@ export function loadProfile(): LearnerProfile | null {
   return migrated;
 }
 
-export function saveProfile(profile: LearnerProfile): void {
-  write(KEYS.profile, profile);
+/** Writes only profiles that survive the same validation used during loading. */
+export function saveProfile(profile: unknown): LearnerProfile | null {
+  const validated = parseProfile(profile);
+  if (!validated) return null;
+  write(KEYS.profile, validated);
+  return validated;
 }
 
 export function clearProfile(): void {

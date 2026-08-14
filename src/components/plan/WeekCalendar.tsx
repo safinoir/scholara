@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { BookOpen, CalendarDays, Clock3 } from "lucide-react";
-import { FRICTION_BY_ID } from "@/lib/data/axes";
+import { useMemo, useState } from "react";
+import { CalendarDays, List, LockKeyhole } from "lucide-react";
 import { TECHNIQUE_BY_ID } from "@/lib/data/techniques";
 import {
   COURSE_COLOR_KEYS,
@@ -11,8 +10,10 @@ import {
   type Day,
   type PlanBlock,
   type ScheduleSetup,
+  type WeekContext,
   type WeekPlan,
 } from "@/lib/types";
+import { isCurrentWeek, weekDateForDay } from "@/lib/week";
 import { Badge, Card, cn } from "@/components/ui";
 
 const DAY_SHORT: Record<Day, string> = {
@@ -34,6 +35,11 @@ const COURSE_STYLE: Record<CourseColorKey, string> = {
   rose: "border-rose-300 bg-rose-100 text-rose-950",
 };
 
+type CalendarItem =
+  | { kind: "class"; id: string; start: number; end: number; label: string }
+  | { kind: "busy"; id: string; start: number; end: number; label: string }
+  | { kind: "study"; id: string; start: number; end: number; block: PlanBlock };
+
 function formatMinute(minute: number) {
   const normalized = Math.max(0, Math.min(1440, minute));
   const hours = Math.floor(normalized / 60);
@@ -43,11 +49,27 @@ function formatMinute(minute: number) {
   return `${hour}:${String(minutes).padStart(2, "0")} ${suffix}`;
 }
 
+function formatDuration(totalMinutes: number) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes} min`;
+  if (minutes === 0) return `${hours} hr`;
+  return `${hours} hr ${minutes} min`;
+}
+
+function formatDate(date: Date, includeWeekday = false) {
+  return new Intl.DateTimeFormat(undefined, {
+    weekday: includeWeekday ? "long" : undefined,
+    month: "short",
+    day: "numeric",
+  }).format(date);
+}
+
 function blockStart(block: PlanBlock) {
   return block.startMinute ?? Math.round(block.start * 60);
 }
 
-function blockCourseName(block: PlanBlock, schedule: ScheduleSetup) {
+export function blockCourseName(block: PlanBlock, schedule: ScheduleSetup) {
   if (!block.courseId) {
     return block.intensity === "admin" ? "Weekly planning" : "Course study";
   }
@@ -62,11 +84,12 @@ function blockStyle(block: PlanBlock, schedule: ScheduleSetup) {
   return "border-brand-200 bg-brand-50 text-ink";
 }
 
-type CalendarItem =
-  | { kind: "class"; id: string; start: number; end: number; label: string }
-  | { kind: "study"; id: string; start: number; end: number; block: PlanBlock };
-
-function itemsForDay(day: Day, schedule: ScheduleSetup, plan: WeekPlan): CalendarItem[] {
+function itemsForDay(
+  day: Day,
+  schedule: ScheduleSetup,
+  plan: WeekPlan,
+  week: WeekContext,
+): CalendarItem[] {
   const classes: CalendarItem[] = schedule.classMeetings
     .filter((meeting) => meeting.days.includes(day))
     .map((meeting) => ({
@@ -75,6 +98,15 @@ function itemsForDay(day: Day, schedule: ScheduleSetup, plan: WeekPlan): Calenda
       start: meeting.startMinute,
       end: meeting.endMinute,
       label: meeting.label,
+    }));
+  const busy: CalendarItem[] = (week.busyWindows ?? [])
+    .filter((window) => window.day === day)
+    .map((window) => ({
+      kind: "busy",
+      id: window.id,
+      start: window.startMinute,
+      end: window.endMinute,
+      label: "Unavailable this week",
     }));
   const study: CalendarItem[] = plan.blocks
     .filter((block) => block.day === day)
@@ -85,86 +117,140 @@ function itemsForDay(day: Day, schedule: ScheduleSetup, plan: WeekPlan): Calenda
       end: blockStart(block) + block.minutes,
       block,
     }));
-  return [...classes, ...study].sort((a, b) => a.start - b.start || a.id.localeCompare(b.id));
+  return [...classes, ...busy, ...study].sort(
+    (left, right) => left.start - right.start || left.id.localeCompare(right.id),
+  );
+}
+
+function emptyDayMessage(day: Day, schedule: ScheduleSetup, week: WeekContext) {
+  if (week.unavailableDays.includes(day)) return "Unavailable this week.";
+  if (!schedule.studyWindows.some((window) => window.days.includes(day))) {
+    return "No study availability marked.";
+  }
+  return "Available, with no study block planned.";
 }
 
 export function WeekCalendar({
   schedule,
   plan,
+  week,
+  weekStart,
+  onSelectBlock,
 }: {
   schedule: ScheduleSetup;
   plan: WeekPlan;
+  week: WeekContext;
+  weekStart?: string;
+  onSelectBlock: (block: PlanBlock) => void;
 }) {
-  const [selectedDay, setSelectedDay] = useState<Day>(() => {
-    const first = DAYS.find((day) => plan.blocks.some((block) => block.day === day));
-    return first ?? "Monday";
-  });
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [desktopView, setDesktopView] = useState<"calendar" | "agenda">("calendar");
 
-  const selectedBlock = plan.blocks.find((block) => block.id === selectedBlockId) ?? null;
+  const dayTotals = useMemo(
+    () =>
+      Object.fromEntries(
+        DAYS.map((day) => [
+          day,
+          plan.blocks
+            .filter((block) => block.day === day)
+            .reduce((sum, block) => sum + block.minutes, 0),
+        ]),
+      ) as Record<Day, number>,
+    [plan.blocks],
+  );
 
   const boundaries = [
     ...schedule.classMeetings.flatMap((meeting) => [meeting.startMinute, meeting.endMinute]),
     ...schedule.studyWindows.flatMap((window) => [window.startMinute, window.endMinute]),
+    ...(week.busyWindows ?? []).flatMap((window) => [window.startMinute, window.endMinute]),
     ...plan.blocks.flatMap((block) => [blockStart(block), blockStart(block) + block.minutes]),
   ];
-  const rangeStart = Math.max(0, Math.floor((Math.min(...boundaries, 8 * 60) - 30) / 60) * 60);
-  const rangeEnd = Math.min(
-    24 * 60,
-    Math.ceil((Math.max(...boundaries, 21 * 60) + 30) / 60) * 60,
-  );
-  const calendarHeight = ((rangeEnd - rangeStart) / 60) * 90;
+  const earliest = boundaries.length > 0 ? Math.min(...boundaries) : 8 * 60;
+  const latest = boundaries.length > 0 ? Math.max(...boundaries) : 18 * 60;
+  let rangeStart = Math.max(0, Math.floor((earliest - 30) / 60) * 60);
+  let rangeEnd = Math.min(24 * 60, Math.ceil((latest + 30) / 60) * 60);
+  if (rangeEnd - rangeStart < 4 * 60) {
+    const center = (rangeStart + rangeEnd) / 2;
+    rangeStart = Math.max(0, Math.floor((center - 2 * 60) / 60) * 60);
+    rangeEnd = Math.min(24 * 60, rangeStart + 4 * 60);
+  }
+  const calendarHeight = ((rangeEnd - rangeStart) / 60) * 64;
   const position = (minute: number) => ((minute - rangeStart) / (rangeEnd - rangeStart)) * 100;
   const duration = (minutes: number) => (minutes / (rangeEnd - rangeStart)) * 100;
-
-  const dayTotals = Object.fromEntries(
-    DAYS.map((day) => [
-      day,
-      plan.blocks
-        .filter((block) => block.day === day)
-        .reduce((sum, block) => sum + block.minutes, 0),
-    ]),
-  ) as Record<Day, number>;
-
   return (
-    <section aria-labelledby="weekly-calendar-title" className="mt-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <section aria-labelledby="weekly-calendar-title" className="mt-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 id="weekly-calendar-title" className="text-2xl font-semibold">
-            Your seven-day plan
+          <h2 id="weekly-calendar-title" className="text-xl font-semibold sm:text-2xl">
+            Schedule workspace
           </h2>
-          <p className="mt-1.5 text-sm text-ink-soft">
-            Classes stay fixed. Study blocks only use availability you confirmed.
+          <p className="mt-1 text-sm text-ink-soft">
+            Classes, weekly exceptions, and study blocks in your local time.
           </p>
         </div>
-        <p className="text-xs text-ink-faint">Times use your local time zone.</p>
+        <div className="hidden rounded-xl border border-line bg-surface p-1 lg:flex" aria-label="Schedule view">
+          <button
+            type="button"
+            onClick={() => setDesktopView("calendar")}
+            aria-pressed={desktopView === "calendar"}
+            className={cn(
+              "inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm",
+              desktopView === "calendar" ? "bg-brand-50 font-medium text-brand-700" : "text-ink-soft",
+            )}
+          >
+            <CalendarDays className="size-4" aria-hidden /> Calendar
+          </button>
+          <button
+            type="button"
+            onClick={() => setDesktopView("agenda")}
+            aria-pressed={desktopView === "agenda"}
+            className={cn(
+              "inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm",
+              desktopView === "agenda" ? "bg-brand-50 font-medium text-brand-700" : "text-ink-soft",
+            )}
+          >
+            <List className="size-4" aria-hidden /> Agenda
+          </button>
+        </div>
       </div>
 
-      <div className="mt-5 hidden overflow-x-auto rounded-2xl border border-line bg-surface md:block">
-        <div className="min-w-[1080px]">
+      <ul className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-ink-soft" aria-label="Calendar legend">
+        <li className="flex items-center gap-2"><span className="size-3 rounded-sm border border-brand-200 bg-brand-50" />Available</li>
+        <li className="flex items-center gap-2"><span className="size-3 rounded-sm border border-slate-300 bg-slate-200" />Class</li>
+        <li className="flex items-center gap-2"><span className="size-3 rounded-sm border border-rose-300 bg-rose-100" />Weekly exception</li>
+        <li className="flex items-center gap-2"><span className="size-3 rounded-sm border border-indigo-300 bg-indigo-100" />Study block</li>
+      </ul>
+
+      <div className={cn("mt-4 print:hidden", desktopView === "calendar" ? "hidden lg:block" : "hidden")}>
+        <div className="max-h-[min(70dvh,54rem)] overflow-auto rounded-2xl border border-line bg-surface shadow-sm">
           <div
-            className="sticky top-0 z-30 grid border-b border-line bg-surface"
-            style={{ gridTemplateColumns: "64px repeat(7, minmax(140px, 1fr))" }}
+            className="sticky top-0 z-40 grid border-b border-line bg-surface/95 backdrop-blur"
+            style={{ gridTemplateColumns: "56px repeat(7,minmax(0,1fr))" }}
           >
             <div aria-hidden />
-            {DAYS.map((day) => (
-              <div key={day} className="border-l border-line px-2 py-3 text-center">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-faint">
-                  {DAY_SHORT[day]}
-                </p>
-                <p className="mt-0.5 text-xs tabular-nums text-ink-soft">
-                  {dayTotals[day] ? `${Math.round((dayTotals[day] / 60) * 10) / 10}h planned` : "Open"}
-                </p>
-              </div>
-            ))}
+            {DAYS.map((day) => {
+              const date = weekStart ? weekDateForDay(weekStart, day) : null;
+              const today =
+                date !== null &&
+                isCurrentWeek(weekStart) &&
+                date.toDateString() === new Date().toDateString();
+              const unavailable = week.unavailableDays.includes(day);
+              const hasAvailability = schedule.studyWindows.some((window) => window.days.includes(day));
+              return (
+                <div key={day} className={cn("min-w-0 border-l border-line px-1.5 py-2 text-center", today && "bg-brand-50")}>
+                  <p className="truncate text-xs font-semibold">
+                    {DAY_SHORT[day]} {date ? formatDate(date) : ""}
+                  </p>
+                  <p className="mt-0.5 truncate text-[10px] text-ink-faint">
+                    {unavailable ? "Unavailable" : dayTotals[day] ? `${dayTotals[day]}m planned` : hasAvailability ? "Open" : "No window"}
+                  </p>
+                </div>
+              );
+            })}
           </div>
 
           <div
             className="grid"
-            style={{
-              gridTemplateColumns: "64px repeat(7, minmax(140px, 1fr))",
-              height: calendarHeight,
-            }}
+            style={{ gridTemplateColumns: "56px repeat(7,minmax(0,1fr))", height: calendarHeight }}
           >
             <div className="relative bg-line-soft/30">
               {Array.from({ length: Math.floor((rangeEnd - rangeStart) / 60) + 1 }, (_, index) => {
@@ -172,7 +258,7 @@ export function WeekCalendar({
                 return (
                   <span
                     key={minute}
-                    className="absolute right-2 -translate-y-1/2 text-[10px] text-ink-faint"
+                    className="absolute right-2 -translate-y-1/2 text-[10px] tabular-nums text-ink-faint"
                     style={{ top: `${position(minute)}%` }}
                   >
                     {formatMinute(minute)}
@@ -182,38 +268,52 @@ export function WeekCalendar({
             </div>
 
             {DAYS.map((day) => {
-              const items = itemsForDay(day, schedule, plan);
+              const items = itemsForDay(day, schedule, plan, week);
               const windows = schedule.studyWindows.filter((window) => window.days.includes(day));
+              const unavailable = week.unavailableDays.includes(day);
               return (
                 <div
                   key={day}
-                  className="relative border-l border-line bg-[linear-gradient(to_bottom,var(--color-line-soft)_1px,transparent_1px)] bg-[length:100%_90px]"
+                  className="relative min-w-0 border-l border-line bg-[linear-gradient(to_bottom,var(--color-line-soft)_1px,transparent_1px)] bg-[length:100%_64px]"
                 >
                   {windows.map((window) => (
                     <div
                       key={`${window.id}-${day}`}
-                      className="absolute inset-x-1 rounded-lg border border-dashed border-brand-100 bg-brand-50/35"
-                      style={{
-                        top: `${position(window.startMinute)}%`,
-                        height: `${duration(window.endMinute - window.startMinute)}%`,
-                      }}
+                      className="absolute inset-x-1 rounded-md border border-dashed border-brand-100 bg-brand-50/45"
+                      style={{ top: `${position(window.startMinute)}%`, height: `${duration(window.endMinute - window.startMinute)}%` }}
                       title={`Available ${formatMinute(window.startMinute)} to ${formatMinute(window.endMinute)}`}
                     />
                   ))}
-
-                  {items.map((item) => {
+                  {unavailable && (
+                    <div className="absolute inset-0 z-30 flex items-start justify-center bg-slate-100/80 px-1 pt-3 text-center text-[10px] font-medium text-slate-700">
+                      <LockKeyhole className="mr-1 size-3" aria-hidden /> Unavailable
+                    </div>
+                  )}
+                  {!unavailable && items.map((item) => {
                     const top = `${position(item.start)}%`;
                     const height = `${duration(item.end - item.start)}%`;
                     if (item.kind === "class") {
                       return (
                         <div
                           key={item.id}
-                          className="absolute inset-x-1 z-10 overflow-hidden rounded-lg border border-slate-300 bg-slate-200/95 p-2 text-xs text-slate-800"
+                          className="absolute inset-x-1 z-10 overflow-hidden rounded-md border border-slate-300 bg-slate-200/95 p-1.5 text-[10px] text-slate-800"
                           style={{ top, height }}
                           aria-label={`${item.label}, ${day}, ${formatMinute(item.start)} to ${formatMinute(item.end)}`}
                         >
-                          <p className="font-semibold">{item.label}</p>
-                          <p className="mt-0.5 text-[10px]">{formatMinute(item.start)}</p>
+                          <p className="truncate font-semibold">{item.label}</p>
+                          <p className="truncate">{formatMinute(item.start)}</p>
+                        </div>
+                      );
+                    }
+                    if (item.kind === "busy") {
+                      return (
+                        <div
+                          key={item.id}
+                          className="absolute inset-x-1 z-20 overflow-hidden rounded-md border border-rose-300 bg-[repeating-linear-gradient(135deg,#fff1f2,#fff1f2_6px,#ffe4e6_6px,#ffe4e6_12px)] p-1.5 text-[10px] text-rose-900"
+                          style={{ top, height, minHeight: 30 }}
+                          aria-label={`${item.label}, ${day}, ${formatMinute(item.start)} to ${formatMinute(item.end)}`}
+                        >
+                          <p className="truncate font-medium">Busy</p>
                         </div>
                       );
                     }
@@ -222,19 +322,17 @@ export function WeekCalendar({
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => setSelectedBlockId(item.block.id)}
+                        onClick={() => onSelectBlock(item.block)}
                         className={cn(
-                          "absolute inset-x-1 z-20 overflow-hidden rounded-lg border p-2 text-left text-xs shadow-sm focus-visible:z-30 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-600",
+                          "absolute inset-x-1 z-20 overflow-hidden rounded-md border p-1.5 text-left text-[10px] shadow-sm focus-visible:z-30",
                           blockStyle(item.block, schedule),
                         )}
                         style={{ top, height, minHeight: 44 }}
-                        aria-label={`${courseName} study, ${day}, ${formatMinute(item.start)} to ${formatMinute(item.end)}, ${item.block.minutes} minutes, ${TECHNIQUE_BY_ID[item.block.techniqueId]?.name ?? item.block.label}`}
+                        aria-label={`${courseName} study, ${day}, ${formatMinute(item.start)} to ${formatMinute(item.end)}, ${item.block.minutes} minutes`}
                       >
                         <p className="truncate font-semibold">{courseName}</p>
-                        <p className="mt-0.5 truncate text-[10px]">
-                          {item.block.minutes}m ·{" "}
-                          {TECHNIQUE_BY_ID[item.block.techniqueId]?.name ??
-                            "Study method"}
+                        <p className="mt-0.5 truncate">
+                          {item.block.minutes}m · {TECHNIQUE_BY_ID[item.block.techniqueId]?.name ?? "Study method"}
                         </p>
                       </button>
                     );
@@ -246,135 +344,146 @@ export function WeekCalendar({
         </div>
       </div>
 
-      <div className="mt-5 md:hidden">
-        <div className="flex gap-2 overflow-x-auto pb-2" aria-label="Choose a day">
-          {DAYS.map((day) => (
-            <button
-              key={day}
-              type="button"
-              aria-pressed={selectedDay === day}
-              onClick={() => setSelectedDay(day)}
-              className={cn(
-                "min-h-11 min-w-16 rounded-xl border px-2 text-sm",
-                selectedDay === day
-                  ? "border-brand-500 bg-brand-50 font-semibold text-brand-700"
-                  : "border-line bg-surface text-ink-soft",
-              )}
-            >
-              <span className="block">{DAY_SHORT[day]}</span>
-              <span className="block text-[10px] font-normal">{dayTotals[day] ? `${dayTotals[day]}m` : "Open"}</span>
-            </button>
-          ))}
-        </div>
-
-        <Card className="mt-3 p-4 sm:p-5">
-          <h3 className="font-semibold">{selectedDay}</h3>
-          <p className="mt-1 text-xs text-ink-faint">
-            {schedule.studyWindows
-              .filter((window) => window.days.includes(selectedDay))
-              .map((window) => `${formatMinute(window.startMinute)}–${formatMinute(window.endMinute)}`)
-              .join(" · ") || "No study availability marked"}
-          </p>
-          <ol className="mt-4 space-y-3">
-            {itemsForDay(selectedDay, schedule, plan).map((item) =>
-              item.kind === "class" ? (
-                <li key={item.id} className="rounded-xl border border-slate-300 bg-slate-100 p-4">
-                  <p className="text-xs font-medium text-ink-faint">{formatMinute(item.start)}–{formatMinute(item.end)}</p>
-                  <p className="mt-1 font-semibold">{item.label}</p>
-                  <p className="mt-1 text-sm text-ink-soft">Class commitment</p>
-                </li>
-              ) : (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedBlockId(item.block.id)}
-                    className={cn("min-h-11 w-full rounded-xl border p-4 text-left", blockStyle(item.block, schedule))}
-                  >
-                    <p className="text-xs font-medium opacity-70">{formatMinute(item.start)}–{formatMinute(item.end)}</p>
-                    <p className="mt-1 font-semibold">{blockCourseName(item.block, schedule)}</p>
-                    <p className="mt-1 text-sm">
-                      {item.block.minutes} min ·{" "}
-                      {TECHNIQUE_BY_ID[item.block.techniqueId]?.name ??
-                        "Study method"}
-                    </p>
-                  </button>
-                </li>
-              ),
-            )}
-            {itemsForDay(selectedDay, schedule, plan).length === 0 && (
-              <li className="rounded-xl border border-dashed border-line p-5 text-sm text-ink-faint">
-                No classes or study blocks today.
-              </li>
-            )}
-          </ol>
-        </Card>
-      </div>
-
-      {selectedBlock && (
-        <Card className="mt-5 border-brand-100 bg-brand-50/50" aria-live="polite">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-brand-700">
-                Study block
-              </p>
-              <h3 className="mt-1 text-xl font-semibold">
-                {blockCourseName(selectedBlock, schedule)}
-              </h3>
-              <p className="mt-2 flex items-center gap-2 text-sm text-ink-soft">
-                <Clock3 className="size-4" aria-hidden />
-                {selectedBlock.day}, {formatMinute(blockStart(selectedBlock))}–{formatMinute(blockStart(selectedBlock) + selectedBlock.minutes)}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedBlockId(null)}
-              className="min-h-11 rounded-xl px-4 text-sm text-ink-soft hover:bg-white"
-            >
-              Close
-            </button>
-          </div>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2">
-            <div>
-              <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-                <BookOpen className="size-4 text-brand-600" aria-hidden />
-                {TECHNIQUE_BY_ID[selectedBlock.techniqueId]?.name ?? "Study method"}
-                {selectedBlock.techniqueSource === "foundation" && (
-                  <Badge>Foundation method</Badge>
+      <div
+        className={cn(
+          "mt-4 print:block",
+          desktopView === "agenda" ? "lg:block" : "lg:hidden",
+        )}
+      >
+        <nav
+          className="no-print flex gap-2 overflow-x-auto pb-2"
+          aria-label="Jump to an agenda day"
+        >
+          {DAYS.map((day) => {
+            const date = weekStart ? weekDateForDay(weekStart, day) : null;
+            const today =
+              date !== null &&
+              isCurrentWeek(weekStart) &&
+              date.toDateString() === new Date().toDateString();
+            return (
+              <a
+                key={day}
+                href={`#agenda-${day.toLowerCase()}`}
+                className={cn(
+                  "min-h-12 min-w-20 rounded-xl border px-2 py-1.5 text-center text-sm",
+                  today
+                    ? "border-brand-500 bg-brand-50 font-semibold text-brand-700"
+                    : "border-line bg-surface text-ink-soft",
                 )}
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft">{selectedBlock.note}</p>
-            </div>
-            {selectedBlock.supportingTechniqueIds.length > 0 && (
-              <div>
-                <p className="flex items-center gap-2 text-sm font-semibold">
-                  <CalendarDays className="size-4 text-brand-600" aria-hidden />
-                  Supporting method
+              >
+                <span className="block">{DAY_SHORT[day]}</span>
+                <span className="block text-[10px] font-normal">
+                  {date ? formatDate(date) : "Saved"} · {dayTotals[day] || 0}m
+                </span>
+              </a>
+            );
+          })}
+        </nav>
+
+        <div className="mt-3 space-y-3 print:space-y-2">
+          {DAYS.map((day) => {
+            const date = weekStart ? weekDateForDay(weekStart, day) : null;
+            const items = itemsForDay(day, schedule, plan, week);
+            const availability = schedule.studyWindows
+              .filter((window) => window.days.includes(day))
+              .map(
+                (window) =>
+                  `${formatMinute(window.startMinute)}–${formatMinute(window.endMinute)}`,
+              )
+              .join(" · ");
+            const unavailable = week.unavailableDays.includes(day);
+
+            return (
+              <Card
+                key={day}
+                id={`agenda-${day.toLowerCase()}`}
+                className="scroll-mt-28 p-4 print-break-avoid sm:p-5"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="font-semibold">
+                    {date ? formatDate(date, true) : day}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {dayTotals[day] > 0 && (
+                      <span className="text-xs font-medium text-ink-soft">
+                        {formatDuration(dayTotals[day])} planned
+                      </span>
+                    )}
+                    {unavailable && <Badge>Unavailable this week</Badge>}
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-ink-faint">
+                  {availability || "No recurring study availability"}
                 </p>
-                <p className="mt-2 text-sm text-ink-soft">
-                  {selectedBlock.supportingTechniqueIds
-                    .map((id) => TECHNIQUE_BY_ID[id]?.name)
-                    .filter(Boolean)
-                    .join(" · ")}
-                </p>
-              </div>
-            )}
-            {selectedBlock.addressedFrictionIds.length > 0 && (
-              <div className="sm:col-span-2">
-                <p className="text-sm font-semibold">Obstacles addressed</p>
-                <ul className="mt-2 flex flex-wrap gap-2">
-                  {selectedBlock.addressedFrictionIds.map((frictionId) => (
-                    <li key={frictionId}>
-                      <Badge tone="brand">
-                        {FRICTION_BY_ID[frictionId].label}
-                      </Badge>
+                <ol className="mt-4 grid gap-3 lg:grid-cols-2">
+                  {items.map((item) => {
+                    if (item.kind === "class") {
+                      return (
+                        <li
+                          key={item.id}
+                          className="rounded-xl border border-slate-300 bg-slate-100 p-4"
+                        >
+                          <p className="text-xs font-medium text-ink-faint">
+                            {formatMinute(item.start)}–{formatMinute(item.end)}
+                          </p>
+                          <p className="mt-1 font-semibold">{item.label}</p>
+                          <p className="mt-1 text-sm text-ink-soft">
+                            Class commitment
+                          </p>
+                        </li>
+                      );
+                    }
+                    if (item.kind === "busy") {
+                      return (
+                        <li
+                          key={item.id}
+                          className="rounded-xl border border-rose-200 bg-rose-50 p-4"
+                        >
+                          <p className="text-xs font-medium text-rose-800">
+                            {formatMinute(item.start)}–{formatMinute(item.end)}
+                          </p>
+                          <p className="mt-1 font-semibold text-rose-950">
+                            Unavailable this week
+                          </p>
+                        </li>
+                      );
+                    }
+                    return (
+                      <li key={item.id}>
+                        <button
+                          type="button"
+                          onClick={() => onSelectBlock(item.block)}
+                          className={cn(
+                            "min-h-11 w-full rounded-xl border p-4 text-left",
+                            blockStyle(item.block, schedule),
+                          )}
+                        >
+                          <p className="text-xs font-medium opacity-70">
+                            {formatMinute(item.start)}–{formatMinute(item.end)}
+                          </p>
+                          <p className="mt-1 font-semibold">
+                            {blockCourseName(item.block, schedule)}
+                          </p>
+                          <p className="mt-1 text-sm">
+                            {item.block.minutes} min ·{" "}
+                            {TECHNIQUE_BY_ID[item.block.techniqueId]?.name ??
+                              "Study method"}
+                          </p>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {items.length === 0 && (
+                    <li className="rounded-xl border border-dashed border-line p-5 text-sm text-ink-faint lg:col-span-2">
+                      {emptyDayMessage(day, schedule, week)}
                     </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
+                  )}
+                </ol>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
     </section>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import Link from "next/link";
 import { Check, Flame, Plus, X } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
@@ -18,8 +17,8 @@ function dayLabel(iso: string) {
 export function TrackerView() {
   const { profile, ready } = useProfile();
   const tracker = useTracker();
-  const days = useMemo(() => recentDays(7), []);
-  const today = todayISO();
+  const days = recentDays(7);
+  const today = tracker.today || todayISO();
 
   if (!ready || !tracker.ready) return <LoadingShell />;
   if (!profile) return <NoProfile />;
@@ -36,6 +35,7 @@ export function TrackerView() {
   return (
     <div className="mx-auto max-w-4xl px-5 py-10 sm:py-14">
       <SectionHeading
+        as="h1"
         eyebrow="Tracker"
         title="One or two habits. That's the whole trick."
         lead="Pick up to three small things and check them off for two weeks. Miss a day and the streak pauses — it doesn't die."
@@ -71,7 +71,7 @@ export function TrackerView() {
                       type="button"
                       onClick={() => tracker.removeHabit(log.habitId)}
                       aria-label={`Stop tracking: ${habit.label}`}
-                      className="rounded-lg p-2 text-ink-faint hover:bg-line-soft hover:text-ink"
+                      className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-ink-faint hover:bg-line-soft hover:text-ink"
                     >
                       <X className="size-4" aria-hidden />
                     </button>
@@ -194,9 +194,7 @@ export function TrackerView() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => {
-            for (const log of tracker.logs) tracker.removeHabit(log.habitId);
-          }}
+          onClick={tracker.clearAll}
           disabled={tracker.logs.length === 0}
         >
           Clear all tracking

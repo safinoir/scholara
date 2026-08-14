@@ -34,8 +34,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const setProfile = useCallback((next: LearnerProfile) => {
-    setProfileState(next);
-    saveProfile(next);
+    const validated = saveProfile(next);
+    if (validated) setProfileState(validated);
   }, []);
 
   const reset = useCallback(() => {

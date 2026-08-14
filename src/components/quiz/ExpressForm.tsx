@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, RotateCcw } from "lucide-react";
 import { AxisSlider } from "@/components/persona/AxisSlider";
+import { confirmProfileReplacement } from "@/components/quiz/confirmProfileReplacement";
 import { PersonaStarterStep } from "@/components/quiz/PersonaStarterStep";
 import {
   Button,
@@ -45,7 +46,7 @@ const ZERO_AXES: AxisScores = {
 
 export function ExpressForm() {
   const router = useRouter();
-  const { setProfile } = useProfile();
+  const { profile: existingProfile, setProfile } = useProfile();
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   const [step, setStep] = useState(0);
@@ -112,6 +113,7 @@ export function ExpressForm() {
       return;
     }
     if (!selectedPersonaId || !axesConfirmed) return;
+    if (!confirmProfileReplacement(existingProfile !== null)) return;
 
     const profile = generateProfile({
       axes: axesFromDirectInput(axes),

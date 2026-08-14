@@ -1,8 +1,7 @@
 # Scholara Guided Flow and Weekly Plan Redesign
 
-**Status:** Obstacle-aware, course-specific guided flow and Weekly Plan
-implemented; self-report routing, post-intake six-axis editing, and release QA
-remain
+**Status:** Obstacle-aware, course-specific guided flow and plan-first Weekly
+Plan workspace implemented; post-intake six-axis editing and release QA remain
 
 **Current scope:** Homepage, Persona, Methods, and Weekly Plan
 **Existing but outside this redesign:** Tracker, Resources, and After/Career
@@ -56,8 +55,8 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
   deliberately changed.
 - Saving retains the explicit persona choice when it differs from the final
   axis-derived match, then opens `/persona`.
-- **Pending:** decide whether `/persona/setup` becomes canonical with `/express`
-  as a redirect.
+- `/express` remains the canonical self-report route; no duplicate
+  `/persona/setup` route is planned.
 
 ### Manual persona choice
 
@@ -108,7 +107,8 @@ stage remains `toolkit`.
   and prevent a fourth choice.
 - Save only after explicit confirmation; unsaved changes remain a local UI draft.
 - After a valid save, change the sticky action from **Save methods** to
-  **Continue to plan**. Do not add a redundant bottom readiness card.
+  **Continue to weekly setup** for first-time users or **View updated plan** for
+  completed users. Do not add a redundant bottom readiness card.
 - Revisiting the page allows changes, but an empty draft cannot replace a valid
   saved method selection.
 - Changing the six axes recalculates the top five but preserves the user's
@@ -148,9 +148,10 @@ an assessment is required.
 
 ## 4. Weekly Plan Setup
 
-After saving the methods, Plan opens a two-step, course-only setup. Drafts
-autosave locally after each change. Returning users can edit the recurring
-schedule without repeating Persona or Methods.
+After saving the methods, `/plan/setup` opens a dedicated two-step,
+course-only workspace. Drafts autosave locally after each change. Returning
+users can edit the recurring schedule without repeating Persona or Methods;
+`/plan` is reserved for a valid, non-empty generated plan.
 
 ### Step 1: Your classes
 
@@ -194,6 +195,15 @@ Keep the weekly study target separate from raw availability:
   fits and report the shortfall.
 - Generate after the course, class, availability, and target summary passes all
   hard validation.
+- Use the scheduler's own normalization, class subtraction, 15-minute grid, and
+  30-minute minimum-fragment rules for the authoritative capacity summary.
+- Preserve an autosaved draft through ordinary navigation. **Discard changes**
+  clears it explicitly. Loaded drafts and final schedules are Zod-validated,
+  errors are connected to their controls, and submission focuses the first
+  error.
+- Preserve current-week exceptions after recurring edits only when they remain
+  valid and produce blocks. Editing a stale saved plan explicitly starts the
+  current week; zero-block generation never replaces the saved plan.
 
 ## 5. Deterministic Scheduling Engine
 
@@ -305,6 +315,11 @@ viewport to the top of the completed page.
   peak time, course priorities, selected methods, and availability constraints.
   Full method steps and evidence remain on the Methods page.
 - Provide **Edit recurring schedule** and **Adjust this week** actions.
+- Show actual dates, Today state, availability, temporary busy periods, and
+  unavailable-day overlays. Crop to relevant hours, scroll internally, and keep
+  day headers sticky rather than using a fixed-width or fixed-height canvas.
+- Open block details in a right-side sheet and place copy in a quieter overflow
+  action.
 
 ### Mobile
 
@@ -313,6 +328,14 @@ viewport to the top of the completed page.
   agenda.
 - Keep the seven-day strip compact and use the selected-day agenda for detailed
   mobile content.
+- Use the agenda as the semantic keyboard, screen-reader, zoom, and print view;
+  open block details in a bottom sheet.
+
+The completed workspace displays the represented Monday-Sunday range. A stale
+week stays viewable but weekly adjustment is locked until **Start this week**
+clears its temporary busy windows, unavailable days, deadlines, urgency,
+workload, energy, and weekly obstacle overrides. Recurring courses,
+availability, persona, obstacles, and methods remain intact.
 
 Calendar meaning must never depend on color alone. Interactive targets remain at
 least 44px, and calendar items stay in chronological DOM order.
@@ -537,11 +560,10 @@ privacy, and data-handling page.
 - `/plan` - single completed experience with summary, obstacle responses,
   embedded calendar, weekly tuning, and rationale
 - `/results` - redirects to `/persona`
-- `/persona/setup` - planned canonical self-report route; not implemented yet
 
-The guided sequence is Persona -> Methods -> Plan. Plan appears after Methods is
-confirmed and opens setup until a valid recurring schedule exists. Direct visits
-to a locked stage show a clear completion gate rather than partial content. The
+The guided sequence is Persona -> Methods -> `/plan/setup` -> `/plan`.
+Express remains the canonical three-step self-report route. Direct visits to a
+locked stage show a clear completion gate rather than partial content. The
 route and internal onboarding stage retain the technical name `toolkit`.
 
 Before a profile exists, global navigation is **About -> Resources -> Take the
@@ -582,7 +604,7 @@ are sent to the configured provider, and the raw note is not stored by Scholara.
 - [x] Add profile v3 and tested v1/v2 migrations.
 - [x] Add onboarding stages, resume logic, and gates.
 - [x] Make `plan` optional until scheduling is configured.
-- [ ] Finish the canonical self-report route transition.
+- [x] Retain `/express` as the canonical self-report route.
 
 ### Phase 2 - Persona and Methods
 
@@ -654,11 +676,10 @@ are sent to the configured provider, and the raw note is not stored by Scholara.
   remains available before and after onboarding.
 - [x] Users can compare all six personas, select a different one, and restore
   their original axis-derived result without rewriting measured axes.
-- [ ] Decide whether to move self-report to `/persona/setup` or retain
-  `/express` as canonical.
+- [x] Retain `/express` as canonical.
 - [ ] Add six-axis editing with a deliberate recompute-and-save flow.
 - [x] Delete the legacy results coach and plan-coaching files/routes.
-- [ ] Delete the temporary local-storage test button.
+- [x] Retain and document the temporary local-storage development control.
 - [ ] Complete real-device, keyboard-only, and accessibility review.
 
 Tracker, Resources, and After/Career already exist. Their broader workflow
@@ -682,11 +703,13 @@ Implemented in the current codebase:
 - Bounded AI note interpretation with proposal review before applying
 - AI tuning-only context and privacy disclosures
 
-Known remaining work is the canonical self-report route decision, post-intake
-six-axis editing, removal of the test-only storage button, and final release QA.
+Known remaining work is post-intake six-axis editing and final release QA. The
+red test-only storage control intentionally remains as temporary development
+functionality.
 
 Automated verification covers the recommendation engines, profile migration,
-onboarding helpers, sharing, schedule schemas and constraints, and the AI tuning
-route's validation and failure behavior. There are not yet component, browser
-end-to-end, live-provider, or automated accessibility tests, so real-device and
-keyboard-only review remains part of release verification.
+onboarding helpers, week identity and validation, schedule schemas and
+constraints, Tracker/Career persistence, setup and sheet component behavior,
+and the AI tuning route's validation and failure behavior. Playwright and axe
+responsive smoke coverage is configured; browser execution, live-provider,
+real-device, and keyboard-only review remain part of release verification.

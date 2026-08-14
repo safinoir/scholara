@@ -150,12 +150,16 @@ export function SectionHeading({
   title,
   lead,
   className,
+  as = "h2",
 }: {
   eyebrow?: string;
   title: string;
   lead?: string;
   className?: string;
+  as?: "h1" | "h2";
 }) {
+  const Heading = as;
+
   return (
     <div className={cn("max-w-2xl", className)}>
       {eyebrow && (
@@ -163,7 +167,7 @@ export function SectionHeading({
           {eyebrow}
         </p>
       )}
-      <h2 className="text-2xl font-semibold sm:text-3xl">{title}</h2>
+      <Heading className="text-2xl font-semibold sm:text-3xl">{title}</Heading>
       {lead && <p className="mt-3 text-ink-soft">{lead}</p>}
     </div>
   );
