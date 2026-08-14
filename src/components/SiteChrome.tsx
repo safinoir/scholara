@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { GraduationCap } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { cn } from "@/components/ui";
 import { canAccessToolkit, hasConfirmedToolkit } from "@/lib/onboarding";
@@ -38,7 +38,14 @@ export function SiteHeader() {
           href="/"
           className="flex items-center gap-2 font-semibold tracking-tight"
         >
-          <GraduationCap className="size-5 text-brand-600" aria-hidden />
+          <Image
+            src="/icon.svg"
+            alt=""
+            width={20}
+            height={20}
+            className="size-5"
+            aria-hidden
+          />
           Scholara
         </Link>
 
