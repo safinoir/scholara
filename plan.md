@@ -20,26 +20,33 @@ remains.
 ### Challenge origin
 
 Scholara was created for the **Stellic Pathfinders challenge**, in the
-**Overcoming Obstacles** category. The challenge prompt was:
+**Degree Planning & Discovery** category:
+
+> Help students chart, change, or understand their academic path.
+
+The broader challenge prompt was:
 
 > Create something that helps you navigate your college journey, and what comes
 > after. Stellic was founded by students who struggled to navigate college.
 > We’ve spent a decade building software for higher ed, and we want to hear
 > directly from you about what still needs to change.
 
-Scholara's answer is that navigating college requires more than knowing which
-courses to take. Students are expected to manage a faster pace, greater
-independence, different course formats, and less structured time, often without
-ever being taught how to study under those conditions. Strategies that were
-enough in high school may stop working in college; when generic advice fails,
-students can mistake a missing system for a personal failure.
+Scholara's answer is that earning a degree requires more than knowing which
+courses to take. A student also has to understand how they learn, manage the
+work those courses demand, and consistently make time to study. College brings
+a faster pace, greater independence, different course formats, and less
+structured time, often without teaching students how to study under those
+conditions. Strategies that were enough in high school may stop working in
+college; when generic advice fails, students can mistake a missing system for a
+personal failure.
 
 ### Product response
 
-Scholara helps a college student build that missing system. Its north-star
-outcome is that a learner leaves knowing which study methods to try, why those
-methods suit their circumstances, and exactly how they can use them in the week
-they actually have.
+Scholara helps a college student discover and build that missing system. Its
+north-star outcome is that a learner understands their individual study habits,
+knows which methods to try and why, and has a realistic schedule for their
+classes and studying. By making course work more understandable and manageable,
+Scholara helps the learner keep progressing toward their degree.
 
 Scholara helps a student answer three questions:
 
@@ -48,10 +55,10 @@ Scholara helps a student answer three questions:
 3. How can those methods fit around the classes, constraints, and study time
    they actually have?
 
-The resulting journey moves from self-discovery to action: a learner identifies
-their working patterns and obstacles, reviews evidence-aware methods, chooses
-one to three, and turns those choices into a realistic course-specific weekly
-plan.
+The resulting journey moves from academic self-discovery to action: a learner
+identifies their working patterns and obstacles, reviews evidence-aware methods,
+chooses one to three, records their classes and realistic study availability,
+and turns those inputs into a course-specific weekly plan.
 
 ### Individualized without fixed learner types
 
@@ -80,12 +87,13 @@ The user sees five personalized suggestions and explicitly selects one to three
 methods that Scholara incorporates into compatible study blocks in their weekly
 schedule.
 
-The central college-journey experience is the intake, Persona, Methods, and
-Weekly Plan flow. Resources and Tracker support the journey, while the
-year-and-field **After** checklist addresses the prompt's “what comes after”
-dimension. Scholara is not a degree audit, registration system, LMS, or
-replacement for academic advising; integration with those systems remains
-future work.
+The central degree-planning experience is the intake, Persona, Methods, and
+Weekly Plan flow. Scholara plans the learning work needed to succeed in the
+student's current courses rather than choosing degree requirements for them.
+Resources and Tracker support continued progress, while the year-and-field
+**After** checklist connects academic planning to what follows graduation.
+Scholara is not a degree audit, registration system, LMS, or replacement for
+academic advising; integration with those systems remains future work.
 
 ---
 
@@ -406,8 +414,9 @@ tests have also been removed; old share URLs intentionally use the standard 404.
 ## 9. Existing Supporting Features
 
 These routes already work but were intentionally outside the recent workflow
-redesign. They broaden the challenge response around the core “learn how to
-study in college” journey:
+redesign. They broaden the Degree Planning & Discovery response around the core
+journey of understanding how to study, scheduling the work for current courses,
+and maintaining progress toward a degree:
 
 - Resources: cost labels, fit sorting, campus resources, and paid-hidden default.
 - Tracker: up to three micro-habits, forgiving streaks, local-calendar dates,

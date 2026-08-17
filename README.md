@@ -4,7 +4,9 @@
 the obstacles you face, and the time you actually have into methods and a
 weekly plan.
 
-Built for the **Stellic Pathfinders** challenge, in the **Overcoming Obstacles** category.
+Built for the **Stellic Pathfinders** challenge, in the **Degree Planning &
+Discovery** category: helping students understand their academic path and plan
+the learning work required to keep progressing toward a degree.
 
 > The evidence decides *what* you should do. Your persona decides *how* you'll do it — when, for how long, with whom, and in what format.
 
@@ -17,7 +19,9 @@ formats, and unstructured time of college can make strategies that worked in
 high school stop working. Students then get generic advice — "review your
 notes," "use flashcards" — that assumes a student with no job, no anxiety, and
 forty free hours a week. When that advice fails, students conclude they're the
-problem.
+problem. Scholara helps them discover their own study habits, choose suitable
+methods, and schedule class and study time so their academic path is manageable
+week by week.
 
 | Friction | What Scholara does about it |
 | --- | --- |

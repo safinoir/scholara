@@ -11,11 +11,12 @@ release QA remains
 This document records the approved redesign and its current implementation
 status. [plan.md](./plan.md) is the concise current-state source of truth.
 
-The redesign supports Scholara's Stellic Pathfinders challenge thesis: students
-need help adapting from high-school study habits to the pace, independence, and
-varied demands of college. Personalization uses continuous planning/adherence
-axes, obstacles, selected evidence-aware methods, and real availability rather
-than fixed “learning style” categories.
+The redesign supports Scholara's **Degree Planning & Discovery** entry in the
+Stellic Pathfinders challenge. Scholara helps students understand the study
+habits behind their academic progress and schedule the class and study time
+needed to keep moving toward a degree. Personalization uses continuous
+planning/adherence axes, obstacles, selected evidence-aware methods, and real
+availability rather than fixed “learning style” categories.
 
 ## 1. Product Flow
 
