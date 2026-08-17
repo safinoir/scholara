@@ -1,6 +1,8 @@
 # Scholara
 
-**scholar + persona** — a study-habit builder that turns who you are into how you should study.
+**scholar + persona** — a college study-planning tool that turns how you work,
+the obstacles you face, and the time you actually have into methods and a
+weekly plan.
 
 Built for the **Stellic Pathfinders** challenge, in the **Overcoming Obstacles** category.
 
@@ -10,7 +12,12 @@ Built for the **Stellic Pathfinders** challenge, in the **Overcoming Obstacles**
 
 ## The problem
 
-Most students are never taught *how* to study. They get generic advice — "review your notes," "use flashcards" — that assumes a student with no job, no anxiety, and forty free hours a week. When that advice fails, students conclude they're the problem.
+Most students are never taught *how* to study. The pace, independence, course
+formats, and unstructured time of college can make strategies that worked in
+high school stop working. Students then get generic advice — "review your
+notes," "use flashcards" — that assumes a student with no job, no anxiety, and
+forty free hours a week. When that advice fails, students conclude they're the
+problem.
 
 | Friction | What Scholara does about it |
 | --- | --- |
@@ -169,7 +176,8 @@ The endpoint is OpenAI-compatible and can be changed with environment variables.
 Accessibility is treated as a core requirement, with final keyboard-only,
 real-device, and touch-target verification still pending.
 
-- The guided quiz supports keyboard navigation, including number and arrow keys
+- In the guided quiz, pointer selection enables an explicit blue Next button;
+  number keys select an answer and advance immediately
 - Focus moves to each new quiz question; progress is announced via `aria-live`
 - Visible focus rings, never removed
 - `prefers-reduced-motion` disables all animation
@@ -204,6 +212,7 @@ account-management feature.
 
 ## Future work
 
+- Post-intake six-axis editing with a deliberate recompute-and-save flow
 - Optional accounts for cross-device sync
 - **Stellic / LMS integration** to pull real course data, deadlines, and degree requirements so the plan is built from actual syllabi
 - Calendar export (`.ics`) and notification nudges

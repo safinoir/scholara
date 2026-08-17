@@ -1,12 +1,12 @@
 # Scholara Project Plan
 
-**Last updated:** 2026-08-14
+**Last updated:** 2026-08-16
 **Current branch:** `ui-changes` (based on the AI/onboarding work already merged
 into `main`)
-**Status:** The obstacle-aware, course-specific Persona -> Methods -> Weekly
-Setup -> Weekly Plan workflow and the plan-first workspace redesign are
-implemented. Remaining work is post-intake six-axis editing and final release
-QA.
+**Status:** The core challenge experience is implemented: an obstacle-aware,
+course-specific Persona -> Methods -> Weekly Setup -> Weekly Plan workflow.
+Post-intake six-axis editing remains a deferred enhancement, and final release
+QA remains open.
 
 For the detailed design and implementation record behind onboarding and weekly
 planning, see [onboarding-redesign.md](./onboarding-redesign.md). This file is
@@ -15,17 +15,58 @@ remains.
 
 ---
 
-## 1. Product
+## 1. Product Purpose
+
+### Challenge origin
+
+Scholara was created for the **Stellic Pathfinders challenge**, in the
+**Overcoming Obstacles** category. The challenge prompt was:
+
+> Create something that helps you navigate your college journey, and what comes
+> after. Stellic was founded by students who struggled to navigate college.
+> We’ve spent a decade building software for higher ed, and we want to hear
+> directly from you about what still needs to change.
+
+Scholara's answer is that navigating college requires more than knowing which
+courses to take. Students are expected to manage a faster pace, greater
+independence, different course formats, and less structured time, often without
+ever being taught how to study under those conditions. Strategies that were
+enough in high school may stop working in college; when generic advice fails,
+students can mistake a missing system for a personal failure.
+
+### Product response
+
+Scholara helps a college student build that missing system. Its north-star
+outcome is that a learner leaves knowing which study methods to try, why those
+methods suit their circumstances, and exactly how they can use them in the week
+they actually have.
 
 Scholara helps a student answer three questions:
 
 1. What study conditions are they most likely to maintain?
 2. Which evidence-aware study methods fit their profile and obstacles?
-3. How can those methods fit into the classes and study time they actually have?
+3. How can those methods fit around the classes, constraints, and study time
+   they actually have?
+
+The resulting journey moves from self-discovery to action: a learner identifies
+their working patterns and obstacles, reviews evidence-aware methods, chooses
+one to three, and turns those choices into a realistic course-specific weekly
+plan.
+
+### Individualized without fixed learner types
 
 Scholara does **not** use traditional visual/auditory/kinesthetic learning
-styles. Its six axes are adherence and planning factors. A persona is a
-practical summary of those axes, not a diagnosis or a psychometric label.
+styles or force students into a small set of broad categories. Its six axes are
+continuous adherence and planning factors. A persona is a readable starting
+point derived from those axes, not a diagnosis, a psychometric label, or a box:
+close matches can appear as a blend, and a learner can override the shorthand
+without rewriting their measured axes.
+
+Evidence determines which study practices are credible. The learner's axes,
+obstacles, preferences, selected methods, courses, and real availability
+determine how those practices can become maintainable. This distinction lets
+Scholara be personal without claiming that memory works differently for each
+persona.
 
 Technique suggestions combine:
 
@@ -38,6 +79,13 @@ Technique suggestions combine:
 The user sees five personalized suggestions and explicitly selects one to three
 methods that Scholara incorporates into compatible study blocks in their weekly
 schedule.
+
+The central college-journey experience is the intake, Persona, Methods, and
+Weekly Plan flow. Resources and Tracker support the journey, while the
+year-and-field **After** checklist addresses the prompt's “what comes after”
+dimension. Scholara is not a degree audit, registration system, LMS, or
+replacement for academic advising; integration with those systems remains
+future work.
 
 ---
 
@@ -60,6 +108,24 @@ schedule.
 The deterministic engines remain the source of truth. The app works without an
 AI key.
 
+### Code organization
+
+| Path | Responsibility |
+| --- | --- |
+| `src/app` | App Router pages, shared layout/styles/icon, and the single active API route |
+| `src/components` | Feature views, accessible forms and sheets, navigation chrome, and shared UI primitives |
+| `src/lib/data` | Typed personas, axes, methods, resources, and other reusable content |
+| `src/lib/engine` | Pure scoring, matching, recommendation, capacity, and deterministic scheduling rules |
+| `src/lib/ai` | Server-only OpenAI-compatible client and bounded tuning interpretation |
+| `src/lib/types.ts` and `src/lib/schema.ts` | Shared domain contracts, Zod validation, and profile migrations |
+| `src/lib/storage.ts`, `week.ts`, `plan.ts`, and `careerPreferences.ts` | Browser persistence and shared week/plan helpers |
+| `src/hooks` | Profile and Tracker client-state adapters |
+| `tests` and `e2e` | Unit/schema/migration tests, RTL/jsdom interaction tests, and Playwright/axe responsive coverage |
+
+Presentation components may orchestrate forms and navigation, but reusable
+content and recommendation/scheduling decisions stay outside the UI. The only
+active server-side product endpoint is `POST /api/plan/tune`.
+
 ---
 
 ## 3. Current Guided Flow
@@ -80,6 +146,11 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 ```
 
 - Quiz completion creates a version 3 profile and opens `/persona`.
+- The guided quiz contains 12 axis questions and one obstacle screen. Clicking
+  or tapping an answer records it on the current screen and enables a blue
+  **Next** button; pressing a valid number key selects that option and advances
+  immediately. Back and Next retain consistent sizing and shape.
+- An in-progress quiz draft resumes at the first unanswered axis question.
 - Persona confirmation unlocks `/toolkit`.
 - Confirming one to three methods unlocks weekly setup.
 - A valid recurring schedule and generated plan complete onboarding.
@@ -92,7 +163,8 @@ The current self-report route is `/express`. It uses three steps: choose a
 starting persona, confirm or refine the six seeded axes, and select obstacles.
 There is no intake context step. The final profile keeps the user's persona
 choice distinct from the axis-derived match when necessary, then opens
-`/persona`.
+`/persona`. Completing either intake over an existing profile requires a reset
+confirmation before replacing its persona, methods, schedule, and plan.
 
 ---
 
@@ -112,17 +184,20 @@ are currently:
 The hero's **How it works** control scrolls to the first section. `/about`
 remains the longer methodology, limitations, privacy, and data-handling page.
 
+The header home link uses the same `src/app/icon.svg` artwork as the site icon.
 Public navigation is:
 
 ```text
 About -> Resources -> Take the quiz
 ```
 
-With a saved profile, About remains first and Resources remains available.
-Persona, Methods, and Plan follow the guided access rules; Tracker and After
-remain available as existing supporting features. The user-facing navigation
-label is **Methods**; its route remains `/toolkit`, and its persisted onboarding
-stage remains `toolkit`.
+With a saved profile, the ordered navigation is **About -> Persona -> Methods ->
+Plan -> Tracker -> Resources -> After**. Methods and Plan appear only when their
+prerequisites are complete; Plan points to `/plan/setup` until a valid non-empty
+plan exists, then to `/plan`. At `md` and above this is an inline navigation bar;
+below `md` it becomes an accessible disclosure menu. The user-facing label is
+**Methods**; its route remains `/toolkit`, and its persisted onboarding stage
+remains `toolkit`.
 
 ---
 
@@ -137,7 +212,8 @@ Implemented:
 - six-axis visualization;
 - detailed comparison of all six personas with a reversible manual persona
   choice;
-- explicit continuation to Methods;
+- a stage-aware next action that leads to Methods, Weekly Setup, or the saved
+  Plan as appropriate;
 - retake action; and
 - focused Persona page with no technique cards or AI coach.
 
@@ -281,7 +357,7 @@ or selects methods.
 | --- | --- |
 | `/` | Persuasive overview, product explanation, and onboarding resume |
 | `/about` | Detailed methodology, limitations, privacy, and reset controls |
-| `/quiz` | Thirteen-screen guided intake with draft recovery; obstacles are the final screen |
+| `/quiz` | Thirteen-screen guided intake with draft recovery; pointer selection enables an explicit blue Next action, number-key selection advances directly, and obstacles are the final screen |
 | `/express` | Persona-first, three-step self-report intake with no context step |
 | `/persona` | Persona, blend, strengths, watch-outs, and axes |
 | `/toolkit` | User-facing **Methods** page with the top five, compact full library, and one-to-three selection |
@@ -300,6 +376,8 @@ or selects methods.
 
 The former `/api/plan`, `/api/ask`, and `/api/coach` coaching routes and their UI
 have been removed. AI is used only for the explicit weekly tuning proposal.
+The former `/share/[code]` route, share-code helpers, payload type, and dedicated
+tests have also been removed; old share URLs intentionally use the standard 404.
 
 ---
 
@@ -308,8 +386,10 @@ have been removed. AI is used only for the explicit weekly tuning proposal.
 - New profile v3 records do not contain the former broad learner context.
   `educationContext?: { year; field }` exists only for migrated Resources/After
   compatibility and never affects method ranking or scheduling.
-- Profile, selected methods, recurring schedule, approved weekly settings, and
-  tracker data are persisted only in browser storage.
+- The validated profile, selected methods, recurring schedule, approved weekly
+  settings, quiz and schedule drafts, Tracker data, and Career-only preferences
+  are persisted only in browser storage. Career preferences use their own
+  validated versioned record rather than changing `LearnerProfile`.
 - There is no account, application database, or analytics pipeline.
 - AI keys remain server-side.
 - A bounded set of known courses and current week values is transmitted only
@@ -326,7 +406,8 @@ have been removed. AI is used only for the explicit weekly tuning proposal.
 ## 9. Existing Supporting Features
 
 These routes already work but were intentionally outside the recent workflow
-redesign:
+redesign. They broaden the challenge response around the core “learn how to
+study in college” journey:
 
 - Resources: cost labels, fit sorting, campus resources, and paid-hidden default.
 - Tracker: up to three micro-habits, forgiving streaks, local-calendar dates,
@@ -342,12 +423,6 @@ Weekly Plan are fully polished.
 ---
 
 ## 10. Remaining Work
-
-### Product cleanup
-
-- Add Persona-page six-axis editing that recomputes the natural quiz match and
-  recommendations while preserving the existing manual persona choice, valid
-  method selections, and schedule.
 
 The red **TEST ONLY: Wipe localStorage** home-page control intentionally remains
 available as temporary development functionality.
@@ -370,6 +445,9 @@ available as temporary development functionality.
 
 ## 11. Deferred / Future Work
 
+- Post-intake Persona-axis editing with deliberate recompute-and-save behavior
+  that preserves the manual persona choice, valid method selections, and
+  recurring schedule.
 - Calendar or LMS import.
 - Accounts and cross-device sync.
 - Notification/reminder system.
@@ -383,6 +461,8 @@ available as temporary development functionality.
 ## 12. Release Definition of Done
 
 - [x] Quiz -> Persona -> Methods -> schedule setup -> weekly calendar works.
+- [x] Pointer-selected quiz answers remain on the current question and activate
+  a blue Next button; number-key answers advance immediately.
 - [x] Users explicitly select one to three methods for incorporation into
   compatible weekly study blocks.
 - [x] Plans stay inside confirmed availability and outside classes/busy time.
@@ -400,8 +480,8 @@ available as temporary development functionality.
 - [x] Users can compare all personas and override or restore their original
   axis-derived result.
 - [x] Express users actively choose a persona and confirm the six axes.
-- [ ] Post-intake six-axis editing is complete.
 - [x] Legacy AI coaching UI and API cleanup is complete.
-- [ ] Temporary test-only UI cleanup is complete.
+- [x] The temporary test-only localStorage control remains present and is
+  documented as development-only functionality.
 - [ ] Accessibility and real-device verification are complete.
 - [ ] Current UI branch is merged and production is smoke-tested.

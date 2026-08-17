@@ -1,7 +1,8 @@
 # Scholara Guided Flow and Weekly Plan Redesign
 
 **Status:** Obstacle-aware, course-specific guided flow and plan-first Weekly
-Plan workspace implemented; post-intake six-axis editing and release QA remain
+Plan workspace implemented; post-intake six-axis editing is deferred and
+release QA remains
 
 **Current scope:** Homepage, Persona, Methods, and Weekly Plan
 **Existing but outside this redesign:** Tracker, Resources, and After/Career
@@ -9,6 +10,12 @@ Plan workspace implemented; post-intake six-axis editing and release QA remain
 
 This document records the approved redesign and its current implementation
 status. [plan.md](./plan.md) is the concise current-state source of truth.
+
+The redesign supports Scholara's Stellic Pathfinders challenge thesis: students
+need help adapting from high-school study habits to the pace, independence, and
+varied demands of college. Personalization uses continuous planning/adherence
+axes, obstacles, selected evidence-aware methods, and real availability rather
+than fixed “learning style” categories.
 
 ## 1. Product Flow
 
@@ -38,6 +45,11 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 ### Guided quiz path
 
 - The guided quiz contains 12 axis questions and one final obstacle screen.
+- Clicking or tapping an axis answer records it without advancing and activates
+  the blue **Next** button. Pressing a valid number key selects its answer and
+  advances immediately; screen navigation is otherwise handled by the visible
+  Back and Next controls.
+- Draft recovery resumes at the first unanswered axis question.
 - Quiz completion opens `/persona`, not the old combined results page.
 - Show the primary persona, secondary blend when relevant, strengths,
   watch-outs, and the six-axis profile.
@@ -69,7 +81,7 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 - The learner can restore the original axis-derived result at any time.
 - The About page reuses the same detailed persona cards for all six personas.
 
-### Six-axis editing (pending)
+### Six-axis editing (deferred)
 
 - Persona is read-only by default.
 - **Edit profile** reveals the six axis controls.
@@ -612,7 +624,8 @@ are sent to the configured provider, and the raw note is not stored by Scholara.
 - [x] Add detailed Persona comparison and a reversible manual choice.
 - [x] Add persona-first Express intake with explicit axis confirmation.
 - [x] Reduce Express to Persona, Six axes, and Obstacles; remove intake context.
-- [ ] Add editable Persona axes after intake.
+- [ ] Add editable Persona axes after intake (deferred beyond the current
+  release scope).
 - [x] Add top-five/full-library selection with 1-3 persistence.
 - [x] Add technique scheduling roles.
 - [x] Remove the results coach from the active UI.
@@ -677,7 +690,6 @@ are sent to the configured provider, and the raw note is not stored by Scholara.
 - [x] Users can compare all six personas, select a different one, and restore
   their original axis-derived result without rewriting measured axes.
 - [x] Retain `/express` as canonical.
-- [ ] Add six-axis editing with a deliberate recompute-and-save flow.
 - [x] Delete the legacy results coach and plan-coaching files/routes.
 - [x] Retain and document the temporary local-storage development control.
 - [ ] Complete real-device, keyboard-only, and accessibility review.
@@ -703,9 +715,9 @@ Implemented in the current codebase:
 - Bounded AI note interpretation with proposal review before applying
 - AI tuning-only context and privacy disclosures
 
-Known remaining work is post-intake six-axis editing and final release QA. The
-red test-only storage control intentionally remains as temporary development
-functionality.
+Post-intake six-axis editing is a deferred enhancement; final release QA remains
+for the current scope. The red test-only storage control intentionally remains
+as temporary development functionality.
 
 Automated verification covers the recommendation engines, profile migration,
 onboarding helpers, week identity and validation, schedule schemas and
