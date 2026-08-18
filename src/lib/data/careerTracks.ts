@@ -13,52 +13,52 @@ export const YEAR_ORDER: YearLevel[] = [
 /** Steps every student needs, regardless of field. */
 const SHARED_STEPS: CareerStep[] = [
   {
-    id: "resume",
-    title: "Build a one-page résumé now, not later",
+    id: "degree-map",
+    title: "Map this semester to your degree requirements",
     detail:
-      "Coursework, projects, and any job counts. The career center reviews it for free, and they're least busy early in the fall.",
+      "Open your degree audit or program map. Mark required sequences, prerequisites, and one flexible choice, then take uncertainties to an academic advisor.",
     from: "hs-senior",
-    resourceIds: ["campus-career"],
+    resourceIds: ["campus-advising"],
+  },
+  {
+    id: "course-evidence",
+    title: "Save work that shows what you can do",
+    detail:
+      "Keep one strong project, paper, lab, or presentation from each term along with useful feedback. You can refine it later for a portfolio, application, or interview.",
+    from: "freshman",
+    resourceIds: ["campus-career", "notion"],
   },
   {
     id: "office-hours-relationship",
-    title: "Become known to two professors",
+    title: "Use office hours to test your direction",
     detail:
-      "Go to office hours with a specific question, three times. Those two people write your recommendation letters in two years.",
+      "Ask instructors how a course connects to later classes, research, or work in the field. Those conversations can clarify both the material and whether the path fits you.",
     from: "freshman",
     resourceIds: ["campus-office-hours"],
   },
   {
-    id: "linkedin",
-    title: "Set up a real LinkedIn profile",
+    id: "opportunity-test",
+    title: "Test one possible next step",
     detail:
-      "Photo, honest headline, coursework, and any project. Recruiters do search it, and it takes an hour once.",
-    from: "freshman",
-    resourceIds: ["linkedin-basics", "handshake"],
-  },
-  {
-    id: "first-internship",
-    title: "Apply to more things than feels reasonable",
-    detail:
-      "Most internship listings for your school are on Handshake. Applying to twenty is normal; applying to three is why it feels impossible.",
+      "Choose one low-risk way to explore: a research conversation, internship, volunteer role, student organization, job shadow, or project outside class.",
     from: "sophomore",
     resourceIds: ["handshake", "campus-career"],
   },
   {
-    id: "interviews",
-    title: "Learn the STAR format and rehearse out loud",
+    id: "tell-your-story",
+    title: "Practice explaining what you learned",
     detail:
-      "Situation, Task, Action, Result. Write five stories from coursework or work, then say them out loud. Free mock interviews at the career center.",
+      "Turn a class, work, or project example into a short story about the problem, your choices, and the result. This makes academic work useful in applications and interviews.",
     from: "sophomore",
     resourceIds: ["star-method", "campus-career"],
   },
   {
-    id: "negotiate",
-    title: "Know the salary number before you're asked",
+    id: "compare-options",
+    title: "Compare options before committing",
     detail:
-      "Free public data exists for nearly every role and city. Not knowing it is the most expensive hour you'll ever skip.",
+      "Compare role expectations, location, compensation, further education, and room to learn. Use several sources and bring questions to people who know the field.",
     from: "junior",
-    resourceIds: ["levels-fyi"],
+    resourceIds: ["levels-fyi", "campus-career"],
   },
 ];
 
@@ -66,17 +66,17 @@ const FIELD_STEPS: Record<Field, CareerStep[]> = {
   stem: [
     {
       id: "stem-portfolio",
-      title: "Put two projects somewhere public",
+      title: "Turn one course project into a portfolio piece",
       detail:
-        "A GitHub repo with a readable README beats a line on a résumé. Two finished small things beat one unfinished big thing.",
+        "Choose a finished project that shows a real skill. Add context, explain your decisions, and make the result understandable to someone outside the class.",
       from: "freshman",
       resourceIds: ["mit-ocw"],
     },
     {
       id: "stem-research",
-      title: "Ask a professor about research",
+      title: "Explore how undergraduate research works",
       detail:
-        "Undergrad research positions are frequently unfilled because nobody asks. Email three professors whose work you actually read.",
+        "Read about faculty work that connects to a course you enjoyed, then ask what preparation, timing, and entry points are realistic for a student.",
       from: "sophomore",
       resourceIds: ["campus-office-hours"],
     },
@@ -92,9 +92,9 @@ const FIELD_STEPS: Record<Field, CareerStep[]> = {
     },
     {
       id: "health-shadow",
-      title: "Shadow someone in the role you want",
+      title: "Observe a role before planning around it",
       detail:
-        "One day of shadowing tells you more than a year of coursework about whether you want the job.",
+        "When permitted, shadow or speak with someone in a role you are considering. Compare the day-to-day work with what you enjoy in your current courses.",
       from: "sophomore",
       resourceIds: ["campus-advising"],
     },
@@ -102,17 +102,17 @@ const FIELD_STEPS: Record<Field, CareerStep[]> = {
   business: [
     {
       id: "business-case",
-      title: "Practice case interviews with a person",
+      title: "Use one course project to practice applied analysis",
       detail:
-        "Consulting and finance recruiting starts earlier than you expect — often sophomore year. Case practice only works out loud.",
+        "Take a case, market, finance, or operations assignment beyond the grade: clarify the question, show the analysis, and explain a recommendation out loud.",
       from: "sophomore",
       resourceIds: ["campus-career", "star-method"],
     },
     {
       id: "business-excel",
-      title: "Get genuinely good at spreadsheets",
+      title: "Build practical spreadsheet fluency",
       detail:
-        "Not impressive, just non-negotiable. Free tutorials cover everything you need in a weekend.",
+        "Use a real class or organization problem to practice clean data, formulas, summaries, and charts instead of learning features without context.",
       from: "freshman",
       resourceIds: ["khan-academy"],
     },
@@ -120,17 +120,17 @@ const FIELD_STEPS: Record<Field, CareerStep[]> = {
   humanities: [
     {
       id: "humanities-writing",
-      title: "Keep your three best papers",
+      title: "Keep your strongest writing and feedback",
       detail:
-        "Writing samples are requested constantly for jobs, grants, and grad school. Save them now with the professor's feedback.",
+        "Save strong papers with the assignment context and instructor feedback. Revise one after the course so it can become a future writing sample.",
       from: "freshman",
       resourceIds: ["campus-writing", "zotero"],
     },
     {
       id: "humanities-translate",
-      title: "Learn to translate your skills",
+      title: "Name the skills inside your coursework",
       detail:
-        "You can research, synthesize, and write clearly under deadline. Employers want that; they just don't recognize the major names for it.",
+        "Identify where you researched, interpreted evidence, synthesized viewpoints, or communicated under a deadline, then describe those choices plainly.",
       from: "junior",
       resourceIds: ["campus-career"],
     },
@@ -138,17 +138,17 @@ const FIELD_STEPS: Record<Field, CareerStep[]> = {
   arts: [
     {
       id: "arts-portfolio",
-      title: "Keep a living portfolio, not a graduation project",
+      title: "Build a living portfolio across courses",
       detail:
-        "Ten finished pieces you can show today beats one perfect thesis piece nobody has seen.",
+        "Save finished work, process notes, and revisions as you go. A small body of clear work makes growth easier to see than one final project alone.",
       from: "freshman",
       resourceIds: ["campus-career"],
     },
     {
       id: "arts-business",
-      title: "Learn invoicing and contracts early",
+      title: "Learn the practical side of creative work",
       detail:
-        "Most arts careers are freelance. Knowing how to price work and get paid is the actual skill nobody teaches you.",
+        "Ask how people in your area handle scope, pricing, credit, contracts, and payment. Practices vary, so learn before the first opportunity arrives.",
       from: "junior",
       resourceIds: ["campus-career"],
     },
@@ -156,17 +156,17 @@ const FIELD_STEPS: Record<Field, CareerStep[]> = {
   undecided: [
     {
       id: "undecided-explore",
-      title: "Take one course purely out of curiosity",
+      title: "Use one elective as a deliberate experiment",
       detail:
-        "Deciding requires data. One elective in an unfamiliar department tells you more than any career quiz.",
+        "Choose an unfamiliar subject you are genuinely curious about, then notice the questions, assignments, and ways of thinking you want more of.",
       from: "freshman",
       resourceIds: ["campus-advising"],
     },
     {
       id: "undecided-informational",
-      title: "Have three informational conversations",
+      title: "Ask people how they chose their path",
       detail:
-        "Twenty minutes each with people doing jobs you're curious about. Most say yes, and it costs nothing.",
+        "Talk with students, faculty, alumni, or professionals connected to areas you are considering. Ask what surprised them and what they would test sooner.",
       from: "freshman",
       resourceIds: ["linkedin-basics", "campus-career"],
     },
@@ -183,12 +183,12 @@ const TITLES: Record<Field, string> = {
 };
 
 const INTROS: Record<Field, string> = {
-  stem: "Technical fields reward visible work. The habit that gets you the GPA is the same one that finishes the side project.",
-  health: "Health paths are documentation-heavy and start early. Track everything from the beginning and the applications get much easier.",
-  business: "Business recruiting runs on a calendar most students discover too late. Knowing the timeline is half the advantage.",
-  humanities: "Your skills are real and in demand; the work is learning to name them in language employers already use.",
-  arts: "Creative careers are mostly self-managed. Treat the business side as a craft you're also learning.",
-  undecided: "Undecided is a normal place to be. Treat it as a research question with a deadline, not a personal failing.",
+  stem: "Use technical courses to build foundations, test specialties, and create visible evidence of what you can make or investigate.",
+  health: "Connect prerequisites, experience, and documentation early so each semester supports the programs and roles you are considering.",
+  business: "Use coursework and early exploration to test which problems, functions, and working environments fit you before recruiting decisions arrive.",
+  humanities: "Your courses build research, interpretation, and communication skills. Keep evidence of that work and learn to describe it clearly.",
+  arts: "Let courses develop both your craft and a body of work, while you gradually learn how creative opportunities are structured.",
+  undecided: "Undecided is a valid stage of discovery. Use courses and conversations as evidence instead of forcing a label before you have enough information.",
 };
 
 export function getCareerTrack(field: Field): CareerTrack {
@@ -196,7 +196,10 @@ export function getCareerTrack(field: Field): CareerTrack {
     field,
     title: TITLES[field],
     intro: INTROS[field],
-    steps: [...FIELD_STEPS[field], ...SHARED_STEPS],
+    steps: [...FIELD_STEPS[field], ...SHARED_STEPS].sort(
+      (left, right) =>
+        YEAR_ORDER.indexOf(left.from) - YEAR_ORDER.indexOf(right.from),
+    ),
   };
 }
 

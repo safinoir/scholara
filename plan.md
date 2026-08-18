@@ -91,7 +91,8 @@ The central degree-planning experience is the intake, Persona, Methods, and
 Weekly Plan flow. Scholara plans the learning work needed to succeed in the
 student's current courses rather than choosing degree requirements for them.
 Resources and Tracker support continued progress, while the year-and-field
-**After** checklist connects academic planning to what follows graduation.
+**After** guide connects current coursework to degree decisions, evidence of
+growth, and stage-aware academic or career next steps.
 Scholara is not a degree audit, registration system, LMS, or replacement for
 academic advising; integration with those systems remains future work.
 
@@ -126,7 +127,7 @@ AI key.
 | `src/lib/engine` | Pure scoring, matching, recommendation, capacity, and deterministic scheduling rules |
 | `src/lib/ai` | Server-only OpenAI-compatible client and bounded tuning interpretation |
 | `src/lib/types.ts` and `src/lib/schema.ts` | Shared domain contracts, Zod validation, and profile migrations |
-| `src/lib/storage.ts`, `week.ts`, `plan.ts`, and `careerPreferences.ts` | Browser persistence and shared week/plan helpers |
+| `src/lib/storage.ts`, `privacy.ts`, `week.ts`, `plan.ts`, and `careerPreferences.ts` | Browser persistence, complete local reset, and shared week/plan helpers |
 | `src/hooks` | Profile and Tracker client-state adapters |
 | `tests` and `e2e` | Unit/schema/migration tests, RTL/jsdom interaction tests, and Playwright/axe responsive coverage |
 
@@ -190,7 +191,9 @@ are currently:
 7. Final quiz call to action
 
 The hero's **How it works** control scrolls to the first section. `/about`
-remains the longer methodology, limitations, privacy, and data-handling page.
+is the complete product explanation: degree-progress purpose, guided journey,
+evidence-aware personalization, deterministic planning
+guardrails, supporting pages, privacy, limitations, and local-data controls.
 
 The header home link uses the same `src/app/icon.svg` artwork as the site icon.
 Public navigation is:
@@ -375,7 +378,7 @@ or selects methods.
 | Route | Current purpose |
 | --- | --- |
 | `/` | Persuasive overview, product explanation, and onboarding resume |
-| `/about` | Detailed methodology, limitations, privacy, and reset controls |
+| `/about` | Complete mission, guided-flow, methodology, planner-trust, supporting-feature, privacy, limitation, and local-data-control reference |
 | `/quiz` | Thirteen-screen guided intake with draft recovery; pointer selection enables an explicit blue Next action, number-key selection advances directly, and obstacles are the final screen |
 | `/express` | Persona-first, three-step self-report intake with no context step |
 | `/persona` | Persona, blend, strengths, watch-outs, and axes |
@@ -384,7 +387,7 @@ or selects methods.
 | `/plan` | Single completed experience: summary, obstacle responses, embedded course calendar, manual/AI tuning, rationale, and copy |
 | `/resources` | Public free/free-tier resource catalog with campus services, category filters, and live fit signals from the current plan, selected Methods, and reported obstacles |
 | `/tracker` | Personalized rolling seven-day micro-habit tracker tied to the learner's Methods, obstacles, and saved weekly plan |
-| `/career` | Existing field-and-year career checklist, labeled **After** in navigation |
+| `/career` | Stage-and-field degree-path guide connecting current coursework to later academic and career decisions; labeled **After** in navigation |
 | `/results` | Redirects to `/persona` |
 
 ### APIs
@@ -409,10 +412,15 @@ tests have also been removed; old share URLs intentionally use the standard 404.
   settings, quiz and schedule drafts, Tracker data, and Career-only preferences
   are persisted only in browser storage. Career preferences use their own
   validated versioned record rather than changing `LearnerProfile`.
+- The confirmed **Delete everything** control uses one authoritative key list
+  and removes profiles, legacy records, drafts, Tracker history, and After
+  preferences even when no current learner profile exists.
 - There is no account, application database, or analytics pipeline.
 - AI keys remain server-side.
-- A bounded set of known courses and current week values is transmitted only
-  when the user invokes AI weekly tuning. Scholara does not persist the request.
+- The note, represented week and time zone, known course IDs/names, and bounded
+  current-week values are transmitted only when the user previews AI weekly
+  tuning. Scholara does not persist the request; the configured provider
+  processes it under its own data policies.
 - A weekly free-text note leaves the browser only after explicit submission to
   the tuning action.
 - The raw note is not persisted by Scholara or reused in later requests.
@@ -426,9 +434,8 @@ tests have also been removed; old share URLs intentionally use the standard 404.
 
 These routes broaden the Degree Planning & Discovery response around the core
 journey of understanding how to study, scheduling the work for current courses,
-and maintaining progress toward a degree. Resources and Tracker have received
-focused supporting polish; After/Career remains outside the recent workflow
-redesign:
+and maintaining progress toward a degree. Resources, Tracker, and After have
+received focused supporting polish outside the core guided-flow redesign:
 
 - Resources: a public catalog of free and free-tier tools plus campus services,
   with category filters. When a profile exists, its fit signals update live from
@@ -438,20 +445,16 @@ redesign:
   obstacles. It keeps local-calendar dates, clear Today and current/best streak
   states, protected habit removal and atomic clearing, and a two-week reflection
   that leads back to Methods or the weekly plan.
-- After/Career: field-by-year checklist with free supporting resources. Migrated
-  profiles may seed it from optional legacy education context; otherwise the
-  learner chooses a year before relevance labels appear. These Career-only
-  preferences are validated and stored separately from the profile.
-
-Broader After/Career workflow redesign work remains deferred until Persona,
-Methods, and Weekly Plan are fully polished.
+- After/Career: a stage-and-field path guide that starts with current courses,
+  degree requirements, and evidence of growth before moving to later academic
+  and career preparation. Current-stage actions are separated from a collapsed
+  **Keep on your radar** list. Learners can change both preferences without
+  altering their learning profile or weekly plan; the validated preferences are
+  stored separately. Review marks intentionally last only for the current visit.
 
 ---
 
 ## 10. Remaining Work
-
-The red **TEST ONLY: Wipe localStorage** home-page control intentionally remains
-available as temporary development functionality.
 
 ### Release verification
 
@@ -478,7 +481,6 @@ available as temporary development functionality.
 - Accounts and cross-device sync.
 - Notification/reminder system.
 - Institution-specific campus resource configuration.
-- After workflow redesign.
 - Richer plan editing such as manual move/resize interactions.
 - Detailed before/after AI tuning diff beyond the current compact summary.
 

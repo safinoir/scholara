@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { CareerView } from "@/components/career/CareerView";
 
 export const metadata: Metadata = {
-  title: "What comes after — Scholara",
+  title: "Your degree path — Scholara",
   description:
-    "A free, year-by-year career readiness checklist tied to your field of study.",
+    "Connect current coursework to degree decisions, skill evidence, and stage-aware next steps.",
 };
 
 export default function CareerPage() {

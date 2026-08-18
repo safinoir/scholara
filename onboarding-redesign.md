@@ -5,9 +5,7 @@ Plan workspace implemented for Degree Planning & Discovery; post-intake
 six-axis editing is deferred and release QA remains
 
 **Current guided-flow scope:** Homepage, Persona, Methods, and Weekly Plan
-**Later supporting refreshes:** Tracker and Resources
-**Still outside this redesign:** After/Career (its workflow redesign is
-deferred)
+**Later supporting refreshes:** Tracker, Resources, and After/Career
 
 This document records the approved redesign and its current implementation
 status. [plan.md](./plan.md) is the concise current-state source of truth.
@@ -81,7 +79,8 @@ type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 - Recommendations, resources, and an existing plan refresh around the effective
   persona while preserving selected methods, schedule, and week settings.
 - The learner can restore the original axis-derived result at any time.
-- The About page reuses the same detailed persona cards for all six personas.
+- The About page retains full descriptions, strengths, and watch-outs for all
+  six personas in compact disclosures.
 
 ### Six-axis editing (deferred)
 
@@ -433,6 +432,9 @@ persona or prior AI output.
 - The raw note is not written to localStorage or an application database and is
   not forwarded into later requests. Persist only the approved structured
   override.
+- About's confirmed **Delete everything** control removes every known
+  Scholara local-storage record, including drafts, Tracker history, and the
+  separately stored After preferences, even when no profile is present.
 - Missing key, timeout, invalid JSON, or rejected output returns no proposal and
   leaves the existing plan unchanged.
 
@@ -569,8 +571,9 @@ The homepage now gives a concise version of the product story in this order:
 7. Final quiz call to action
 
 The hero's **How it works** control scrolls to `#how-it-works`. It does not
-navigate to About. `/about` remains the detailed methodology, limitations,
-privacy, and data-handling page.
+navigate to About. `/about` is the complete product explanation: product
+purpose, guided journey, personalization, planning safeguards, supporting
+pages, privacy, limitations, and local-data controls.
 
 ### Current guided routes
 
@@ -711,8 +714,10 @@ reported obstacles to repeatable check-ins, while preserving local-only tracker
 history and the existing streak model. Resources was later polished as a public
 supporting catalog of free and free-tier tools and campus services, with category
 filters and live fit signals from the current plan, selected Methods, and
-reported obstacles. It remains outside the guided-flow redesign. After/Career
-also remains outside this phase, and its broader workflow redesign is deferred.
+reported obstacles. After/Career was later reframed as a stage-and-field degree
+path guide connecting current courses to degree decisions, evidence of growth,
+and later academic or career preparation. These supporting pages remain outside
+the guided-flow redesign.
 
 ## 13. Implementation Status
 
@@ -735,8 +740,7 @@ Implemented in the current codebase:
   Methods, and reported obstacles
 
 Post-intake six-axis editing is a deferred enhancement; final release QA remains
-for the current scope. The red test-only storage control intentionally remains
-as temporary development functionality.
+for the current scope.
 
 Automated verification covers the recommendation engines, profile migration,
 onboarding helpers, week identity and validation, schedule schemas and

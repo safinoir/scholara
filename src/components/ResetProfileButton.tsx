@@ -1,21 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
-import { KEYS, removeRaw } from "@/lib/storage";
+import {
+  clearAllStoredScholaraData,
+  hasStoredScholaraData,
+} from "@/lib/privacy";
 import { Button } from "@/components/ui";
 
 export function ResetProfileButton() {
-  const { profile, reset } = useProfile();
+  const { profile, ready, reset } = useProfile();
   const [confirming, setConfirming] = useState(false);
   const [cleared, setCleared] = useState(false);
+  const [storageReady, setStorageReady] = useState(false);
+  const [hasStoredData, setHasStoredData] = useState(false);
+
+  useEffect(() => {
+    const hydration = window.setTimeout(() => {
+      setHasStoredData(hasStoredScholaraData());
+      setStorageReady(true);
+    }, 0);
+    return () => window.clearTimeout(hydration);
+  }, [profile]);
 
   if (cleared) {
-    return <p className="text-sm text-ink-soft">Everything has been deleted.</p>;
+    return (
+      <p className="text-sm text-ink-soft" role="status">
+        Everything Scholara stored in this browser has been deleted.
+      </p>
+    );
   }
 
-  if (!profile) {
+  if (!ready || !storageReady) {
+    return (
+      <p className="text-sm text-ink-faint" role="status">
+        Checking this browser&hellip;
+      </p>
+    );
+  }
+
+  if (!profile && !hasStoredData) {
     return (
       <p className="text-sm text-ink-faint">
         There&rsquo;s nothing stored right now.
@@ -25,7 +50,7 @@ export function ResetProfileButton() {
 
   if (!confirming) {
     return (
-      <Button variant="secondary" onClick={() => setConfirming(true)}>
+      <Button variant="danger" onClick={() => setConfirming(true)}>
         <Trash2 className="size-4" aria-hidden />
         Delete everything
       </Button>
@@ -33,14 +58,21 @@ export function ResetProfileButton() {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div
+      className="flex flex-wrap items-center gap-3"
+      role="group"
+      aria-label="Confirm deletion"
+    >
       <span className="text-sm text-ink-soft">
-        This removes your profile and habit history. It can&rsquo;t be undone.
+        This removes your profile, drafts, plan, habit history, and After
+        preferences. It can&rsquo;t be undone.
       </span>
       <Button
+        variant="danger"
         onClick={() => {
           reset();
-          removeRaw(KEYS.tracker);
+          clearAllStoredScholaraData();
+          setHasStoredData(false);
           setCleared(true);
         }}
       >

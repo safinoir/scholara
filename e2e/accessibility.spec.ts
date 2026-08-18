@@ -98,7 +98,7 @@ for (const viewport of VIEWPORTS) {
     test("home and guided intake have no automated WCAG A/AA violations", async ({
       page,
     }) => {
-      for (const path of ["/", "/quiz"]) {
+      for (const path of ["/", "/about", "/quiz"]) {
         await page.goto(path);
         await expect(page.locator("main h1").first()).toBeVisible();
 
@@ -189,6 +189,36 @@ for (const viewport of VIEWPORTS) {
       expect(
         results.violations,
         `/resources personalized view at ${viewport.width}px has accessibility violations`,
+      ).toEqual([]);
+    });
+
+    test("After presents an accessible stage-aware degree path", async ({
+      page,
+    }) => {
+      await page.goto("/career");
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: "Connect this semester to what comes next",
+        }),
+      ).toBeVisible();
+
+      await page
+        .getByRole("combobox", { name: "Area you are exploring" })
+        .selectOption("stem");
+      await page
+        .getByRole("combobox", { name: "Current stage" })
+        .selectOption("freshman");
+
+      await expect(page.getByText("4 actions to review")).toBeVisible();
+      await expect(page.getByText("Keep on your radar")).toBeVisible();
+
+      const results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze();
+      expect(
+        results.violations,
+        `/career at ${viewport.width}px has accessibility violations`,
       ).toEqual([]);
     });
   });

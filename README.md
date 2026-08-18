@@ -30,25 +30,37 @@ week by week.
 | "I can't focus / I procrastinate" | Maps each obstacle you name to a specific countermeasure |
 | "Good tools cost money" | Offers a public catalog of free and free-tier tools plus campus services |
 | "I don't have a quiet space" | Routes you to campus accommodations and free study spaces you already pay for |
-| "I don't know what comes after" | A free, year-sequenced career track for your field |
+| "I don't know what comes after" | A stage-aware path guide connecting current coursework to degree decisions, evidence of growth, and later opportunities |
 | "Advice never sticks" | Turns plan techniques, selected Methods, and reported obstacles into personalized rolling seven-day habits with current and best streaks |
 
 Resources are available before or after onboarding. Learners can filter the
 free/free-tier catalog and campus services by category; with a profile, fit
 signals update live from the current plan, selected Methods, and obstacles.
 
-**No account. No database. No cost.** Your profile and schedule stay in your browser's local storage. Only the AI weekly-tuning action you explicitly invoke sends bounded context to the configured provider.
+**No account. No database. No cost.** Your profile, plan, drafts, Tracker
+history, and After preferences stay in this browser. Only the AI weekly-tuning
+action you explicitly invoke sends bounded context to the configured provider.
 
 ---
 
 ## Why this isn't a personality quiz
 
-The "learning styles" model — that you're a visual or auditory learner and learn better when material matches that style — has been tested repeatedly, and matching instruction to a stated style does not reliably improve outcomes. Building a study tool on it means confidently giving students worse advice.
+The "learning styles" model — that you're a visual or auditory learner and
+learn better when material matches that style — has been tested repeatedly,
+and matching instruction to a stated style has not reliably improved outcomes.
+Scholara therefore does not treat a preference as evidence that one form of
+instruction will produce better learning.
 
 Scholara splits the problem in two:
 
-1. **Techniques are chosen by evidence.** Retrieval practice, spaced repetition, interleaving, implementation intentions, practice testing. Every technique card displays an evidence grade (`strong` / `moderate` / `promising`) and a plain-language note explaining that grade — including when the support is weak.
-2. **Personas are treated as adherence factors.** Your rhythm, structure, company, format, fuel, and peak hours don't change what encodes into memory. They change whether you're still doing this in three weeks — which is the difference between a technique that works and a technique you abandon.
+1. **Methods retain their evidence grade.** Retrieval practice, spaced
+   repetition, interleaving, implementation intentions, and practice testing
+   are labeled `strong`, `moderate`, or `promising` with a plain-language note.
+   Personal fit changes ranking, never the evidence grade.
+2. **Personas summarize planning and adherence preferences.** Rhythm,
+   structure, company, format, fuel, and peak hours shape which Methods may feel
+   maintainable and how a week is delivered. They do not claim that memory
+   works differently for each persona.
 
 This distinction is stated openly inside the app, on `/about`.
 
@@ -119,6 +131,17 @@ current and best streaks. After two weeks, a reflection prompt leads back to
 Methods or the weekly plan so the learner can keep what works and adjust what
 does not.
 
+### Degree path
+
+The **After** page connects the work happening now to what comes next. Learners
+choose an area and current stage, then review actions that start with course
+choices, degree requirements, projects, feedback, and faculty relationships
+before moving into later academic or career preparation. Current-stage actions
+stay visible while future actions sit in a quieter **Keep on your radar** list.
+These preferences are stored separately from the learning profile, and review
+marks last only for the visit so the page remains a reference rather than a
+second tracker.
+
 ---
 
 ## Stack
@@ -148,7 +171,8 @@ src/
    ├─ data/          # all content as typed arrays
    ├─ types.ts       # shared domain types
    ├─ schema.ts      # Zod validation + profile versioning
-   └─ storage.ts     # typed localStorage wrapper
+   ├─ storage.ts     # typed profile and draft localStorage wrapper
+   └─ privacy.ts     # authoritative Scholara key list and complete local reset
 tests/               # engines, schemas, migrations, onboarding, planning, AI
 ```
 
@@ -207,17 +231,15 @@ real-device, and touch-target verification still pending.
 
 ## Privacy
 
-There is no database, analytics, or telemetry. Your profile, schedule and
-onboarding drafts, and tracker history live in browser storage and can be
-removed from `/about` through the confirmed **Delete everything** action.
-Career-only field/year preferences are also stored locally, separately from the
-learner profile. A weekly note is sent to the configured AI provider only when
-the student selects **Preview AI changes**. Scholara does not save the raw note,
-and the model can return only a validated proposal that the student must apply.
-
-The red **TEST ONLY: Wipe localStorage** home-page control is intentionally
-retained as temporary development functionality and is not a production
-account-management feature.
+There is no database, analytics, or telemetry. The profile, selected Methods,
+recurring schedule, weekly plan and settings, onboarding drafts, Tracker
+history, and separate After preferences live in browser storage. The confirmed
+**Delete everything** action on `/about` removes every Scholara storage record.
+A weekly note and bounded current-week context are sent to the configured AI
+provider only when the student selects **Preview AI changes**. Scholara does not
+save the raw note, and the model can return only a validated proposal that the
+student must review; the configured provider processes that request under its
+own data policies.
 
 ---
 

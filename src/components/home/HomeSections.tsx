@@ -243,7 +243,7 @@ function TechniqueRankingSection() {
       <div className="mx-auto max-w-6xl px-5 py-16">
         <SectionHeading
           eyebrow="Technique recommendations"
-          title="How Scholara suggests your methods"
+          title="How Scholara suggests study methods"
           lead="The quiz does not lock you into a study system. Scholara scores every method in the library for your situation, then gives you a balanced top five to review."
         />
 

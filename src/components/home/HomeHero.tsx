@@ -5,7 +5,6 @@ import {
   ArrowRight,
   Clock,
   Lock,
-  Trash2,
   WalletMinimal,
 } from "lucide-react";
 import { ButtonLink } from "@/components/ui";
@@ -80,17 +79,6 @@ export function HomeHero() {
           ))}
         </ul>
 
-        <button
-          type="button"
-          onClick={() => {
-            window.localStorage.clear();
-            window.location.reload();
-          }}
-          className="mt-8 inline-flex min-h-11 items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600"
-        >
-          <Trash2 className="size-4" aria-hidden />
-          TEST ONLY: Wipe localStorage
-        </button>
       </div>
     </section>
   );
