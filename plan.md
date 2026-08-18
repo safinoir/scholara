@@ -1,12 +1,12 @@
 # Scholara Project Plan
 
-**Last updated:** 2026-08-17
+**Last updated:** 2026-08-18
 **Current branch:** `ui-changes` (based on the AI/onboarding work already merged
 into `main`)
-**Status:** The core challenge experience is implemented: an obstacle-aware,
-course-specific Persona -> Methods -> Weekly Setup -> Weekly Plan workflow.
-Post-intake six-axis editing remains a deferred enhancement, and final release
-QA remains open.
+**Status:** The core Degree Planning & Discovery experience is implemented: an
+individualized, course-specific Persona -> Methods -> Weekly Setup -> Weekly
+Plan workflow. Post-intake six-axis editing remains a deferred enhancement, and
+final release QA remains open.
 
 For the detailed design and implementation record behind onboarding and weekly
 planning, see [onboarding-redesign.md](./onboarding-redesign.md). This file is
@@ -182,7 +182,7 @@ The home page is a short product explanation and conversion page. Its sections
 are currently:
 
 1. How it works
-2. Overcoming obstacles
+2. Degree progress and real constraints
 3. The six personas
 4. The six axes
 5. Technique recommendations
@@ -332,7 +332,7 @@ pattern in the current scheduler.
 - Study-block detail opens in an accessible desktop side sheet or mobile bottom
   sheet and includes primary/supporting methods, source, instruction, and
   obstacles addressed.
-- Before the calendar, **What this plan is helping you overcome** explains each
+- Before the calendar, **How this week addresses your obstacles** explains each
   reported obstacle, Scholara's response, and where it appears in the plan.
 - Calendar blocks show course, method, and duration without requiring expansion;
   details also show the instruction, method source, and obstacles addressed.

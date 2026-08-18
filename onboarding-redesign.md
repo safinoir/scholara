@@ -1,8 +1,8 @@
 # Scholara Guided Flow and Weekly Plan Redesign
 
-**Status:** Obstacle-aware, course-specific guided flow and plan-first Weekly
-Plan workspace implemented; post-intake six-axis editing is deferred and
-release QA remains
+**Status:** Individualized, course-specific guided flow and plan-first Weekly
+Plan workspace implemented for Degree Planning & Discovery; post-intake
+six-axis editing is deferred and release QA remains
 
 **Current guided-flow scope:** Homepage, Persona, Methods, and Weekly Plan
 **Later supporting refreshes:** Tracker and Resources
@@ -324,7 +324,7 @@ viewport to the top of the completed page.
 - Every study block shows its course, primary method, and duration without
   expansion. A focused or clicked block also shows the supporting methods,
   selected/foundation source, concrete instruction, and obstacles addressed.
-- Put **What this plan is helping you overcome** before the calendar. Each row
+- Put **How this week addresses your obstacles** before the calendar. Each row
   shows the obstacle, response, relevant method, linked classes/blocks, and a
   **This week** marker for temporary obstacles.
 - Keep the consolidated **How Scholara built this week** rationale for cadence,
@@ -561,7 +561,7 @@ Migration behavior:
 The homepage now gives a concise version of the product story in this order:
 
 1. How it works
-2. Overcoming obstacles
+2. Degree progress and real constraints
 3. The six personas
 4. The six axes
 5. Technique recommendations

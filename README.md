@@ -1,12 +1,12 @@
 # Scholara
 
-**scholar + persona** — a college study-planning tool that turns how you work,
-the obstacles you face, and the time you actually have into methods and a
-weekly plan.
+**scholar + persona** — a college study-planning tool that turns how you learn,
+your current courses, and the time you actually have into suitable methods and
+a realistic weekly plan.
 
 Built for the **Stellic Pathfinders** challenge, in the **Degree Planning &
-Discovery** category: helping students understand their academic path and plan
-the learning work required to keep progressing toward a degree.
+Discovery** category. Scholara helps students discover how they learn, schedule
+the work for their current courses, and keep progressing toward a degree.
 
 > The evidence decides *what* you should do. Your persona decides *how* you'll do it — when, for how long, with whom, and in what format.
 

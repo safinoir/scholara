@@ -35,7 +35,7 @@ const OBSTACLES = [
   {
     problem: "“Good study tools cost money.”",
     answer:
-      "Every resource is labeled free, free-tier, or paid, and paid options are hidden by default. We also point you at the campus services your tuition already covers.",
+      "Every resource is free or has a usable free tier. We also point you toward campus services that may be available at your school.",
   },
   {
     problem: "“I don’t have enough hours.”",
@@ -135,9 +135,9 @@ function ObstaclesSection() {
     <section className="border-b border-line bg-paper">
       <div className="mx-auto max-w-6xl px-5 py-16">
         <SectionHeading
-          eyebrow="Overcoming obstacles"
-          title="The friction, and what we do about it"
-          lead="Studying badly is rarely a discipline problem. It's usually a money, time, space, or information problem."
+          eyebrow="Degree progress"
+          title="Plan around what gets in the way"
+          lead="Staying on track is not just a discipline problem. Time, money, space, and missing information all shape whether a study plan is realistic."
         />
         <dl className="mt-10 grid gap-6 sm:grid-cols-2">
           {OBSTACLES.map((item) => (
