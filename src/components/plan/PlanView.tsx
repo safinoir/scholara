@@ -151,6 +151,35 @@ function FrictionResponses({
   );
 }
 
+function PlanRationale({
+  profile,
+}: {
+  profile: ScheduledLearnerProfile;
+}) {
+  return (
+    <details className="mt-5 rounded-2xl border border-line bg-surface">
+      <summary className="flex min-h-14 cursor-pointer list-none items-center gap-2 px-5 font-semibold [&::-webkit-details-marker]:hidden">
+        <Sparkles className="size-5 text-brand-600" aria-hidden />
+        How Scholara built this week
+      </summary>
+      <div className="border-t border-line px-5 py-5">
+        <ul className="space-y-3 text-sm leading-relaxed text-ink-soft">
+          {profile.plan.rationale.map((line) => (
+            <li key={line}>• {line}</li>
+          ))}
+        </ul>
+        <div className="mt-5 flex flex-wrap gap-2">
+          {profile.plan.minimumEffectiveDose && (
+            <Badge tone="tier">Minimum effective dose</Badge>
+          )}
+          <Badge tone="brand">Deterministic schedule</Badge>
+          <Badge>{profile.selectedTechniqueIds.length} selected methods</Badge>
+        </div>
+      </div>
+    </details>
+  );
+}
+
 export function PlanView() {
   const { profile, ready, setProfile } = useProfile();
 
@@ -368,7 +397,7 @@ function CompletedPlan({
 
   return (
     <div className="mx-auto max-w-screen-2xl px-4 pb-16 sm:px-5">
-      <header className="sticky top-16 z-30 -mx-4 border-b border-line bg-paper/95 px-4 py-4 backdrop-blur sm:-mx-5 sm:px-5">
+      <header className="-mx-4 border-b border-line bg-paper/95 px-4 py-4 backdrop-blur sm:-mx-5 sm:px-5 lg:sticky lg:top-[4.3125rem] lg:z-30 print:static">
         <div className="mx-auto flex max-w-screen-2xl flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -507,6 +536,8 @@ function CompletedPlan({
         </Card>
       </section>
 
+      <PlanRationale profile={profile} />
+
       {actionableWarnings.length > 0 && (
         <Card className="mt-5 border-amber-200 bg-amber-50/70 p-5">
           <h2 className="flex items-center gap-2 font-semibold">
@@ -541,27 +572,6 @@ function CompletedPlan({
         weekStart={savedWeekStart}
         onSelectBlock={setSelectedBlock}
       />
-
-      <details className="mt-7 rounded-2xl border border-line bg-surface">
-        <summary className="flex min-h-14 cursor-pointer list-none items-center gap-2 px-5 font-semibold [&::-webkit-details-marker]:hidden">
-          <Sparkles className="size-5 text-brand-600" aria-hidden />
-          How Scholara built this week
-        </summary>
-        <div className="border-t border-line px-5 py-5">
-          <ul className="space-y-3 text-sm leading-relaxed text-ink-soft">
-            {profile.plan.rationale.map((line) => (
-              <li key={line}>• {line}</li>
-            ))}
-          </ul>
-          <div className="mt-5 flex flex-wrap gap-2">
-            {profile.plan.minimumEffectiveDose && (
-              <Badge tone="tier">Minimum effective dose</Badge>
-            )}
-            <Badge tone="brand">Deterministic schedule</Badge>
-            <Badge>{profile.selectedTechniqueIds.length} selected methods</Badge>
-          </div>
-        </div>
-      </details>
 
       {adjusting && current && (
         <WeekAdjuster

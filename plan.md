@@ -1,6 +1,6 @@
 # Scholara Project Plan
 
-**Last updated:** 2026-08-16
+**Last updated:** 2026-08-17
 **Current branch:** `ui-changes` (based on the AI/onboarding work already merged
 into `main`)
 **Status:** The core challenge experience is implemented: an obstacle-aware,
@@ -275,7 +275,11 @@ overlaps a confirmed study window. A target above capacity still permits
 generation and schedules only what safely fits. Drafts survive ordinary
 navigation; **Discard changes** explicitly clears an editing draft and returns
 to the saved plan. Invalid schedules and zero-block generation never replace a
-valid plan.
+valid plan. The weekly target is a prominent full-width card at the bottom of
+the availability step, immediately before final validation and the review bar.
+The review bar remains in normal document flow on smaller screens and becomes
+sticky only at `lg`, where it can stay compact without covering form errors or
+controls.
 
 ### Deterministic scheduler
 
@@ -314,8 +318,11 @@ pattern in the current scheduler.
 - `/plan/setup` is the separate recurring-schedule editor. There is no
   `/plan/calendar` route in the current product or plan.
 - Generating from either first-time setup or `/plan/setup` returns to `/plan`
-  and resets the viewport to the top so the summary and obstacle responses are
-  seen before the calendar.
+  and resets the viewport to the top so the summary, build rationale, and
+  obstacle responses are seen before the calendar.
+- The collapsed **How Scholara built this week** rationale appears immediately
+  after the summary metrics, before constraints, obstacle responses, and the
+  calendar.
 - Desktop defaults to a cropped, internally scrolling seven-column calendar
   with actual dates, classes, recurring availability, temporary busy time,
   unavailable-day overlays, and study blocks. Agenda remains available as a
@@ -329,8 +336,12 @@ pattern in the current scheduler.
   reported obstacle, Scholara's response, and where it appears in the plan.
 - Calendar blocks show course, method, and duration without requiring expansion;
   details also show the instruction, method source, and obstacles addressed.
-- A compact sticky toolbar exposes the represented week, Current/Saved Week
-  state, weekly adjustment, recurring schedule editing, and quiet copy action.
+- A compact toolbar exposes the represented week, Current/Saved Week state,
+  weekly adjustment, recurring schedule editing, and quiet copy action. It stays
+  in normal flow on smaller screens and sticks immediately below the global
+  header at `lg` and above.
+- The calendar's internally sticky day header is isolated within its own scroll
+  container so it cannot overlap the plan or global toolbar.
 - A stale saved plan remains viewable but cannot be adjusted. **Start this
   week** clears temporary busy windows, unavailable days, deadlines, urgency,
   workload, energy, and weekly obstacle overrides while preserving recurring

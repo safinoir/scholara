@@ -200,6 +200,8 @@ Keep the weekly study target separate from raw availability:
 
 - New setups begin without an invented target. Ask how much of the available
   time the learner actually wants to commit.
+- Place the target in a prominent full-width card at the bottom of the
+  availability step, immediately before final validation and review actions.
 - Show total marked availability, total recurring class time, target, feasible
   planned time, buffer, and shortfall before generation. Track class overlap
   separately: only class minutes that intersect a study window reduce usable
@@ -326,17 +328,24 @@ viewport to the top of the completed page.
   **This week** marker for temporary obstacles.
 - Keep the consolidated **How Scholara built this week** rationale for cadence,
   peak time, course priorities, selected methods, and availability constraints.
-  Full method steps and evidence remain on the Methods page.
+  Place the collapsed disclosure directly after the summary metrics, before
+  constraints, obstacle responses, and the schedule workspace. Full method
+  steps and evidence remain on the Methods page.
 - Provide **Edit recurring schedule** and **Adjust this week** actions.
 - Show actual dates, Today state, availability, temporary busy periods, and
   unavailable-day overlays. Crop to relevant hours, scroll internally, and keep
   day headers sticky rather than using a fixed-width or fixed-height canvas.
 - Open block details in a right-side sheet and place copy in a quieter overflow
   action.
+- Keep the plan toolbar sticky beneath the global header only at `lg` and above;
+  keep it in normal flow on smaller screens. Isolate the calendar's sticky day
+  header inside its own scrolling layer.
 
 ### Mobile
 
 - Do not compress detailed content into seven tiny columns.
+- Keep the setup review bar in normal flow so it cannot cover target errors or
+  availability controls; its sticky treatment is desktop-only.
 - Default to a seven-day summary strip and one selected day's chronological
   agenda.
 - Keep the seven-day strip compact and use the selected-day agenda for detailed

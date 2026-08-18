@@ -221,7 +221,7 @@ export function WeekCalendar({
       </ul>
 
       <div className={cn("mt-4 print:hidden", desktopView === "calendar" ? "hidden lg:block" : "hidden")}>
-        <div className="max-h-[min(70dvh,54rem)] overflow-auto rounded-2xl border border-line bg-surface shadow-sm">
+        <div className="relative isolate max-h-[min(70dvh,54rem)] overflow-auto rounded-2xl border border-line bg-surface shadow-sm">
           <div
             className="sticky top-0 z-40 grid border-b border-line bg-surface/95 backdrop-blur"
             style={{ gridTemplateColumns: "56px repeat(7,minmax(0,1fr))" }}
@@ -397,7 +397,7 @@ export function WeekCalendar({
               <Card
                 key={day}
                 id={`agenda-${day.toLowerCase()}`}
-                className="scroll-mt-28 p-4 print-break-avoid sm:p-5"
+                className="scroll-mt-28 p-4 print-break-avoid sm:p-5 lg:scroll-mt-44"
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <h3 className="font-semibold">

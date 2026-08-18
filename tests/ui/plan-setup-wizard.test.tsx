@@ -109,6 +109,47 @@ describe("PlanSetupWizard safety", () => {
     expect(window.localStorage.getItem(KEYS.scheduleDraft)).not.toBeNull();
   });
 
+  it("places the weekly target after availability controls and focuses it when invalid", async () => {
+    const user = userEvent.setup();
+    const onComplete = vi.fn(() => ({ success: true as const }));
+    window.localStorage.setItem(
+      KEYS.scheduleDraft,
+      JSON.stringify({
+        version: 2,
+        step: 2,
+        schedule: { ...VALID_SCHEDULE, targetStudyMinutes: 0 },
+      }),
+    );
+
+    render(
+      <PlanSetupWizard
+        profile={learnerProfile()}
+        onComplete={onComplete}
+      />,
+    );
+
+    const targetHeading = screen.getByRole("heading", {
+      name: "Weekly study target",
+    });
+    const quickPresets = screen.getByRole("heading", {
+      name: "Quick presets",
+    });
+    expect(
+      quickPresets.compareDocumentPosition(targetHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).not.toBe(0);
+
+    const target = screen.getByRole<HTMLInputElement>("spinbutton", {
+      name: "Hours per week",
+    });
+    await user.click(
+      screen.getByRole("button", { name: "Generate weekly plan" }),
+    );
+
+    expect(onComplete).not.toHaveBeenCalled();
+    await waitFor(() => expect(document.activeElement).toBe(target));
+  });
+
   it("flushes the newest draft edit when navigation unmounts immediately", async () => {
     const user = userEvent.setup();
     const profile = {

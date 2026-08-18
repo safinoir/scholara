@@ -1741,7 +1741,7 @@ export function PlanSetupWizard({
                 </div>
               </div>
 
-              <aside className="space-y-4 lg:sticky lg:top-24">
+              <aside>
                 <Card className="p-4 sm:p-5">
                   <h3 className="font-semibold">Mini-week preview</h3>
                   <p className="mt-1 text-sm text-ink-soft">
@@ -1751,72 +1751,85 @@ export function PlanSetupWizard({
                     <MiniWeekPreview schedule={schedule} />
                   </div>
                 </Card>
-
-                <Card className="p-4 sm:p-5">
-                  <Field
-                    label="Weekly study target"
-                    hint="Your goal, not your total free time."
-                    htmlFor="study-target"
-                  >
-                    <div className="relative">
-                      <input
-                        ref={targetRef}
-                        id="study-target"
-                        type="number"
-                        min={0.5}
-                        max={40}
-                        step={0.25}
-                        value={
-                          schedule.targetStudyMinutes > 0
-                            ? schedule.targetStudyMinutes / 60
-                            : ""
-                        }
-                        aria-invalid={!targetValid || undefined}
-                        aria-describedby={
-                          !targetValid ? "study-target-error" : undefined
-                        }
-                        onChange={(event) => {
-                          const hours = Number(event.target.value);
-                          updateSchedule((current) => ({
-                            ...current,
-                            targetStudyMinutes: Number.isFinite(hours)
-                              ? Math.round(hours * 4) * 15
-                              : 0,
-                          }));
-                        }}
-                        className={cn(
-                          inputClass,
-                          "pr-20",
-                          !targetValid && "border-rose-400",
-                        )}
-                      />
-                      <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-ink-faint">
-                        hours
-                      </span>
-                    </div>
-                  </Field>
-                  {!targetValid && (
-                    <p
-                      id="study-target-error"
-                      role="alert"
-                      className="mt-2 text-sm text-rose-700"
-                    >
-                      Set a target between 30 minutes and 40 hours.
-                    </p>
-                  )}
-                  {capacity.classOverlapMinutes > 0 && (
-                    <p className="mt-4 rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-700">
-                      Classes overlap {formatDuration(capacity.classOverlapMinutes)} of your confirmed windows.
-                    </p>
-                  )}
-                  {capacity.shortfallMinutes > 0 && targetValid && (
-                    <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                      Your target is {formatDuration(capacity.shortfallMinutes)} over usable capacity. Scholara will still plan what safely fits.
-                    </p>
-                  )}
-                </Card>
               </aside>
             </div>
+
+            <Card className="mt-6 border-brand-100 bg-brand-50/50 p-4 sm:p-5">
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_15rem] md:items-end">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-brand-700">
+                    Study goal
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold">
+                    Weekly study target
+                  </h3>
+                  <p className="mt-1 text-sm text-ink-soft">
+                    Choose how much of your confirmed availability Scholara
+                    should plan each week.
+                  </p>
+                </div>
+                <Field label="Hours per week" htmlFor="study-target">
+                  <div className="relative">
+                    <input
+                      ref={targetRef}
+                      id="study-target"
+                      type="number"
+                      min={0.5}
+                      max={40}
+                      step={0.25}
+                      value={
+                        schedule.targetStudyMinutes > 0
+                          ? schedule.targetStudyMinutes / 60
+                          : ""
+                      }
+                      aria-invalid={!targetValid || undefined}
+                      aria-describedby={
+                        !targetValid ? "study-target-error" : undefined
+                      }
+                      onChange={(event) => {
+                        const hours = Number(event.target.value);
+                        updateSchedule((current) => ({
+                          ...current,
+                          targetStudyMinutes: Number.isFinite(hours)
+                            ? Math.round(hours * 4) * 15
+                            : 0,
+                        }));
+                      }}
+                      className={cn(
+                        inputClass,
+                        "pr-20",
+                        !targetValid && "border-rose-400",
+                      )}
+                    />
+                    <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-ink-faint">
+                      hours
+                    </span>
+                  </div>
+                </Field>
+              </div>
+              {!targetValid && (
+                <p
+                  id="study-target-error"
+                  role="alert"
+                  className="mt-3 text-sm text-rose-700"
+                >
+                  Set a target between 30 minutes and 40 hours.
+                </p>
+              )}
+              {capacity.classOverlapMinutes > 0 && (
+                <p className="mt-4 rounded-xl bg-surface/80 px-3 py-2 text-sm text-brand-700">
+                  Classes overlap{" "}
+                  {formatDuration(capacity.classOverlapMinutes)} of your
+                  confirmed windows.
+                </p>
+              )}
+              {capacity.shortfallMinutes > 0 && targetValid && (
+                <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  Your target is {formatDuration(capacity.shortfallMinutes)} over
+                  usable capacity. Scholara will still plan what safely fits.
+                </p>
+              )}
+            </Card>
 
             {finalError && (
               <div ref={finalErrorRef} tabIndex={-1} className="mt-5">
@@ -1827,7 +1840,7 @@ export function PlanSetupWizard({
         )}
       </div>
 
-      <div className="sticky bottom-0 z-20 -mx-5 mt-8 border-t border-line bg-white/95 px-5 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:rounded-t-2xl sm:border-x">
+      <div className="no-print mt-8 rounded-2xl border border-line bg-paper/95 px-4 py-3 lg:sticky lg:bottom-0 lg:z-20 lg:-mx-5 lg:rounded-b-none lg:px-5 lg:shadow-[0_-8px_24px_rgba(15,23,42,0.08)] lg:backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 lg:flex-row lg:items-center">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
             <span>
@@ -1874,7 +1887,7 @@ export function PlanSetupWizard({
                 <ArrowRight className="size-4" aria-hidden />
               </Button>
             ) : (
-              <Button size="lg" onClick={finishSetup}>
+              <Button onClick={finishSetup}>
                 Generate weekly plan
                 <ArrowRight className="size-4" aria-hidden />
               </Button>
