@@ -13,19 +13,28 @@ const COST_BONUS: Record<Resource["cost"], number> = {
   paid: -30,
 };
 
-type PickInput = {
+export type PickResourcesInput = {
   axes: AxisScores;
   frictions: Friction[];
   /** Optional education field retained for supporting-resource relevance. */
   field?: Field;
-  /** Tool ids referenced by the recommended techniques. */
+  /** Tool ids referenced by recommendations before Methods are selected. */
   toolIds: string[];
+  /** Tool ids referenced by the learner's explicitly selected Methods. */
+  selectedToolIds?: string[];
+  /** Tool ids referenced by Methods actually used in the saved weekly plan. */
+  planToolIds?: string[];
 };
 
-export function scoreResource(resource: Resource, input: PickInput): number {
+export function scoreResource(
+  resource: Resource,
+  input: PickResourcesInput,
+): number {
   let score = COST_BONUS[resource.cost];
 
-  if (input.toolIds.includes(resource.id)) score += 40;
+  if (input.planToolIds?.includes(resource.id)) score += 56;
+  else if (input.selectedToolIds?.includes(resource.id)) score += 48;
+  else if (input.toolIds.includes(resource.id)) score += 40;
   if (resource.campus) score += 14;
 
   for (const axis of AXES) {
@@ -40,7 +49,8 @@ export function scoreResource(resource: Resource, input: PickInput): number {
 
   if (input.field && resource.fieldFit?.includes(input.field)) score += 16;
 
-  // Crisis and basic-needs resources should never be buried.
+  // Give support resources a small discoverability floor without pretending
+  // that the same resource is the right first recommendation for everyone.
   if (resource.category === "wellbeing" || resource.category === "basic-needs") {
     score += 6;
   }
@@ -48,7 +58,10 @@ export function scoreResource(resource: Resource, input: PickInput): number {
   return Number(score.toFixed(2));
 }
 
-export function pickResources(input: PickInput, limit = 12): Resource[] {
+export function pickResources(
+  input: PickResourcesInput,
+  limit = 12,
+): Resource[] {
   return [...RESOURCES]
     .map((resource) => ({ resource, score: scoreResource(resource, input) }))
     .sort((a, b) => b.score - a.score)
@@ -57,7 +70,7 @@ export function pickResources(input: PickInput, limit = 12): Resource[] {
 }
 
 /** Full library sorted by fit, used by the resources page. */
-export function sortResourcesByFit(input: PickInput): Resource[] {
+export function sortResourcesByFit(input: PickResourcesInput): Resource[] {
   return [...RESOURCES]
     .map((resource) => ({ resource, score: scoreResource(resource, input) }))
     .sort((a, b) => b.score - a.score)

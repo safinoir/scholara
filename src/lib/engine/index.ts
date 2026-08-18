@@ -20,7 +20,12 @@ export {
   type ScheduleCapacity,
   type UsableStudyWindow,
 } from "./buildSchedulePlan";
-export { pickResources, sortResourcesByFit, scoreResource } from "./pickResources";
+export {
+  pickResources,
+  sortResourcesByFit,
+  scoreResource,
+  type PickResourcesInput,
+} from "./pickResources";
 export { changePersona } from "./changePersona";
 
 type GenerateInput = {

@@ -143,6 +143,54 @@ for (const viewport of VIEWPORTS) {
         `/plan at ${viewport.width}px has accessibility violations`,
       ).toEqual([]);
     });
+
+    test("resources are accessible before and after personalization", async ({
+      page,
+    }) => {
+      await page.goto("/resources");
+      await expect(
+        page.getByRole("heading", {
+          level: 1,
+          name: "Study support that fits your situation",
+        }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", {
+          name: "Open Anki (opens in a new tab)",
+        }),
+      ).toBeVisible();
+
+      let results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze();
+      expect(
+        results.violations,
+        `/resources public view at ${viewport.width}px has accessibility violations`,
+      ).toEqual([]);
+
+      await page.evaluate((profile) => {
+        window.localStorage.setItem(
+          "scholara:profile:v3",
+          JSON.stringify(profile),
+        );
+      }, COMPLETE_PROFILE);
+      await page.reload();
+
+      await expect(
+        page.getByText(/ordered using Methods in your saved plan/),
+      ).toBeVisible();
+      await expect(
+        page.getByText(/In your plan.*Retrieval Practice/).first(),
+      ).toBeVisible();
+
+      results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+        .analyze();
+      expect(
+        results.violations,
+        `/resources personalized view at ${viewport.width}px has accessibility violations`,
+      ).toEqual([]);
+    });
   });
 }
 

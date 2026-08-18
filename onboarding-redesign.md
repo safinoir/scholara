@@ -4,9 +4,10 @@
 Plan workspace implemented; post-intake six-axis editing is deferred and
 release QA remains
 
-**Current scope:** Homepage, Persona, Methods, and Weekly Plan
-**Existing but outside this redesign:** Tracker, Resources, and After/Career
-(their workflow redesign is deferred)
+**Current guided-flow scope:** Homepage, Persona, Methods, and Weekly Plan
+**Later supporting refreshes:** Tracker and Resources
+**Still outside this redesign:** After/Career (its workflow redesign is
+deferred)
 
 This document records the approved redesign and its current implementation
 status. [plan.md](./plan.md) is the concise current-state source of truth.
@@ -704,8 +705,14 @@ are sent to the configured provider, and the raw note is not stored by Scholara.
 - [x] Retain and document the temporary local-storage development control.
 - [ ] Complete real-device, keyboard-only, and accessibility review.
 
-Tracker, Resources, and After/Career already exist. Their broader workflow
-redesign remains outside this phase.
+Tracker was later refreshed as a supporting continuation surface. Its rolling
+seven-day micro-habits now connect plan techniques, selected Methods, and
+reported obstacles to repeatable check-ins, while preserving local-only tracker
+history and the existing streak model. Resources was later polished as a public
+supporting catalog of free and free-tier tools and campus services, with category
+filters and live fit signals from the current plan, selected Methods, and
+reported obstacles. It remains outside the guided-flow redesign. After/Career
+also remains outside this phase, and its broader workflow redesign is deferred.
 
 ## 13. Implementation Status
 
@@ -724,6 +731,8 @@ Implemented in the current codebase:
 - Manual weekly overrides with one-step undo
 - Bounded AI note interpretation with proposal review before applying
 - AI tuning-only context and privacy disclosures
+- Personalized rolling seven-day Tracker habits tied to the saved plan, selected
+  Methods, and reported obstacles
 
 Post-intake six-axis editing is a deferred enhancement; final release QA remains
 for the current scope. The red test-only storage control intentionally remains

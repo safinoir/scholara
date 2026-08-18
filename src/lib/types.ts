@@ -412,6 +412,7 @@ export type WeekContext = {
 export type ResourceCost = "free" | "free-tier" | "paid";
 
 export type ResourceCategory =
+  | "study-skills"
   | "notes"
   | "recall"
   | "scheduling"
@@ -430,7 +431,7 @@ export type Resource = {
   category: ResourceCategory;
   cost: ResourceCost;
   blurb: string;
-  /** Omitted for campus resources, which have no single URL. */
+  /** Omitted for offline actions or resources whose destination varies by school. */
   url?: string;
   axisFit?: Partial<AxisScores>;
   frictionFit?: Friction[];

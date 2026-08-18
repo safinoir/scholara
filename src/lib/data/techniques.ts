@@ -30,7 +30,7 @@ export const TECHNIQUES: Technique[] = [
     axisWeights: { drive: -10 },
     fixes: ["retention", "test-anxiety", "time-scarcity"],
     archetypeBoost: { sprinter: 12, anchor: 8 },
-    toolIds: ["anki", "quizlet"],
+    toolIds: ["anki", "quizlet", "learning-scientists"],
     sessionMinutes: 25,
   },
   {
@@ -53,7 +53,7 @@ export const TECHNIQUES: Technique[] = [
     axisWeights: { structure: 25 },
     fixes: ["retention", "time-scarcity", "math-heavy"],
     archetypeBoost: { architect: 12, anchor: 12 },
-    toolIds: ["anki", "quizlet"],
+    toolIds: ["anki", "quizlet", "learning-scientists"],
     sessionMinutes: 20,
   },
   {
@@ -76,7 +76,7 @@ export const TECHNIQUES: Technique[] = [
     axisWeights: { rhythm: 15 },
     fixes: ["math-heavy", "test-anxiety"],
     archetypeBoost: { cartographer: 8 },
-    toolIds: ["khan-academy", "paul-notes"],
+    toolIds: ["khan-academy", "paul-notes", "learning-scientists"],
     sessionMinutes: 45,
   },
   {
@@ -122,7 +122,7 @@ export const TECHNIQUES: Technique[] = [
     axisWeights: { drive: 30, input: -15 },
     fixes: ["retention", "motivation", "reading-load"],
     archetypeBoost: { explorer: 15, cartographer: 8 },
-    toolIds: ["obsidian", "notion"],
+    toolIds: ["obsidian", "notion", "learning-scientists"],
     sessionMinutes: 30,
   },
   {
@@ -145,7 +145,7 @@ export const TECHNIQUES: Technique[] = [
     axisWeights: { input: 55 },
     fixes: ["overwhelm", "retention", "reading-load"],
     archetypeBoost: { cartographer: 20 },
-    toolIds: ["excalidraw", "obsidian"],
+    toolIds: ["excalidraw", "obsidian", "learning-scientists"],
     sessionMinutes: 35,
   },
   {

@@ -39,8 +39,8 @@ export function HomeHero() {
           <span className="text-brand-600">how</span> to study.
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-ink-soft sm:text-xl">
-          College doesn't teach you how to study. Scholara helps
-          you discover a study approach that fits your personality and builds it
+          College doesn&apos;t teach you how to study. Scholara helps you
+          discover a study approach that fits your personality and builds it
           around your class schedule.
         </p>
 

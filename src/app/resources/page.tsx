@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { ResourcesView } from "@/components/resources/ResourcesView";
 
 export const metadata: Metadata = {
-  title: "Free resources — Scholara",
+  title: "Study resources — Scholara",
   description:
-    "A curated library of free study tools, plus the campus services your tuition already pays for.",
+    "A curated library of free and free-tier study tools, practical guides, and campus services.",
 };
 
 export default function ResourcesPage() {

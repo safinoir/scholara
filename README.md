@@ -28,10 +28,14 @@ week by week.
 | "I don't know *how* to study" | Shows a practical persona, suggests five methods, and lets the learner choose one to three |
 | "I don't have time" | Builds a weekly plan only inside confirmed study availability and reports any shortfall |
 | "I can't focus / I procrastinate" | Maps each obstacle you name to a specific countermeasure |
-| "Good tools cost money" | Every resource is labeled free / free-tier / paid, and paid is hidden by default |
+| "Good tools cost money" | Offers a public catalog of free and free-tier tools plus campus services |
 | "I don't have a quiet space" | Routes you to campus accommodations and free study spaces you already pay for |
 | "I don't know what comes after" | A free, year-sequenced career track for your field |
-| "Advice never sticks" | Habit tracking with forgiving streaks and a 2-week re-assessment prompt |
+| "Advice never sticks" | Turns plan techniques, selected Methods, and reported obstacles into personalized rolling seven-day habits with current and best streaks |
+
+Resources are available before or after onboarding. Learners can filter the
+free/free-tier catalog and campus services by category; with a profile, fit
+signals update live from the current plan, selected Methods, and obstacles.
 
 **No account. No database. No cost.** Your profile and schedule stay in your browser's local storage. Only the AI weekly-tuning action you explicitly invoke sends bounded context to the configured provider.
 
@@ -104,6 +108,16 @@ tuning, and the build rationale. Saved weeks show their real Monday-Sunday date
 range and remain read-only until the learner deliberately starts the current
 week, which clears temporary exceptions. Generating a plan returns the learner
 to the top of that page. There is no separate calendar route.
+
+### Weekly habits
+
+The Tracker turns the learner's study approach into up to three small,
+repeatable actions. Suggestions prioritize techniques already used in the saved
+weekly plan, then selected Methods and reported obstacles. Check-ins use a
+rolling seven-day view with local-calendar dates, a clear Today state, and
+current and best streaks. After two weeks, a reflection prompt leads back to
+Methods or the weekly plan so the learner can keep what works and adjust what
+does not.
 
 ---
 

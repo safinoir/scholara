@@ -382,8 +382,8 @@ or selects methods.
 | `/toolkit` | User-facing **Methods** page with the top five, compact full library, and one-to-three selection |
 | `/plan/setup` | Two-step recurring courses, meetings, availability, and target editor |
 | `/plan` | Single completed experience: summary, obstacle responses, embedded course calendar, manual/AI tuning, rationale, and copy |
-| `/resources` | Curated resource library; available without a profile |
-| `/tracker` | Existing micro-habit tracker |
+| `/resources` | Public free/free-tier resource catalog with campus services, category filters, and live fit signals from the current plan, selected Methods, and reported obstacles |
+| `/tracker` | Personalized rolling seven-day micro-habit tracker tied to the learner's Methods, obstacles, and saved weekly plan |
 | `/career` | Existing field-and-year career checklist, labeled **After** in navigation |
 | `/results` | Redirects to `/persona` |
 
@@ -424,21 +424,27 @@ tests have also been removed; old share URLs intentionally use the standard 404.
 
 ## 9. Existing Supporting Features
 
-These routes already work but were intentionally outside the recent workflow
-redesign. They broaden the Degree Planning & Discovery response around the core
+These routes broaden the Degree Planning & Discovery response around the core
 journey of understanding how to study, scheduling the work for current courses,
-and maintaining progress toward a degree:
+and maintaining progress toward a degree. Resources and Tracker have received
+focused supporting polish; After/Career remains outside the recent workflow
+redesign:
 
-- Resources: cost labels, fit sorting, campus resources, and paid-hidden default.
-- Tracker: up to three micro-habits, forgiving streaks, local-calendar dates,
-  atomic clearing, and a reassessment prompt.
+- Resources: a public catalog of free and free-tier tools plus campus services,
+  with category filters. When a profile exists, its fit signals update live from
+  the learner's current plan, selected Methods, and reported obstacles.
+- Tracker: up to three rolling seven-day micro-habits, with suggestions ordered
+  around techniques used in the saved plan, selected Methods, and reported
+  obstacles. It keeps local-calendar dates, clear Today and current/best streak
+  states, protected habit removal and atomic clearing, and a two-week reflection
+  that leads back to Methods or the weekly plan.
 - After/Career: field-by-year checklist with free supporting resources. Migrated
   profiles may seed it from optional legacy education context; otherwise the
   learner chooses a year before relevance labels appear. These Career-only
   preferences are validated and stored separately from the profile.
 
-Future redesign work for these areas is deferred until Persona, Methods, and
-Weekly Plan are fully polished.
+Broader After/Career workflow redesign work remains deferred until Persona,
+Methods, and Weekly Plan are fully polished.
 
 ---
 
@@ -472,7 +478,7 @@ available as temporary development functionality.
 - Accounts and cross-device sync.
 - Notification/reminder system.
 - Institution-specific campus resource configuration.
-- Tracker, Resources, and After workflow redesigns.
+- After workflow redesign.
 - Richer plan editing such as manual move/resize interactions.
 - Detailed before/after AI tuning diff beyond the current compact summary.
 
@@ -500,6 +506,9 @@ available as temporary development functionality.
 - [x] Users can compare all personas and override or restore their original
   axis-derived result.
 - [x] Express users actively choose a persona and confirm the six axes.
+- [x] Tracker turns plan techniques, selected Methods, and reported obstacles
+  into personalized rolling seven-day micro-habits without changing its local
+  persistence model.
 - [x] Legacy AI coaching UI and API cleanup is complete.
 - [x] The temporary test-only localStorage control remains present and is
   documented as development-only functionality.
