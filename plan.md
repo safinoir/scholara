@@ -1,450 +1,516 @@
-# Scholara — Project Plan
+# Scholara Project Plan
 
-> **Active workflow redesign:** See [onboarding-redesign.md](./onboarding-redesign.md)
-> for the approved Persona -> Study Toolkit -> Weekly Plan implementation plan.
-> That document supersedes conflicting route, profile, scheduling, and AI-tuning
-> details below until this file is fully consolidated.
+**Last updated:** 2026-08-17
+**Current branch:** `ui-changes` (based on the AI/onboarding work already merged
+into `main`)
+**Status:** The core challenge experience is implemented: an obstacle-aware,
+course-specific Persona -> Methods -> Weekly Setup -> Weekly Plan workflow.
+Post-intake six-axis editing remains a deferred enhancement, and final release
+QA remains open.
 
-> **Scholara** = *scholar* + *persona*.
-> A study-habit builder that turns who you are into how you should study.
-
-**Challenge:** Stellic Pathfinders — *"Create something that helps you navigate your college journey, and what comes after."*
-**Category:** Overcoming Obstacles — helping students navigate cost, paperwork, scheduling, requirements, and the friction that gets in the way.
+For the detailed design and implementation record behind onboarding and weekly
+planning, see [onboarding-redesign.md](./onboarding-redesign.md). This file is
+the concise source of truth for what the application currently does and what
+remains.
 
 ---
 
-## 1. The Problem
+## 1. Product Purpose
 
-Most students are never taught *how* to study. They're handed generic advice ("just review your notes", "use flashcards") that ignores their actual life: a 6pm shift, ADHD, a 4-course load, test anxiety, no quiet room. When that generic advice fails, students conclude they're the problem.
+### Challenge origin
 
-**The friction Scholara removes:**
+Scholara was created for the **Stellic Pathfinders challenge**, in the
+**Degree Planning & Discovery** category:
 
-| Friction | How Scholara addresses it |
+> Help students chart, change, or understand their academic path.
+
+The broader challenge prompt was:
+
+> Create something that helps you navigate your college journey, and what comes
+> after. Stellic was founded by students who struggled to navigate college.
+> We’ve spent a decade building software for higher ed, and we want to hear
+> directly from you about what still needs to change.
+
+Scholara's answer is that earning a degree requires more than knowing which
+courses to take. A student also has to understand how they learn, manage the
+work those courses demand, and consistently make time to study. College brings
+a faster pace, greater independence, different course formats, and less
+structured time, often without teaching students how to study under those
+conditions. Strategies that were enough in high school may stop working in
+college; when generic advice fails, students can mistake a missing system for a
+personal failure.
+
+### Product response
+
+Scholara helps a college student discover and build that missing system. Its
+north-star outcome is that a learner understands their individual study habits,
+knows which methods to try and why, and has a realistic schedule for their
+classes and studying. By making course work more understandable and manageable,
+Scholara helps the learner keep progressing toward their degree.
+
+Scholara helps a student answer three questions:
+
+1. What study conditions are they most likely to maintain?
+2. Which evidence-aware study methods fit their profile and obstacles?
+3. How can those methods fit around the classes, constraints, and study time
+   they actually have?
+
+The resulting journey moves from academic self-discovery to action: a learner
+identifies their working patterns and obstacles, reviews evidence-aware methods,
+chooses one to three, records their classes and realistic study availability,
+and turns those inputs into a course-specific weekly plan.
+
+### Individualized without fixed learner types
+
+Scholara does **not** use traditional visual/auditory/kinesthetic learning
+styles or force students into a small set of broad categories. Its six axes are
+continuous adherence and planning factors. A persona is a readable starting
+point derived from those axes, not a diagnosis, a psychometric label, or a box:
+close matches can appear as a blend, and a learner can override the shorthand
+without rewriting their measured axes.
+
+Evidence determines which study practices are credible. The learner's axes,
+obstacles, preferences, selected methods, courses, and real availability
+determine how those practices can become maintainable. This distinction lets
+Scholara be personal without claiming that memory works differently for each
+persona.
+
+Technique suggestions combine:
+
+- evidence quality;
+- fit with the six axes and closest persona;
+- obstacles the student reported;
+- a short-method preference when the student reports time scarcity; and
+- category diversity, capped at two recommendations from one category.
+
+The user sees five personalized suggestions and explicitly selects one to three
+methods that Scholara incorporates into compatible study blocks in their weekly
+schedule.
+
+The central degree-planning experience is the intake, Persona, Methods, and
+Weekly Plan flow. Scholara plans the learning work needed to succeed in the
+student's current courses rather than choosing degree requirements for them.
+Resources and Tracker support continued progress, while the year-and-field
+**After** checklist connects academic planning to what follows graduation.
+Scholara is not a degree audit, registration system, LMS, or replacement for
+academic advising; integration with those systems remains future work.
+
+---
+
+## 2. Current Stack
+
+| Area | Current implementation |
 | --- | --- |
-| "I don't know *how* to study" | Diagnoses a learner persona, prescribes 3–5 concrete techniques with step-by-step instructions |
-| "I don't have time" | Generates a weekly plan around the hours the student *actually* has |
-| "I can't focus / I procrastinate" | Maps stated friction points to targeted countermeasures, not generic willpower advice |
-| "Good tools cost money" | Every recommended resource is free or has a real free tier. Cost is labeled on every card |
-| "I don't know what comes after" | A career-readiness track tied to the student's field, sequenced by year |
-| "Advice doesn't stick" | Habit tracker with streaks + a 2-week re-assessment loop |
+| Framework | Next.js 16.3 App Router, React 19, TypeScript |
+| Styling | Tailwind CSS v4 and local UI primitives |
+| State | React context plus typed `localStorage` helpers |
+| Validation | Zod v4 on profiles, schedule data, and API payloads |
+| Profile format | Version 3 with version 1 and 2 migrations |
+| Backend | Next.js Route Handlers only |
+| Database/auth | None |
+| AI provider | OpenAI-compatible chat-completions endpoint |
+| Default AI configuration | `https://api.ai.it.ufl.edu`, model `llama-3.3-70b-instruct` |
+| Tests | Vitest units, RTL/jsdom components, and Playwright/axe responsive smoke coverage |
+| Deployment target | Vercel; `main` is the intended production branch |
 
-**Cost angle (important for this category):** Scholara itself requires no account, no payment, and no data collection. Every resource in the library is tagged `Free`, `Free tier`, or `Paid`, and the library defaults to filtering out paid options.
+The deterministic engines remain the source of truth. The app works without an
+AI key.
 
----
+### Code organization
 
-## 2. What Scholara Is Not
-
-Deciding this now prevents scope creep:
-
-- Not a note-taking app, flashcard app, or calendar app. It routes students *to* those and teaches them how to use them.
-- Not a tutoring or homework-help service.
-- Not a social network. No accounts, no profiles to browse, no feed.
-- Not a "learning styles" quiz in the debunked VARK sense (see §4).
-
----
-
-## 3. Decisions (locked)
-
-| Area | Decision |
+| Path | Responsibility |
 | --- | --- |
-| Framework | **Next.js 15 (App Router) + TypeScript** |
-| Styling | **Tailwind CSS v4** + a small set of hand-rolled components |
-| State | React Context + `localStorage` (one `ScholaraProfile` object) |
-| Validation | **Zod** schema on the profile, with a `version` field for migrations |
-| Backend | Next.js Route Handlers only. No separate server |
-| Database | **None for v1.** All data client-side |
-| Auth | **None for v1.** Architected so Supabase auth + a `profiles` table can be dropped in later |
-| AI | Rule-based engine is the source of truth. Optional routes add coaching prose and grounded plan Q&A. App is fully functional with no API key |
-| Icons | `lucide-react` |
-| Charts | None. A hand-built CSS bar display for the persona axes |
-| Deploy | **Vercel**, auto-deploy from `main` |
-| Testing | **Vitest** on the scoring engine only. No component tests |
-| Package manager | npm |
+| `src/app` | App Router pages, shared layout/styles/icon, and the single active API route |
+| `src/components` | Feature views, accessible forms and sheets, navigation chrome, and shared UI primitives |
+| `src/lib/data` | Typed personas, axes, methods, resources, and other reusable content |
+| `src/lib/engine` | Pure scoring, matching, recommendation, capacity, and deterministic scheduling rules |
+| `src/lib/ai` | Server-only OpenAI-compatible client and bounded tuning interpretation |
+| `src/lib/types.ts` and `src/lib/schema.ts` | Shared domain contracts, Zod validation, and profile migrations |
+| `src/lib/storage.ts`, `week.ts`, `plan.ts`, and `careerPreferences.ts` | Browser persistence and shared week/plan helpers |
+| `src/hooks` | Profile and Tracker client-state adapters |
+| `tests` and `e2e` | Unit/schema/migration tests, RTL/jsdom interaction tests, and Playwright/axe responsive coverage |
 
-**Why no database:** it removes auth, privacy review, migrations, env secrets, and cold-start bugs from a one-week build — while making a genuine product claim ("we never collect your data"). Sharing still works via URL encoding (§7.8).
+Presentation components may orchestrate forms and navigation, but reusable
+content and recommendation/scheduling decisions stay outside the UI. The only
+active server-side product endpoint is `POST /api/plan/tune`.
 
 ---
 
-## 4. Scientific Framing (a differentiator — do not skip)
+## 3. Current Guided Flow
 
-The VARK "learning styles" model (visual / auditory / kinesthetic) has been repeatedly tested and does **not** improve outcomes when instruction is matched to a stated style. Building the app on it would be a factual weak point a judge could poke.
-
-So Scholara splits the model in two:
-
-1. **Persona axes = *adherence* factors.** Things that genuinely predict whether a student will *stick with* a routine: their schedule, energy, need for structure, social fuel, motivation source, and tolerance for long focus blocks.
-2. **Techniques = *evidence-based* methods.** Every recommended technique comes from cognitive-science literature with strong support: retrieval practice, spaced repetition, interleaving, elaboration, self-explanation, distributed practice.
-
-> **The core thesis:** *The technique is chosen by the evidence. The persona chooses the delivery — when, how long, with whom, and in what format.*
-
-Every technique card carries an `evidence` line stating support strength. This is what turns Scholara from a BuzzFeed quiz into a tool.
-
----
-
-## 5. The Persona Model
-
-### 5.1 Six axes (each scored −100 to +100)
-
-| Axis | Low pole (−100) | High pole (+100) | What it drives |
-| --- | --- | --- | --- |
-| `rhythm` | **Sprinter** — short bursts | **Marathoner** — long deep blocks | Session length, break cadence |
-| `structure` | **Improviser** — flexible | **Architect** — planned | How rigid the weekly plan is |
-| `social` | **Solo** | **Collaborative** | Group study, body doubling, accountability partners |
-| `input` | **Verbal** — text/talk | **Spatial** — diagrams/maps | Note format, technique presentation |
-| `drive` | **Pressure** — deadline-fueled | **Curiosity** — interest-fueled | Framing, artificial deadlines vs. exploration |
-| `clock` | **Early bird** | **Night owl** | Which hours get the hardest material |
-
-### 5.2 Friction points (multi-select, not an axis)
-
-Independent of persona. These directly unlock targeted countermeasures.
-
-`procrastination` · `distraction` · `retention` · `test-anxiety` · `overwhelm` · `time-scarcity` · `no-quiet-space` · `motivation` · `reading-load` · `math-heavy`
-
-### 5.3 Context (from the intake form)
-
-`year` (HS senior → grad) · `fieldOfStudy` · `courseLoad` · `hoursAvailablePerWeek` · `worksOrCaregives` · `toolsAlreadyUsed`
-
-### 5.4 Archetypes (six)
-
-Each archetype is a fixed vector across the six axes. The user's vector is matched by **cosine similarity**; nearest archetype wins, second-nearest is shown as a "secondary blend."
-
-| Archetype | Signature | One-line identity |
-| --- | --- | --- |
-| **The Architect** | +structure, +rhythm, −social | Builds the system, then trusts it |
-| **The Sprinter** | −rhythm, −structure, drive=pressure | Fast, intense, allergic to long sessions |
-| **The Connector** | +social, input=verbal, +drive | Learns by talking it through |
-| **The Cartographer** | input=spatial, +rhythm | Needs to see how it all connects |
-| **The Explorer** | drive=curiosity, −structure | Follows interest, resists rigid plans |
-| **The Anchor** | +structure, −rhythm, routine-dependent | Steady and consistent; thrown off by chaos |
-
-Each archetype ships with: name, tagline, 2-sentence description, strengths, watch-outs, an accent color, and a `lucide` icon.
-
-**Guardrail:** the archetype is presented as a *starting point*, never a fixed identity. Copy says "This is where you're starting from," and re-assessment is one click away.
-
----
-
-## 6. The Recommendation Engine (the heart of the app)
-
-Pure functions in `lib/engine/`. No React, no network — trivially unit-testable.
-
-### 6.1 Pipeline
-
-```
-QuizAnswers
-  └─▶ scoreAxes()        → AxisScores  (6 numbers, −100..100)
-        └─▶ matchArchetype()  → { primary, secondary, confidence }
-              └─▶ rankTechniques()  → ScoredTechnique[]  (top 5)
-                    └─▶ buildWeeklyPlan()  → WeekPlan
-                          └─▶ pickResources()  → Resource[]
-                                └─▶ pickCareerTrack()  → CareerTrack
-                                      └─▶ LearnerProfile   ← saved to localStorage
+```text
+13-screen quiz or 3-step Express form
+  -> Persona
+  -> Methods (choose 1-3 methods for weekly study blocks)
+  -> Weekly Plan setup
+  -> Generated seven-day calendar
+  -> Optional manual or AI-assisted weekly tuning
 ```
 
-### 6.2 Technique scoring
-
-```
-score(technique, profile) =
-    Σ over axes:     technique.axisWeights[axis] * (profile.axes[axis] / 100)
-  + Σ over friction: technique.fixes.includes(f) ? FRICTION_BONUS : 0
-  + technique.archetypeBoost[profile.primaryArchetype] ?? 0
-  - technique.timeCostPenalty * timeScarcityFactor(profile)
-```
-
-Then: take the top 5, but enforce **category diversity** — max 2 from the same category, so nobody gets five flavors of flashcards.
-
-Each technique card renders: name · why-you-got-it (generated from the top contributing factors) · 3–5 step how-to · time cost · evidence strength · a free tool that supports it.
-
-### 6.3 Technique library (~15 entries)
-
-**Encoding & retention:** Retrieval Practice · Spaced Repetition · Interleaving · Elaborative Interrogation · Feynman Technique · Dual Coding / Mind Mapping · Cornell Notes
-**Focus & initiation:** Pomodoro (25/5) · 90-Minute Deep Block · 5-Minute Rule · Body Doubling · Implementation Intentions ("if X then Y")
-**Planning & load:** Time Blocking · Eisenhower Matrix · Weekly Review · Backwards Planning from due dates
-**Exam & anxiety:** Practice Testing Under Conditions · Brain Dump · Error Log
-
-Each entry is typed:
+Saved onboarding stages are:
 
 ```ts
-type Technique = {
-  id: string
-  name: string
-  category: 'encoding' | 'focus' | 'planning' | 'exam'
-  blurb: string
-  steps: string[]
-  timeCost: 'low' | 'medium' | 'high'
-  evidence: 'strong' | 'moderate' | 'promising'
-  evidenceNote: string
-  axisWeights: Partial<Record<Axis, number>>
-  fixes: Friction[]
-  archetypeBoost?: Partial<Record<ArchetypeId, number>>
-  toolIds: string[]
-}
+type OnboardingStage = "persona" | "toolkit" | "schedule" | "complete";
 ```
 
-### 6.4 Weekly plan generator
+- Quiz completion creates a version 3 profile and opens `/persona`.
+- The guided quiz contains 12 axis questions and one obstacle screen. Clicking
+  or tapping an answer records it on the current screen and enables a blue
+  **Next** button; pressing a valid number key selects that option and advances
+  immediately. Back and Next retain consistent sizing and shape.
+- An in-progress quiz draft resumes at the first unanswered axis question.
+- Persona confirmation unlocks `/toolkit`.
+- Confirming one to three methods unlocks weekly setup.
+- A valid recurring schedule and generated plan complete onboarding.
+- The home page resumes the first unfinished stage for returning users.
+- Legacy version 1 and 2 profiles migrate without pretending old
+  recommendations were user-selected. Their year and field may remain as
+  optional education context for Resources/After, but never affect planning.
 
-**Inputs:** `hoursAvailablePerWeek`, `courseLoad`, `clock`, `rhythm`, `structure`, top techniques.
-
-**Rules:**
-- Focus cadence from `rhythm`: Sprinter → 25 min; mid → 45 min; Marathoner → 90 min. Larger study windows repeat that cadence with breaks.
-- Hardest material lands in the user's peak window from `clock`.
-- Total scheduled time ≤ 85% of stated availability. **Deliberately under-schedule** — over-scheduling is why plans get abandoned.
-- Available hours scale the number and size of study windows across open days; they are not merely an upper bound on a fixed template.
-- Low `structure` → output 3 flexible "anchor blocks" + a menu, not a rigid grid.
-- One weekly review block, always.
-- Spaced-repetition reviews auto-placed on days 1 / 3 / 7 after each new-material block.
-- If `time-scarcity` is a friction point and current capacity is eight hours or less → the plan is capped at 3 blocks and labeled "Minimum Effective Dose." A newer, higher capacity entry overrides the old quiz answer.
-
-**Output:** a 7-day × time-slot grid. Each block: `{ day, start, minutes, label, techniqueId, intensity }`. Rendered as a responsive grid (stacked list on mobile), plus a plain-text copy button and a print view.
-
----
-
-## 7. Features & Pages
-
-### 7.0 Priority tiers
-
-Given the one-week timeline, build strictly in this order. **P0 is the demo.** Nothing in P1 starts until every P0 item works end to end.
-
-| Tier | Scope |
-| --- | --- |
-| **P0 — must ship** | Landing · Quiz · Persona result · Top techniques · Weekly plan · Resource library · localStorage persistence · Mobile responsive · Deployed |
-| **P1 — high value** | Habit tracker with streaks · Career track · Shareable link · Print/PDF export |
-| **P2 — if time remains** | AI coach paragraph · Re-assessment diff view · Onboarding tour |
-| **P3 — README "future work"** | Accounts, Stellic/LMS integration, notification nudges, cohort insights |
-
-### 7.1 `/` — Landing
-Hero with the thesis line. Three-step "how it works." A 60-second promise ("takes 2 minutes, no signup, nothing stored on a server"). Primary CTA → `/quiz`. If a saved profile exists, show "Welcome back → your plan."
-
-### 7.2 `/quiz` — The intake
-
-- **One question per screen.** Large tap targets, progress bar, keyboard nav (`1–5`, arrows, Enter), Back always available.
-- **12–14 questions total**, targeting ~2 minutes.
-  - 12 forced-choice / Likert items → the six axes (2 per axis, +1 tiebreaker)
-  - 1 multi-select → friction points
-  - 1 short form → context (year, field, hours/week, works-or-caregives)
-- Answers persist to `localStorage` on every step, so a refresh doesn't lose progress.
-- "Skip the quiz, I know my habits" link → a single-page express form that sets axes from direct self-report (this is the old "Path B", collapsed into one screen rather than a second engine).
-- Motion respects `prefers-reduced-motion`.
-
-### 7.3 `/results` — The persona reveal
-
-Reveal animation → archetype card (icon, name, tagline, accent color). Axis visualization: six horizontal bars with pole labels. "You also lean *Secondary*" blend line. Then top 5 technique cards, each expandable to its how-to. Sticky footer CTA → "Build my week."
-
-### 7.4 `/plan` — Weekly plan
-The grid. Toggle: Structured ↔ Flexible view. Copy-as-text. Print → PDF via a print stylesheet. "Regenerate with different hours" control.
-
-### 7.5 `/resources` — Curated library
-
-~35 resources, each tagged with `cost` (`free` | `free-tier` | `paid`), `category`, `axisFit`, `frictionFit`, `fieldFit`.
-- Default filter hides `paid`. Cost badge on every card.
-- Auto-sorted by fit to the user's profile; a "Show everything" toggle reveals the rest.
-- Categories: Note-taking · Flashcards & recall · Scheduling · Focus & blocking · Subject help · Writing & citation · Accessibility & accommodations · Money & basic needs · Mental health.
-- **Include a "Campus resources you're already paying for" section** — tutoring center, writing center, office hours, disability/accessibility services, library databases, career center. This is the highest-ROI, lowest-cost advice in the whole app and it fits the category perfectly.
-
-### 7.6 `/tracker` — Habit tracker *(P1)*
-Pick 1–3 micro-habits from the plan. 7-day check-off grid. Current + longest streak. Encouraging, non-punitive copy on a miss (streak "pauses," never "dies"). After 14 days → "Ready to re-assess?"
-
-### 7.7 `/career` — What comes after *(P1)*
-Field-based track (STEM · Health · Business · Humanities · Arts · Undecided) × year. Sequenced checklist: résumé → LinkedIn → office-hours relationships → first internship → interview prep (STAR) → portfolio. Free resources only. Ties the study habit to the outcome: "the habit that gets you the GPA is the habit that gets you the offer."
-
-### 7.8 `/share/[code]` *(P1)*
-The profile is compressed → base64url → URL. Renders a read-only persona card with a "Take your own quiz" CTA. No server, no database. Also serves as dynamic OG-image content if time allows.
-
-### 7.9 AI coaching routes *(P2)*
-`/api/coach` adds a short results-page note. `/api/plan` adds a weekly brief and block-level coaching. `/api/ask` answers a fixed menu of questions grounded in the current plan. All are provider-agnostic and OpenAI-compatible. **Rules:** the key is server-side only; no student-authored free text is sent; requests are narrowly validated and timeout-guarded; every failure falls back to pre-written copy. AI never selects techniques or changes the schedule.
+The current self-report route is `/express`. It uses three steps: choose a
+starting persona, confirm or refine the six seeded axes, and select obstacles.
+There is no intake context step. The final profile keeps the user's persona
+choice distinct from the axis-derived match when necessary, then opens
+`/persona`. Completing either intake over an existing profile requires a reset
+confirmation before replacing its persona, methods, schedule, and plan.
 
 ---
 
-## 8. Design Direction
+## 4. Landing Page and Navigation
 
-The audience includes people who struggle to focus. **Design is a feature, not decoration.**
+The home page is a short product explanation and conversion page. Its sections
+are currently:
 
-- **Calm, low-clutter.** One primary action per screen. Generous whitespace.
-- **Palette:** warm off-white base, deep ink text, one indigo/violet primary, per-archetype accent. Dark mode if it's cheap (Tailwind `dark:`), skipped otherwise.
-- **Type:** one geometric sans (Inter or Geist) at 2–3 sizes only.
-- **Accessibility, non-negotiable:** WCAG AA contrast · full keyboard nav · visible focus rings · semantic landmarks · `aria-live` on quiz progress · `prefers-reduced-motion` honored · 44px minimum touch targets · never color-only meaning.
-- **Mobile-first.** Judges will open it on a phone.
-- **Copy voice:** direct, warm, never condescending. No shame language. No "just do it." Second person. Short sentences.
+1. How it works
+2. Overcoming obstacles
+3. The six personas
+4. The six axes
+5. Technique recommendations
+6. A weekly plan
+7. Final quiz call to action
 
----
+The hero's **How it works** control scrolls to the first section. `/about`
+remains the longer methodology, limitations, privacy, and data-handling page.
 
-## 9. Repository Structure
+The header home link uses the same `src/app/icon.svg` artwork as the site icon.
+Public navigation is:
 
-```
-scholara/
-├─ app/
-│  ├─ layout.tsx
-│  ├─ page.tsx                  # landing
-│  ├─ quiz/page.tsx
-│  ├─ results/page.tsx
-│  ├─ plan/page.tsx
-│  ├─ resources/page.tsx
-│  ├─ tracker/page.tsx          # P1
-│  ├─ career/page.tsx           # P1
-│  ├─ share/[code]/page.tsx     # P1
-│  ├─ api/coach/route.ts        # P2
-│  └─ globals.css
-├─ components/
-│  ├─ ui/                       # Button, Card, Badge, Progress, Toggle
-│  ├─ quiz/                     # QuestionCard, ProgressBar, LikertScale
-│  ├─ results/                  # ArchetypeCard, AxisBars, TechniqueCard
-│  ├─ plan/                     # WeekGrid, BlockCard
-│  └─ resources/                # ResourceCard, FilterBar
-├─ lib/
-│  ├─ engine/
-│  │  ├─ scoreAxes.ts
-│  │  ├─ matchArchetype.ts
-│  │  ├─ rankTechniques.ts
-│  │  ├─ buildWeeklyPlan.ts
-│  │  ├─ pickResources.ts
-│  │  └─ index.ts               # single generateProfile() entry point
-│  ├─ data/
-│  │  ├─ questions.ts
-│  │  ├─ archetypes.ts
-│  │  ├─ techniques.ts
-│  │  ├─ resources.ts
-│  │  ├─ habits.ts
-│  │  └─ careerTracks.ts
-│  ├─ types.ts                  # Axis, Friction, Technique, LearnerProfile
-│  ├─ schema.ts                 # Zod + profile version/migration
-│  ├─ storage.ts                # typed localStorage wrapper
-│  └─ share.ts                  # encode/decode profile ⇄ URL code
-├─ hooks/
-│  ├─ useProfile.ts
-│  └─ useTracker.ts
-├─ tests/engine.test.ts
-├─ plan.md
-└─ README.md
+```text
+About -> Resources -> Take the quiz
 ```
 
-**Rule of thumb:** all content lives in `lib/data/` as typed arrays. All logic lives in `lib/engine/` as pure functions. Components only display. This means content can be expanded without touching logic, and logic can be tested without rendering anything.
+With a saved profile, the ordered navigation is **About -> Persona -> Methods ->
+Plan -> Tracker -> Resources -> After**. Methods and Plan appear only when their
+prerequisites are complete; Plan points to `/plan/setup` until a valid non-empty
+plan exists, then to `/plan`. At `md` and above this is an inline navigation bar;
+below `md` it becomes an accessible disclosure menu. The user-facing label is
+**Methods**; its route remains `/toolkit`, and its persisted onboarding stage
+remains `toolkit`.
 
 ---
 
-## 10. Build Schedule (7 days)
+## 5. Persona and Methods
 
-### Day 0 — Foundation ✅
-- [x] `create-next-app` (TS, Tailwind, App Router, ESLint)
-- [x] `lib/types.ts` + `lib/schema.ts` + `lib/storage.ts` + `useProfile`
-- [x] Base UI primitives + global styles + fonts (deep-blue theme)
-- [ ] Push to GitHub + deploy to Vercel
+### Persona
 
-### Day 1 — Content & engine ✅
-- [x] All 14 questions with axis weights (`questions.ts`)
-- [x] 6 archetypes with vectors (`archetypes.ts`)
-- [x] 20 techniques, fully tagged (`techniques.ts`)
-- [x] `scoreAxes` + `matchArchetype` + `rankTechniques`
-- [x] Vitest: axis math, archetype boundaries, diversity cap, all-neutral edge case
+Implemented:
 
-### Day 2 — Quiz + results ✅
-- [x] Quiz flow: one-per-screen, progress, back, keyboard, resume-on-refresh
-- [x] Express-intake alternate form (`/express`)
-- [x] `/results`: archetype card, axis bars, technique cards
+- primary persona and secondary blend;
+- strengths and watch-outs;
+- six-axis visualization;
+- detailed comparison of all six personas with a reversible manual persona
+  choice;
+- a stage-aware next action that leads to Methods, Weekly Setup, or the saved
+  Plan as appropriate;
+- retake action; and
+- focused Persona page with no technique cards or AI coach.
 
-### Day 3 — Plan + resources ✅
-- [x] `buildWeeklyPlan` + Vitest coverage
-- [x] Week grid UI, flexible/structured handling, copy-as-text, rebuild-hours control
-- [x] ~45 resources incl. campus resources; filter + fit sort + paid hidden by default
+### Methods
 
-### Day 4 — P1 features ✅
-- [x] Habit tracker + forgiving streaks (`useTracker`)
-- [x] Career tracks by field and year
-- [x] Share link encode/decode + `/share/[code]`
-- [x] Print stylesheet → PDF
+Implemented:
 
-### Day 5 — Polish
-- [x] `/about` page documenting the model, limitations, and data handling
-- [x] Reset/delete-everything flow
-- [x] `/api/coach` with Zod validation, timeout, and silent fallback
-- [x] Mobile spot-check (390px) on landing, plan, resources
-- [ ] Full accessibility pass: keyboard-only run-through, contrast check, axe scan
-- [ ] Copy editing pass — tighten every sentence
+- personalized top five as compact method rows showing the core summary, with
+  every **How it works** detail panel collapsed initially;
+- steps, supporting reasons, evidence detail, and tools available on demand in
+  each row;
+- all remaining methods behind one **Browse more methods** disclosure, grouped
+  by the user goals **Learn and remember**, **Focus and start**, **Plan your
+  workload**, and **Prepare for exams**;
+- selection from either recommendations or the full library;
+- one-to-three selection limit with explicit confirmation and a compact sticky
+  control that shows the chosen methods, saves changes, and becomes **Continue
+  to weekly setup** for first-time users or **View updated plan** for completed
+  users;
+- no separate bottom readiness card duplicating the sticky save/continue
+  control;
+- persisted selected IDs kept separate from recommended IDs; and
+- scheduling roles for learning, review, focus support, planning, and
+  assessment-related techniques.
 
-### Day 6 — Ship
-- [x] README: problem, category fit, thesis, run instructions, limitations, future work
-- [ ] Test on a real phone
-- [ ] Fresh-browser walkthrough; watch someone else use it silently
-- [ ] Demo script + recorded walkthrough
-- [ ] Final deploy; verify prod build
-
-**Every day ends with a commit and a green Vercel deploy.**
-
-### Bugs found and fixed during the build
-- **Weekly review could silently vanish.** It was sourced only from the user's top-5 techniques, so when no planning technique ranked, the block disappeared — contradicting the app's own promise that it's never cut. Now sourced from the full library, with two regression tests.
-- **The hours slider stopped mattering above roughly eight hours.** Availability only capped a fixed nine-block template, so 8-hour and 40-hour plans were identical. The scheduler is now capacity-driven, previews its allocation before saving, and prevents same-day block overlaps.
+The one to three selected methods are incorporated into compatible weekly study
+blocks according to their scheduling roles. They affect what happens inside a
+study block; they do not create extra availability or override calendar
+constraints. A small or incompatible week can leave a selected method unused,
+which the plan reports rather than forcing an unnecessary block.
 
 ---
 
-## 11. Definition of Done (v1)
+## 6. Weekly Plan
 
-1. A first-time visitor can go landing → quiz → persona → plan in under 3 minutes with zero instructions.
-2. The plan reflects the actual hours they entered and never exceeds them.
-3. Every technique shown states *why they got it* and *how to do it*.
-4. Every resource shows its cost. Paid options are hidden by default.
-5. Refreshing or closing the tab loses nothing.
-6. Fully usable on a phone, keyboard-only, and at AA contrast.
-7. Works with no API key, no account, and no network calls after load.
-8. The engine has passing unit tests.
-9. Live on a public URL.
+### Recurring schedule setup
+
+The two-step, course-only setup records:
+
+1. named courses, priorities, include/exclude choices, and one or more linked
+   recurring meeting patterns; and
+2. confirmed study windows plus the amount of that available time the learner
+   wants to commit.
+
+At least one named course must be included in the plan. Asynchronous courses may
+have no meeting time, while every saved class meeting must belong to a course.
+The draft autosaves locally. The UI validates conflicts and time ranges, shows
+available time, total recurring class time, target, feasible planned time,
+buffer, and shortfall. Class time is subtracted from capacity only where it
+overlaps a confirmed study window. A target above capacity still permits
+generation and schedules only what safely fits. Drafts survive ordinary
+navigation; **Discard changes** explicitly clears an editing draft and returns
+to the saved plan. Invalid schedules and zero-block generation never replace a
+valid plan. The weekly target is a prominent full-width card at the bottom of
+the availability step, immediately before final validation and the review bar.
+The review bar remains in normal document flow on smaller screens and becomes
+sticky only at `lg`, where it can stay compact without covering form errors or
+controls.
+
+### Deterministic scheduler
+
+`buildSchedulePlan()`:
+
+- uses integer minutes on a 15-minute grid;
+- merges study windows and subtracts classes, unavailable days, and temporary
+  busy windows;
+- never schedules outside a confirmed study window;
+- caps planned time by the requested target and physical capacity;
+- reports unallocated time instead of inventing availability;
+- spreads work across open days and prefers times near the student's peak-hours
+  axis;
+- allocates course time by baseline priority, temporary urgency, and deadlines;
+- assigns selected methods by scheduling role, with compatible recommendation
+  or foundation fallbacks when required;
+- labels whether each primary method was selected or supplied as a foundation;
+- creates exactly one visible response for every persistent or week-specific
+  obstacle and ties it to the relevant blocks and methods;
+- keeps every non-administration block course-specific, with a duration, method,
+  and concrete instruction;
+- adds a 30-minute weekly review only when the target reaches
+  `max(120, 30 × (included courses + 1))` minutes, preserving first-pass course
+  coverage before administration;
+- exposes unused methods, unassigned courses, deadline compromises, and capacity
+  warnings; and
+- produces deterministic output for identical input.
+
+There is no universal 85% scheduling rule and no guaranteed 1/3/7-day review
+pattern in the current scheduler.
+
+### Calendar experience
+
+- `/plan` is the single completed-plan page: summary metrics, warnings, obstacle
+  responses, the calendar, weekly tuning, and rationale remain together.
+- `/plan/setup` is the separate recurring-schedule editor. There is no
+  `/plan/calendar` route in the current product or plan.
+- Generating from either first-time setup or `/plan/setup` returns to `/plan`
+  and resets the viewport to the top so the summary, build rationale, and
+  obstacle responses are seen before the calendar.
+- The collapsed **How Scholara built this week** rationale appears immediately
+  after the summary metrics, before constraints, obstacle responses, and the
+  calendar.
+- Desktop defaults to a cropped, internally scrolling seven-column calendar
+  with actual dates, classes, recurring availability, temporary busy time,
+  unavailable-day overlays, and study blocks. Agenda remains available as a
+  manual view.
+- Below `lg`, the semantic chronological agenda is the default, with a
+  seven-day selector and actual dates.
+- Study-block detail opens in an accessible desktop side sheet or mobile bottom
+  sheet and includes primary/supporting methods, source, instruction, and
+  obstacles addressed.
+- Before the calendar, **What this plan is helping you overcome** explains each
+  reported obstacle, Scholara's response, and where it appears in the plan.
+- Calendar blocks show course, method, and duration without requiring expansion;
+  details also show the instruction, method source, and obstacles addressed.
+- A compact toolbar exposes the represented week, Current/Saved Week state,
+  weekly adjustment, recurring schedule editing, and quiet copy action. It stays
+  in normal flow on smaller screens and sticks immediately below the global
+  header at `lg` and above.
+- The calendar's internally sticky day header is isolated within its own scroll
+  container so it cannot overlap the plan or global toolbar.
+- A stale saved plan remains viewable but cannot be adjusted. **Start this
+  week** clears temporary busy windows, unavailable days, deadlines, urgency,
+  workload, energy, and weekly obstacle overrides while preserving recurring
+  inputs.
+
+### Weekly tuning
+
+Manual tuning supports:
+
+- weekly target;
+- workload and energy;
+- active friction points;
+- unavailable days and temporary busy windows; and
+- course focus, urgency, and deadlines.
+
+The user can also submit a note of up to 500 characters to
+`POST /api/plan/tune`. AI may propose only bounded structured changes. The user
+reviews the resulting deterministic plan diff before applying it. Manual and AI
+changes use the same validated review workflow, and applying provides a compact
+change summary plus one-step undo.
+
+AI never returns final calendar blocks, moves classes, adds study availability,
+or selects methods.
 
 ---
 
-## 12. Risks
+## 7. Current Routes
 
-| Risk | Mitigation |
+### Pages
+
+| Route | Current purpose |
 | --- | --- |
-| Content writing (15 techniques × 5 steps, 35 resources) is the real bottleneck | Day 1 is dedicated to it. Ship a thinner library rather than fewer features |
-| Feature creep across 6 selected features | Hard P0/P1/P2 tiers in §7.0. P0 works end-to-end before anything else begins |
-| Quiz feels like a horoscope | Evidence line on every technique; visible rationale; §4 framing in the README |
-| Weekly plan generator is the trickiest logic | Build it behind unit tests before building its UI |
-| Deploy problems on the last day | Deploy on Day 0 and every day after |
-| AI layer breaks the demo | It's P2, server-side, timeout-guarded, and silently falls back |
-| Beginner + TypeScript friction | All types defined Day 0 in one file; pure functions over clever abstractions; no premature generics |
+| `/` | Persuasive overview, product explanation, and onboarding resume |
+| `/about` | Detailed methodology, limitations, privacy, and reset controls |
+| `/quiz` | Thirteen-screen guided intake with draft recovery; pointer selection enables an explicit blue Next action, number-key selection advances directly, and obstacles are the final screen |
+| `/express` | Persona-first, three-step self-report intake with no context step |
+| `/persona` | Persona, blend, strengths, watch-outs, and axes |
+| `/toolkit` | User-facing **Methods** page with the top five, compact full library, and one-to-three selection |
+| `/plan/setup` | Two-step recurring courses, meetings, availability, and target editor |
+| `/plan` | Single completed experience: summary, obstacle responses, embedded course calendar, manual/AI tuning, rationale, and copy |
+| `/resources` | Public free/free-tier resource catalog with campus services, category filters, and live fit signals from the current plan, selected Methods, and reported obstacles |
+| `/tracker` | Personalized rolling seven-day micro-habit tracker tied to the learner's Methods, obstacles, and saved weekly plan |
+| `/career` | Existing field-and-year career checklist, labeled **After** in navigation |
+| `/results` | Redirects to `/persona` |
 
----
+### APIs
 
-## 13. Judging Alignment
-
-| What judges look for | Scholara's answer |
+| Route | Current purpose |
 | --- | --- |
-| Fits "Overcoming Obstacles" | Directly attacks cost, scheduling, focus, and paperwork friction (§1 table) |
-| Real problem, real users | Study skills are the #1 unaddressed gap for first-gen and working students |
-| Depth, not a toy | Six-axis model, evidence-graded technique library, constraint-aware scheduler |
-| Intellectual honesty | Explicitly rejects the debunked learning-styles model and explains why (§4) |
-| Craft | Accessibility and calm design treated as core requirements |
-| Trust | No account, no server-side data, no paywall |
-| Path forward | Clear roadmap incl. Stellic/LMS integration for real course data |
+| `/api/plan/tune` | Free-text weekly note to bounded structured proposal |
+
+The former `/api/plan`, `/api/ask`, and `/api/coach` coaching routes and their UI
+have been removed. AI is used only for the explicit weekly tuning proposal.
+The former `/share/[code]` route, share-code helpers, payload type, and dedicated
+tests have also been removed; old share URLs intentionally use the standard 404.
 
 ---
 
-## 14. Open Questions
+## 8. Data, Privacy, and Failure Behavior
 
-1. **AI provider** — resolved: all coaching routes target `https://api.ai.it.ufl.edu` with `llama-3.3-70b-instruct` by default. `AI_BASE_URL` and `AI_MODEL` can override either value. No key is required for fallback mode.
-2. **Institution** — currently generic ("your school's writing center"). Worth revisiting if the demo should target one specific university.
-3. **Submission requirements** — still open: is there a required demo video length, deck, or write-up format to reserve time for?
-
----
-
-## 15. Current Status
-
-**All P0 and P1 features are built and passing.** The optional AI layer now personalizes weekly-plan coaching while preserving the deterministic engine as the source of truth. 15 routes and 29 engine tests are green.
-
-| Route | Purpose |
-| --- | --- |
-| `/` | Landing: problem, thesis, obstacle table |
-| `/quiz` | 14-question intake, keyboard-driven, resumes on refresh |
-| `/express` | Direct-input alternative to the quiz |
-| `/results` | Persona reveal, axis bars, 5 ranked techniques, share link |
-| `/plan` | Weekly schedule, week-specific tuning, coaching, grounded Q&A, copy, print |
-| `/resources` | ~45 resources, campus section first, paid hidden by default |
-| `/tracker` | Up to 3 micro-habits, forgiving streaks, 14-day re-assess prompt |
-| `/career` | Field × year career readiness checklist |
-| `/about` | The model, the evidence position, limitations, delete-my-data |
-| `/share/[code]` | Serverless shareable persona card |
-| `/api/coach` | Optional AI coaching paragraph, degrades silently |
-| `/api/plan` | Weekly brief and block notes over an engine-built plan |
-| `/api/ask` | Fixed-topic coaching answers grounded in the current plan |
-
-**Remaining before submission:** GitHub push, Vercel deploy, full accessibility audit, real-device test, demo recording.
+- New profile v3 records do not contain the former broad learner context.
+  `educationContext?: { year; field }` exists only for migrated Resources/After
+  compatibility and never affects method ranking or scheduling.
+- The validated profile, selected methods, recurring schedule, approved weekly
+  settings, quiz and schedule drafts, Tracker data, and Career-only preferences
+  are persisted only in browser storage. Career preferences use their own
+  validated versioned record rather than changing `LearnerProfile`.
+- There is no account, application database, or analytics pipeline.
+- AI keys remain server-side.
+- A bounded set of known courses and current week values is transmitted only
+  when the user invokes AI weekly tuning. Scholara does not persist the request.
+- A weekly free-text note leaves the browser only after explicit submission to
+  the tuning action.
+- The raw note is not persisted by Scholara or reused in later requests.
+- API payloads are narrowly validated and timeout-guarded.
+- Missing keys, timeouts, malformed JSON, or rejected output leave the plan
+  unchanged and preserve manual controls.
 
 ---
 
-*Last updated: 2026-08-07 · Status: P0 + P1 and personalized AI coaching complete, pending deploy and final polish*
+## 9. Existing Supporting Features
+
+These routes broaden the Degree Planning & Discovery response around the core
+journey of understanding how to study, scheduling the work for current courses,
+and maintaining progress toward a degree. Resources and Tracker have received
+focused supporting polish; After/Career remains outside the recent workflow
+redesign:
+
+- Resources: a public catalog of free and free-tier tools plus campus services,
+  with category filters. When a profile exists, its fit signals update live from
+  the learner's current plan, selected Methods, and reported obstacles.
+- Tracker: up to three rolling seven-day micro-habits, with suggestions ordered
+  around techniques used in the saved plan, selected Methods, and reported
+  obstacles. It keeps local-calendar dates, clear Today and current/best streak
+  states, protected habit removal and atomic clearing, and a two-week reflection
+  that leads back to Methods or the weekly plan.
+- After/Career: field-by-year checklist with free supporting resources. Migrated
+  profiles may seed it from optional legacy education context; otherwise the
+  learner chooses a year before relevance labels appear. These Career-only
+  preferences are validated and stored separately from the profile.
+
+Broader After/Career workflow redesign work remains deferred until Persona,
+Methods, and Weekly Plan are fully polished.
+
+---
+
+## 10. Remaining Work
+
+The red **TEST ONLY: Wipe localStorage** home-page control intentionally remains
+available as temporary development functionality.
+
+### Release verification
+
+- Complete a keyboard-only walkthrough and automated accessibility scan.
+- Check contrast and focus behavior at every onboarding stage.
+- Test the full flow on a real phone and at desktop width.
+- Run a fresh-browser first-time flow and a migrated-profile flow.
+- Tighten final copy and record the demo walkthrough.
+
+### Delivery
+
+- Merge `ui-changes` into `main`.
+- Verify the production Vercel environment variables and build.
+- Run the production smoke test after deployment.
+
+---
+
+## 11. Deferred / Future Work
+
+- Post-intake Persona-axis editing with deliberate recompute-and-save behavior
+  that preserves the manual persona choice, valid method selections, and
+  recurring schedule.
+- Calendar or LMS import.
+- Accounts and cross-device sync.
+- Notification/reminder system.
+- Institution-specific campus resource configuration.
+- After workflow redesign.
+- Richer plan editing such as manual move/resize interactions.
+- Detailed before/after AI tuning diff beyond the current compact summary.
+
+---
+
+## 12. Release Definition of Done
+
+- [x] Quiz -> Persona -> Methods -> schedule setup -> weekly calendar works.
+- [x] Pointer-selected quiz answers remain on the current question and activate
+  a blue Next button; number-key answers advance immediately.
+- [x] Users explicitly select one to three methods for incorporation into
+  compatible weekly study blocks.
+- [x] Plans stay inside confirmed availability and outside classes/busy time.
+- [x] Setup is course-only, supports asynchronous classes, and links every class
+  meeting to a course.
+- [x] Manual tuning works without AI.
+- [x] AI tuning is bounded, reviewable, and failure-safe.
+- [x] Every reported obstacle has a visible deterministic response in the plan.
+- [x] Every study block exposes its course, method, duration, and instruction.
+- [x] Desktop calendar and mobile agenda are implemented.
+- [x] Calendar, obstacle responses, tuning, and rationale remain consolidated on
+  `/plan`; generation returns to the top of that page.
+- [x] Profile v1/v2 migrations into profile v3 are covered by tests.
+- [x] About and Resources are always available in navigation.
+- [x] Users can compare all personas and override or restore their original
+  axis-derived result.
+- [x] Express users actively choose a persona and confirm the six axes.
+- [x] Tracker turns plan techniques, selected Methods, and reported obstacles
+  into personalized rolling seven-day micro-habits without changing its local
+  persistence model.
+- [x] Legacy AI coaching UI and API cleanup is complete.
+- [x] The temporary test-only localStorage control remains present and is
+  documented as development-only functionality.
+- [ ] Accessibility and real-device verification are complete.
+- [ ] Current UI branch is merged and production is smoke-tested.

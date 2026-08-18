@@ -1,8 +1,12 @@
 # Scholara
 
-**scholar + persona** — a study-habit builder that turns who you are into how you should study.
+**scholar + persona** — a college study-planning tool that turns how you work,
+the obstacles you face, and the time you actually have into methods and a
+weekly plan.
 
-Built for the **Stellic Pathfinders** challenge, in the **Overcoming Obstacles** category.
+Built for the **Stellic Pathfinders** challenge, in the **Degree Planning &
+Discovery** category: helping students understand their academic path and plan
+the learning work required to keep progressing toward a degree.
 
 > The evidence decides *what* you should do. Your persona decides *how* you'll do it — when, for how long, with whom, and in what format.
 
@@ -10,19 +14,30 @@ Built for the **Stellic Pathfinders** challenge, in the **Overcoming Obstacles**
 
 ## The problem
 
-Most students are never taught *how* to study. They get generic advice — "review your notes," "use flashcards" — that assumes a student with no job, no anxiety, and forty free hours a week. When that advice fails, students conclude they're the problem.
+Most students are never taught *how* to study. The pace, independence, course
+formats, and unstructured time of college can make strategies that worked in
+high school stop working. Students then get generic advice — "review your
+notes," "use flashcards" — that assumes a student with no job, no anxiety, and
+forty free hours a week. When that advice fails, students conclude they're the
+problem. Scholara helps them discover their own study habits, choose suitable
+methods, and schedule class and study time so their academic path is manageable
+week by week.
 
 | Friction | What Scholara does about it |
 | --- | --- |
-| "I don't know *how* to study" | Diagnoses a learner persona and prescribes 5 techniques with step-by-step instructions |
-| "I don't have time" | Builds a weekly plan from the hours you actually have, and never exceeds them |
+| "I don't know *how* to study" | Shows a practical persona, suggests five methods, and lets the learner choose one to three |
+| "I don't have time" | Builds a weekly plan only inside confirmed study availability and reports any shortfall |
 | "I can't focus / I procrastinate" | Maps each obstacle you name to a specific countermeasure |
-| "Good tools cost money" | Every resource is labeled free / free-tier / paid, and paid is hidden by default |
+| "Good tools cost money" | Offers a public catalog of free and free-tier tools plus campus services |
 | "I don't have a quiet space" | Routes you to campus accommodations and free study spaces you already pay for |
 | "I don't know what comes after" | A free, year-sequenced career track for your field |
-| "Advice never sticks" | Habit tracking with forgiving streaks and a 2-week re-assessment prompt |
+| "Advice never sticks" | Turns plan techniques, selected Methods, and reported obstacles into personalized rolling seven-day habits with current and best streaks |
 
-**No account. No database. No cost.** Your profile and schedule stay in your browser's local storage. Only AI features you explicitly invoke send bounded context to the configured provider.
+Resources are available before or after onboarding. Learners can filter the
+free/free-tier catalog and campus services by category; with a profile, fit
+signals update live from the current plan, selected Methods, and obstacles.
+
+**No account. No database. No cost.** Your profile and schedule stay in your browser's local storage. Only the AI weekly-tuning action you explicitly invoke sends bounded context to the configured provider.
 
 ---
 
@@ -42,20 +57,28 @@ This distinction is stated openly inside the app, on `/about`.
 ## How it works
 
 ```
-QuizAnswers (14 questions)
+QuizAnswers (13 screens) or Express setup (3 steps)
   └─▶ scoreAxes()        → 6 axis scores, −100..100
         └─▶ matchArchetype()  → primary + secondary, by cosine similarity
               └─▶ rankTechniques()  → top 5, with category diversity cap
-                    └─▶ buildWeeklyPlan()  → day/time blocks
-                          └─▶ pickResources()  → fit-sorted, cost-aware
-                                └─▶ LearnerProfile → localStorage
+                    └─▶ learner chooses 1–3 methods
+                          └─▶ classes + confirmed study windows
+                                └─▶ buildSchedulePlan() → course-specific blocks
+                                      └─▶ LearnerProfile v3 → localStorage
 ```
+
+The guided path asks 12 axis questions followed by one obstacle screen. Express
+collects Persona, Six axes, and Obstacles. Neither path asks for estimated course
+load or weekly hours; those concrete inputs belong in the two-step Plan setup.
+New version 3 profiles contain no general learner context. Year and field may be
+retained only when migrating old profiles, for supporting Resources/After pages,
+and never influence the weekly schedule.
 
 ### The six axes
 
 | Axis | Low ← → High | What it changes |
 | --- | --- | --- |
-| Rhythm | Sprinter ↔ Marathoner | Session length (25 / 45 / 90 min) |
+| Rhythm | Sprinter ↔ Marathoner | Session length (30 / 45 / 90 min) |
 | Structure | Improviser ↔ Architect | Fixed grid vs. flexible anchors |
 | Company | Solo ↔ Collaborative | Body doubling, group study |
 | Format | Verbal ↔ Spatial | Note format, technique choice |
@@ -70,11 +93,31 @@ Matched by cosine similarity, so the *shape* of your preferences matters rather 
 
 ### Scheduling rules
 
-- **Only 85% of your stated hours get scheduled.** This is the single most important decision in the app: a full calendar breaks the first time life interferes, and a broken plan gets abandoned rather than adjusted.
-- Session length comes from your rhythm axis; hardest material goes in your peak window.
-- Spaced reviews are auto-placed on a 1 / 3 / 7-day cadence.
-- **The weekly review is never cut** — it's trimmed out of a deep block instead, and it's sourced from the full technique library so it survives even when it didn't rank in your top five.
-- If you report genuine time scarcity, you get a three-session "minimum effective dose" instead of a grid.
+- Study blocks stay inside the windows the learner confirms and never overlap a class or temporary busy time.
+- The setup summary reports total recurring class time separately from class time that overlaps a study window; only the overlap reduces usable study capacity.
+- Every non-administration block names the course, method, duration, and concrete action.
+- Course priority, weekly urgency, deadlines, the six axes, and selected methods shape allocation and placement.
+- Every reported obstacle gets a visible response tied to the blocks and methods that address it.
+- If the target exceeds physical capacity, Scholara schedules only what fits and reports the shortfall.
+- A 30-minute weekly review is added only when there is enough time to cover every included course first.
+
+Recurring courses, meetings, availability, and the study target are edited on
+`/plan/setup`. The completed experience remains one page at `/plan`: summary,
+obstacle responses, the responsive calendar/agenda workspace, reviewed weekly
+tuning, and the build rationale. Saved weeks show their real Monday-Sunday date
+range and remain read-only until the learner deliberately starts the current
+week, which clears temporary exceptions. Generating a plan returns the learner
+to the top of that page. There is no separate calendar route.
+
+### Weekly habits
+
+The Tracker turns the learner's study approach into up to three small,
+repeatable actions. Suggestions prioritize techniques already used in the saved
+weekly plan, then selected Methods and reported obstacles. Check-ins use a
+rolling seven-day view with local-calendar dates, a clear Today state, and
+current and best streaks. After two weeks, a reflection prompt leads back to
+Methods or the weekly plan so the learner can keep what works and adjust what
+does not.
 
 ---
 
@@ -82,34 +125,38 @@ Matched by cosine similarity, so the *shape* of your preferences matters rather 
 
 | Layer | Choice |
 | --- | --- |
-| Framework | Next.js 16 (App Router) + TypeScript |
+| Framework | Next.js 16.3 (App Router) + React 19 + TypeScript |
 | Styling | Tailwind CSS v4, deep-blue theme via `@theme` |
 | State | React Context + `localStorage`, validated with Zod on read |
 | Icons | lucide-react |
-| Tests | Vitest on the engine (29 tests) |
-| AI | Optional, provider-agnostic, fully degradable |
+| Tests | Vitest units plus RTL/jsdom components; Playwright and axe responsive smoke coverage |
+| AI | Optional OpenAI-compatible weekly tuning with deterministic fallback |
 
 ### Project layout
 
 ```
 src/
-├─ app/              # routes: /, /quiz, /express, /results, /plan,
-│                    #         /resources, /tracker, /career, /about,
-│                    #         /share/[code], /api/coach, /api/plan, /api/ask
-├─ components/       # display only — no business logic
+├─ app/              # routes: /, /quiz, /express, /persona, /toolkit,
+│                    #         /plan, /plan/setup, /resources, /tracker,
+│                    #         /career, /about,
+│                    #         /results redirect, and /api/plan/tune
+├─ components/       # views, accessible forms, and client-side orchestration
 ├─ hooks/            # useProfile, useTracker
 └─ lib/
    ├─ engine/        # pure functions: scoring, matching, ranking, planning
-   ├─ ai/            # server-only client, validation, prompts, fallbacks
+   ├─ ai/            # server-only client and bounded weekly-note tuning
    ├─ data/          # all content as typed arrays
-   ├─ types.ts       # every shared shape
+   ├─ types.ts       # shared domain types
    ├─ schema.ts      # Zod validation + profile versioning
-   ├─ storage.ts     # typed localStorage wrapper
-   └─ share.ts       # profile ⇄ URL code
-tests/               # engine + share round-trip
+   └─ storage.ts     # typed localStorage wrapper
+tests/               # engines, schemas, migrations, onboarding, planning, AI
 ```
 
-**The rule:** content lives in `lib/data`, logic lives in `lib/engine` as pure functions, components only display. Content can grow without touching logic, and logic is tested without rendering anything.
+**The boundary:** reusable content lives in `lib/data`; deterministic domain
+rules live in `lib/engine`; shared shapes, validation, and persistence live in
+`lib`. Client components may coordinate forms, local profile state, and route
+transitions, but the scheduler and recommendation rules stay outside the UI and
+remain directly testable.
 
 ---
 
@@ -118,15 +165,15 @@ tests/               # engine + share round-trip
 ```bash
 npm install
 npm run dev      # http://localhost:3000
-npm test         # engine tests
+npm test         # full Vitest suite
 npm run build    # production build
 ```
 
 No environment variables are required.
 
-### Optional AI coaching
+### Optional AI weekly tuning
 
-The results page can generate a coaching note, while the weekly plan adds a personalized brief, block-level guidance, and grounded follow-up answers. AI **never selects techniques or edits the schedule** — the deterministic engine remains the source of truth.
+The complete plan works without AI. After a plan exists, the learner may submit a short note about changes such as an exam, work shift, or low-energy week. AI converts that note into a bounded proposal that the learner reviews before applying. The deterministic engine still creates every calendar block; AI cannot move classes, add availability, select methods, or directly edit the schedule.
 
 ```bash
 cp .env.example .env.local
@@ -144,13 +191,15 @@ The endpoint is OpenAI-compatible and can be changed with environment variables.
 
 ## Accessibility
 
-Treated as a core requirement, since the audience explicitly includes people who struggle to focus.
+Accessibility is treated as a core requirement, with final keyboard-only,
+real-device, and touch-target verification still pending.
 
-- Full keyboard navigation; the quiz answers to number keys and arrow keys
+- In the guided quiz, pointer selection enables an explicit blue Next button;
+  number keys select an answer and advance immediately
 - Focus moves to each new quiz question; progress is announced via `aria-live`
 - Visible focus rings, never removed
 - `prefers-reduced-motion` disables all animation
-- 44px minimum touch targets
+- Primary onboarding and planning controls are designed for comfortable touch targets
 - Meaning is never conveyed by color alone — axis positions are stated in text
 - Semantic landmarks, skip-to-content link, labeled form controls
 
@@ -158,7 +207,17 @@ Treated as a core requirement, since the audience explicitly includes people who
 
 ## Privacy
 
-There is no database, analytics, or telemetry. Your profile and schedule live in `localStorage` and can be deleted in one click from `/about`. Shared links encode the persona into the URL itself. Optional coaching sends bounded plan context to the configured AI provider. A weekly note is sent only when the student selects **Preview AI changes**, is not saved by Scholara, and can only produce a validated proposal that the student must apply.
+There is no database, analytics, or telemetry. Your profile, schedule and
+onboarding drafts, and tracker history live in browser storage and can be
+removed from `/about` through the confirmed **Delete everything** action.
+Career-only field/year preferences are also stored locally, separately from the
+learner profile. A weekly note is sent to the configured AI provider only when
+the student selects **Preview AI changes**. Scholara does not save the raw note,
+and the model can return only a validated proposal that the student must apply.
+
+The red **TEST ONLY: Wipe localStorage** home-page control is intentionally
+retained as temporary development functionality and is not a production
+account-management feature.
 
 ---
 
@@ -171,6 +230,7 @@ There is no database, analytics, or telemetry. Your profile and schedule live in
 
 ## Future work
 
+- Post-intake six-axis editing with a deliberate recompute-and-save flow
 - Optional accounts for cross-device sync
 - **Stellic / LMS integration** to pull real course data, deadlines, and degree requirements so the plan is built from actual syllabi
 - Calendar export (`.ics`) and notification nudges

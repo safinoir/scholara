@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ARCHETYPES } from "@/lib/data/archetypes";
 import { AXIS_META } from "@/lib/data/axes";
 import { TECHNIQUES } from "@/lib/data/techniques";
-import { ArchetypeIcon } from "@/components/ArchetypeIcon";
+import { PersonaDetailsCard } from "@/components/persona/PersonaDetailsCard";
 import { ButtonLink, Card, SectionHeading } from "@/components/ui";
 import { ResetProfileButton } from "@/components/ResetProfileButton";
 
@@ -21,7 +21,7 @@ export default function AboutPage() {
       <SectionHeading
         eyebrow="How it works"
         title="What Scholara actually does"
-        lead="Short version: research decides which techniques you're shown, and your persona decides how they're delivered."
+        lead="Short version: your profile and obstacles shape the methods Scholara suggests, then your choices and real schedule become a course-specific weekly plan."
       />
 
       <section className="mt-14">
@@ -86,7 +86,7 @@ export default function AboutPage() {
             addresses, and an evidence grade. Your score for a technique combines
             how well it fits your axes, a substantial bonus for each obstacle you
             reported that it directly targets, a bonus for stronger evidence, and
-            a penalty for high time cost if your hours are tight.
+            a penalty for high time cost when you report time scarcity.
           </p>
           <p>
             Then we cap it at two techniques per category. Without that cap, a
@@ -107,40 +107,38 @@ export default function AboutPage() {
         <h2 className="text-xl font-semibold">How the schedule is built</h2>
         <div className="mt-4 space-y-4 text-ink-soft">
           <p>
-            The generator only ever schedules 85% of the hours you say you have.
-            This is the single most important design decision in the app. A full
-            calendar breaks the first time life interferes, and a broken plan
-            gets abandoned entirely rather than adjusted.
+            Your confirmed study windows are hard boundaries. The scheduler
+            subtracts classes and temporary busy time, then plans up to your
+            weekly target or the time that is genuinely available &mdash;
+            whichever is smaller. Any shortfall stays visible instead of being
+            hidden by an unrealistic calendar.
           </p>
           <p>
-            Session length comes from your rhythm axis, your hardest material
-            goes in your peak window, spaced reviews are placed one, three, and
-            seven days out, and the weekly review is never cut. If you tell us
-            time is genuinely scarce, you get three sessions instead of a grid.
+            Session length comes from your rhythm axis, available times closest
+            to your peak hours are preferred, and course priorities and
+            deadlines guide how study time is shared. Every obstacle you report
+            receives a visible response tied to relevant study blocks. When
+            there is enough time for one, the weekly review is reserved inside
+            a valid window rather than placed on top of something else.
           </p>
         </div>
       </section>
 
-      <section className="mt-14">
+      <section id="personas" className="mt-14 scroll-mt-24">
         <h2 className="text-xl font-semibold">The six personas</h2>
-        <ul className="mt-6 space-y-3">
+        <p className="mt-3 max-w-2xl text-ink-soft">
+          Personas are practical starting points, not fixed labels. Compare the
+          full descriptions, including what tends to work and where each
+          pattern can break down.
+        </p>
+        <ul className="mt-7 space-y-7">
           {ARCHETYPES.map((archetype) => (
-            <li
-              key={archetype.id}
-              className="flex items-start gap-4 rounded-xl border border-line bg-surface p-5"
-            >
-              <span
-                className="flex size-10 shrink-0 items-center justify-center rounded-xl text-white"
-                style={{ backgroundColor: archetype.accent }}
-              >
-                <ArchetypeIcon name={archetype.icon} className="size-5" />
-              </span>
-              <div>
-                <p className="font-medium">{archetype.name}</p>
-                <p className="mt-1 text-sm text-ink-soft">
-                  {archetype.description}
-                </p>
-              </div>
+            <li key={archetype.id}>
+              <PersonaDetailsCard
+                archetype={archetype}
+                headingLevel="h3"
+                compact
+              />
             </li>
           ))}
         </ul>

@@ -26,13 +26,16 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setProfileState(loadProfile());
-    setReady(true);
+    const hydration = window.setTimeout(() => {
+      setProfileState(loadProfile());
+      setReady(true);
+    }, 0);
+    return () => window.clearTimeout(hydration);
   }, []);
 
   const setProfile = useCallback((next: LearnerProfile) => {
-    setProfileState(next);
-    saveProfile(next);
+    const validated = saveProfile(next);
+    if (validated) setProfileState(validated);
   }, []);
 
   const reset = useCallback(() => {

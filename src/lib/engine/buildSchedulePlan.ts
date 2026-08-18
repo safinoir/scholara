@@ -5,7 +5,6 @@ import {
   type Course,
   type Day,
   type Friction,
-  type LearnerContext,
   type PlanBlock,
   type PlanWarning,
   type ScheduleSetup,
@@ -29,15 +28,26 @@ export type UsableStudyWindow = Readonly<{
 
 export type ScheduleCapacity = Readonly<{
   usableWindows: readonly UsableStudyWindow[];
+  /** Confirmed availability that can hold a 30-minute block after constraints. */
   availableMinutes: number;
+  /** Confirmed availability after 15-minute normalization, before constraints. */
   rawWindowMinutes: number;
+  /** All recurring class time, including time outside study availability. */
+  classMinutes: number;
+  /** Recurring class time that intersects confirmed study availability. */
+  classOverlapMinutes: number;
+  /** The requested target capped to genuinely usable capacity. */
+  plannedMinutes: number;
+  /** Usable capacity left after the requested target is satisfied. */
+  bufferMinutes: number;
+  /** Requested target that cannot fit in genuinely usable capacity. */
+  shortfallMinutes: number;
   removedMinutes: number;
 }>;
 
 export type BuildSchedulePlanInput = {
   axes: AxisScores;
   frictions: Friction[];
-  context: LearnerContext;
   schedule: ScheduleSetup;
   techniques: ScoredTechnique[];
   selectedTechniqueIds: string[];
@@ -138,12 +148,20 @@ function subtractRanges(
   return remaining;
 }
 
+function rangeMinutes(ranges: readonly MinuteRange[]): number {
+  return ranges.reduce(
+    (total, range) => total + range.endMinute - range.startMinute,
+    0,
+  );
+}
+
 /** Returns normalized study time after recurring and week-specific constraints. */
 export function calculateScheduleCapacity(
   schedule: ScheduleSetup,
   week?: WeekContext,
 ): ScheduleCapacity {
   const studyByDay = emptyRangesByDay();
+  const classesByDay = emptyRangesByDay();
   const blockedByDay = emptyRangesByDay();
 
   for (const window of schedule.studyWindows) {
@@ -155,7 +173,10 @@ export function calculateScheduleCapacity(
   for (const meeting of schedule.classMeetings) {
     const range = blockedRange(meeting.startMinute, meeting.endMinute);
     if (!range) continue;
-    for (const day of meeting.days) blockedByDay[day].push(range);
+    for (const day of meeting.days) {
+      classesByDay[day].push(range);
+      blockedByDay[day].push(range);
+    }
   }
 
   for (const busy of week?.busyWindows ?? []) {
@@ -165,14 +186,18 @@ export function calculateScheduleCapacity(
 
   const unavailableDays = new Set(week?.unavailableDays ?? []);
   let rawWindowMinutes = 0;
+  let classMinutes = 0;
+  let classOverlapMinutes = 0;
   const usableWindows: UsableStudyWindow[] = [];
 
   for (const day of DAYS) {
     const normalized = mergeRanges(studyByDay[day]);
-    rawWindowMinutes += normalized.reduce(
-      (total, range) => total + range.endMinute - range.startMinute,
-      0,
-    );
+    const normalizedClasses = mergeRanges(classesByDay[day]);
+    const dayWindowMinutes = rangeMinutes(normalized);
+    rawWindowMinutes += dayWindowMinutes;
+    classMinutes += rangeMinutes(normalizedClasses);
+    classOverlapMinutes +=
+      dayWindowMinutes - rangeMinutes(subtractRanges(normalized, normalizedClasses));
     if (unavailableDays.has(day)) continue;
 
     const available = subtractRanges(normalized, blockedByDay[day]).filter(
@@ -185,11 +210,21 @@ export function calculateScheduleCapacity(
     (total, range) => total + range.endMinute - range.startMinute,
     0,
   );
+  const requestedMinutes = Math.max(
+    0,
+    Math.floor(week?.targetStudyMinutes ?? schedule.targetStudyMinutes),
+  );
+  const plannedMinutes = Math.min(requestedMinutes, availableMinutes);
 
   return {
     usableWindows,
     availableMinutes,
     rawWindowMinutes,
+    classMinutes,
+    classOverlapMinutes,
+    plannedMinutes,
+    bufferMinutes: Math.max(0, availableMinutes - plannedMinutes),
+    shortfallMinutes: Math.max(0, requestedMinutes - availableMinutes),
     removedMinutes: Math.max(0, rawWindowMinutes - availableMinutes),
   };
 }
@@ -233,20 +268,12 @@ function techniqueMinimum(technique: Technique): number {
 
 function hasAssessment(
   course: Course | undefined,
-  schedule: ScheduleSetup,
   week?: WeekContext,
 ): boolean {
-  if (!week?.courseTargets?.length) return false;
-  if (course) {
-    return week.courseTargets.some(
-      (target) =>
-        target.courseId === course.id && target.deadlineDay !== null,
-    );
-  }
-  if (schedule.mode === "general") {
-    return week.courseTargets.some((target) => target.deadlineDay !== null);
-  }
-  return false;
+  if (!course || !week?.courseTargets?.length) return false;
+  return week.courseTargets.some(
+    (target) => target.courseId === course.id && target.deadlineDay !== null,
+  );
 }
 
 function supportsRole(
@@ -433,12 +460,62 @@ function courseDeadline(course: Course | undefined, week?: WeekContext) {
   );
 }
 
+const FRICTION_STRATEGIES: Record<Friction, string> = {
+  procrastination:
+    "Each course starts with a five-minute action so beginning feels smaller than the full assignment.",
+  distraction:
+    "The first block on each study day includes a single-task, device-free setup.",
+  retention:
+    "Later course blocks become closed-note retrieval reviews whenever the available time permits.",
+  "test-anxiety":
+    "The plan uses low-stakes, closed-note practice before deadlines or on the highest-priority course.",
+  overwhelm:
+    "Every block contains one course and one concrete finish line instead of an open-ended study goal.",
+  "time-scarcity":
+    "The plan protects first-pass course coverage, prioritizes higher-need courses, and reports any target shortfall.",
+  "no-quiet-space":
+    "The first block each day begins with a portable study setup such as headphones and downloaded materials.",
+  motivation:
+    "The first block for each course ends with a small, visible result that makes progress easy to see.",
+  "reading-load":
+    "Reading work is converted into an active output such as questions, a summary, or a concept map.",
+  "math-heavy":
+    "Problem-based work emphasizes solving, checking, and recording errors instead of rereading examples.",
+};
+
+const STARTER_INSTRUCTION =
+  "Begin with five minutes on one finish line and leave one visible result.";
+
+const FRICTION_BLOCK_INSTRUCTIONS: Record<Friction, string> = {
+  procrastination: STARTER_INSTRUCTION,
+  distraction: "Silence notifications and work only on this course.",
+  retention: "Finish with closed-note recall and record what you missed.",
+  "test-anxiety":
+    "Attempt a few questions from memory before checking answers.",
+  overwhelm: "Work toward one finish line and defer everything else.",
+  "time-scarcity":
+    "Do the highest-value task first and stop at the scheduled end.",
+  "no-quiet-space":
+    "Prepare headphones and downloaded materials before starting.",
+  motivation: STARTER_INSTRUCTION,
+  "reading-load":
+    "Turn the reading into questions, a summary, or a concept map.",
+  "math-heavy":
+    "Solve, check, and record errors instead of rereading examples.",
+};
+
+function uniqueFrictions(
+  profileFrictions: readonly Friction[],
+  weekFrictions: readonly Friction[],
+): Friction[] {
+  return [...new Set([...profileFrictions, ...weekFrictions])];
+}
+
 /** Builds a plan only inside the study windows the learner confirmed. */
 export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
   const {
     axes,
     frictions,
-    context,
     schedule,
     techniques,
     selectedTechniqueIds,
@@ -458,17 +535,30 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
     effectiveRequestedMinutes,
     capacity.availableMinutes,
   );
+  const includedCourses = schedule.courses.filter(
+    (course) => course.includedInPlan,
+  );
+  const reviewThreshold = Math.max(
+    120,
+    WEEKLY_REVIEW_MINUTES * (includedCourses.length + 1),
+  );
+  const shouldAttemptReview =
+    includedCourses.length > 0 && targetMinutes >= reviewThreshold;
+  let remainingMinutes = Math.max(
+    0,
+    targetMinutes - (shouldAttemptReview ? WEEKLY_REVIEW_MINUTES : 0),
+  );
   const workingWindows: WorkingWindow[] = capacity.usableWindows.map(
     (window) => ({ ...window }),
   );
-  const reviewSlot =
-    targetMinutes >= WEEKLY_REVIEW_MINUTES
-      ? reserveWeeklyReview(workingWindows)
-      : null;
-  let remainingMinutes = Math.max(
-    0,
-    targetMinutes - (reviewSlot ? WEEKLY_REVIEW_MINUTES : 0),
+  const profileFrictionSet = new Set(frictions);
+  const weekFrictionSet = new Set(week?.focusFrictions ?? []);
+  const effectiveFrictions = uniqueFrictions(
+    frictions,
+    week?.focusFrictions ?? [],
   );
+  const effectiveFrictionSet = new Set(effectiveFrictions);
+  const resolvedFrictions = new Set<Friction>();
 
   const recommended = uniqueTechniques(
     techniques.map((scored) => scored.technique),
@@ -501,10 +591,6 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
     number
   >;
 
-  const includedCourses =
-    schedule.mode === "by-course"
-      ? schedule.courses.filter((course) => course.includedInPlan)
-      : [];
   const allocatedByCourse = new Map(
     includedCourses.map((course) => [course.id, 0]),
   );
@@ -523,6 +609,14 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
       includedCourses.indexOf(left) - includedCourses.indexOf(right)
     );
   });
+  const subjectFrictionCourseId = [...includedCourses].sort(
+    (left, right) =>
+      priorityWeight(right) - priorityWeight(left) ||
+      includedCourses.indexOf(left) - includedCourses.indexOf(right),
+  )[0]?.id;
+  const assessmentFrictionCourseId =
+    firstPass.find((course) => courseDeadline(course, week))?.id ??
+    subjectFrictionCourseId;
   let firstPassIndex = 0;
   let contentIndex = 0;
 
@@ -545,11 +639,13 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
   const roleForTechnique = (
     technique: Technique,
     assessment: boolean,
+    wantsReview: boolean,
   ): TechniqueScheduleRole => {
     const roles = techniqueRoles(technique);
     if (assessment && roles.includes("pre-assessment")) {
       return "pre-assessment";
     }
+    if (wantsReview && roles.includes("review")) return "review";
     if (
       roles.includes("learn") &&
       roles.includes("review") &&
@@ -565,25 +661,52 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
   const pickPrimary = (
     maxMinutes: number,
     assessment: boolean,
-  ): { technique: Technique; role: TechniqueScheduleRole } | null => {
+    wantsReview: boolean,
+  ): {
+    technique: Technique;
+    role: TechniqueScheduleRole;
+    source: "selected" | "foundation";
+  } | null => {
+    const fixesUnresolvedFriction = (technique: Technique) =>
+      effectiveFrictions.some(
+        (friction) =>
+          !resolvedFrictions.has(friction) && technique.fixes.includes(friction),
+      );
     const selectedPrimary = selected.filter((technique) => {
       const roles = techniqueRoles(technique);
       return (
-        roles.some((role) =>
-          ["learn", "review", "pre-assessment"].includes(role),
-        ) &&
+        (roles.includes(wantsReview ? "review" : "learn") ||
+          (assessment &&
+            (roles.includes("pre-assessment") ||
+              (technique.requiresAssessment && roles.includes("review"))))) &&
         techniqueMinimum(technique) <= maxMinutes &&
         (!technique.requiresAssessment || assessment)
       );
     });
     const selectedTechnique =
-      selectedPrimary.find(
-        (technique) => !usedTechniqueIds.has(technique.id),
-      ) ?? selectedPrimary[contentIndex % Math.max(1, selectedPrimary.length)];
+      (assessment && effectiveFrictionSet.has("test-anxiety")
+        ? selectedPrimary.find(
+            (technique) =>
+              technique.fixes.includes("test-anxiety") &&
+              (technique.requiresAssessment ||
+                techniqueRoles(technique).includes("pre-assessment")),
+          )
+        : undefined) ??
+      (wantsReview
+        ? selectedPrimary.find(
+            (technique) =>
+              techniqueRoles(technique).includes("review") &&
+              technique.fixes.includes("retention"),
+          )
+        : undefined) ??
+      selectedPrimary.find(fixesUnresolvedFriction) ??
+      selectedPrimary.find((technique) => !usedTechniqueIds.has(technique.id)) ??
+      selectedPrimary[contentIndex % Math.max(1, selectedPrimary.length)];
     if (selectedTechnique) {
       return {
         technique: selectedTechnique,
-        role: roleForTechnique(selectedTechnique, assessment),
+        role: roleForTechnique(selectedTechnique, assessment, wantsReview),
+        source: "selected",
       };
     }
 
@@ -593,12 +716,14 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
       ...foundationTechniques("review"),
     ]);
     const preferredRole: TechniqueScheduleRole =
-      contentIndex % 3 === 2 ? "review" : "learn";
+      assessment ? "pre-assessment" : wantsReview ? "review" : "learn";
     for (const role of [preferredRole, "learn", "review"] as const) {
-      const fallback = fallbackPool.find((technique) =>
+      const compatible = fallbackPool.filter((technique) =>
         supportsRole(technique, role, maxMinutes, assessment),
       );
-      if (fallback) return { technique: fallback, role };
+      const fallback =
+        compatible.find(fixesUnresolvedFriction) ?? compatible[0];
+      if (fallback) return { technique: fallback, role, source: "foundation" };
     }
     return null;
   };
@@ -610,14 +735,33 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
         (window) => window.endMinute - window.startMinute,
       ),
     );
-    const maxMinutes = floorToGrid(
+    const unconstrainedMax = floorToGrid(
       Math.min(remainingMinutes, largestWindow, MAX_BLOCK_MINUTES),
+    );
+    if (unconstrainedMax < MIN_BLOCK_MINUTES) break;
+
+    const course = nextCourse();
+    if (!course) break;
+    const courseHadBlock = (allocatedByCourse.get(course.id) ?? 0) > 0;
+    const uncoveredCourses = Math.max(0, firstPass.length - firstPassIndex);
+    const coverableCourses = Math.min(
+      uncoveredCourses,
+      Math.floor(
+        Math.max(0, remainingMinutes - MIN_BLOCK_MINUTES) /
+          MIN_BLOCK_MINUTES,
+      ),
+    );
+    const coverageReserve = coverableCourses * MIN_BLOCK_MINUTES;
+    const maxMinutes = floorToGrid(
+      Math.min(unconstrainedMax, remainingMinutes - coverageReserve),
     );
     if (maxMinutes < MIN_BLOCK_MINUTES) break;
 
-    const course = nextCourse();
-    const assessment = hasAssessment(course, schedule, week);
-    const primary = pickPrimary(maxMinutes, assessment);
+    const assessment = hasAssessment(course, week);
+    const wantsReview =
+      courseHadBlock &&
+      (effectiveFrictionSet.has("retention") || contentIndex % 3 === 2);
+    const primary = pickPrimary(maxMinutes, assessment, wantsReview);
     if (!primary) break;
 
     const focusCandidates = selected.filter((technique) =>
@@ -629,9 +773,15 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
       ),
     );
     const focusSupport =
-      focusCandidates.find(
-        (technique) => !usedTechniqueIds.has(technique.id),
-      ) ?? focusCandidates[contentIndex % Math.max(1, focusCandidates.length)];
+      focusCandidates.find((technique) =>
+        effectiveFrictions.some(
+          (friction) =>
+            !resolvedFrictions.has(friction) &&
+            technique.fixes.includes(friction),
+        ),
+      ) ??
+      focusCandidates.find((technique) => !usedTechniqueIds.has(technique.id)) ??
+      focusCandidates[contentIndex % Math.max(1, focusCandidates.length)];
     const minimum = Math.max(
       techniqueMinimum(primary.technique),
       focusSupport ? techniqueMinimum(focusSupport) : MIN_BLOCK_MINUTES,
@@ -639,8 +789,8 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
     const duration = chooseDuration(
       cadence,
       minimum,
-      remainingMinutes,
-      largestWindow,
+      maxMinutes,
+      maxMinutes,
     );
     if (!duration) break;
 
@@ -657,24 +807,121 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
 
     const isReview = primary.role === "review";
     const isAssessment = primary.role === "pre-assessment";
-    const courseLabel = course?.name ?? "General study";
+    const isFirstBlockToday = dayBlockCounts[placement.day] === 1;
+    const addressed = new Set<Friction>();
+    for (const friction of effectiveFrictions) {
+      if (
+        (["reading-load", "math-heavy"] as Friction[]).includes(friction) &&
+        course.id !== subjectFrictionCourseId
+      ) {
+        continue;
+      }
+      if (
+        friction === "test-anxiety" &&
+        course.id !== assessmentFrictionCourseId
+      ) {
+        continue;
+      }
+      if (
+        primary.technique.fixes.includes(friction) ||
+        focusSupport?.fixes.includes(friction)
+      ) {
+        addressed.add(friction);
+      }
+    }
+    if (!courseHadBlock) {
+      for (const friction of [
+        "procrastination",
+        "motivation",
+      ] as const) {
+        if (effectiveFrictionSet.has(friction)) addressed.add(friction);
+      }
+    }
+    if (effectiveFrictionSet.has("overwhelm")) addressed.add("overwhelm");
+    if (effectiveFrictionSet.has("time-scarcity")) addressed.add("time-scarcity");
+    if (isFirstBlockToday) {
+      for (const friction of ["distraction", "no-quiet-space"] as const) {
+        if (effectiveFrictionSet.has(friction)) addressed.add(friction);
+      }
+    }
+    if (
+      effectiveFrictionSet.has("retention") &&
+      (courseHadBlock || primary.technique.fixes.includes("retention"))
+    ) {
+      addressed.add("retention");
+    }
+    if (
+      effectiveFrictionSet.has("test-anxiety") &&
+      course.id === assessmentFrictionCourseId
+    ) {
+      addressed.add("test-anxiety");
+    }
+    for (const friction of ["reading-load", "math-heavy"] as const) {
+      if (
+        effectiveFrictionSet.has(friction) &&
+        course.id === subjectFrictionCourseId
+      ) {
+        addressed.add(friction);
+      }
+    }
+
+    const instructions: string[] = [];
+    if (
+      !courseHadBlock &&
+      ["procrastination", "motivation"].some((friction) =>
+        addressed.has(friction as Friction),
+      )
+    ) {
+      instructions.push(STARTER_INSTRUCTION);
+    }
+    if (addressed.has("overwhelm")) {
+      instructions.push("Work toward one finish line and defer everything else.");
+    }
+    if (addressed.has("distraction")) {
+      instructions.push("Silence notifications and work only on this course.");
+    }
+    if (addressed.has("no-quiet-space")) {
+      instructions.push("Prepare headphones and downloaded materials before starting.");
+    }
+    if (addressed.has("retention")) {
+      instructions.push("Finish with closed-note recall and record what you missed.");
+    }
+    if (addressed.has("test-anxiety")) {
+      instructions.push("Attempt a few questions from memory before checking answers.");
+    }
+    if (addressed.has("time-scarcity")) {
+      instructions.push("Do the highest-value task first and stop at the scheduled end.");
+    }
+    if (addressed.has("reading-load")) {
+      instructions.push("Turn the reading into questions, a summary, or a concept map.");
+    }
+    if (addressed.has("math-heavy")) {
+      instructions.push("Solve, check, and record errors instead of rereading examples.");
+    }
+
     draftBlocks.push({
       ...placement,
       start: placement.startMinute / 60,
       minutes: duration,
-      courseId: course?.id,
+      courseId: course.id,
       label: isAssessment
-        ? `${courseLabel}: assessment prep`
+        ? `${course.name}: assessment prep`
         : isReview
-          ? `${courseLabel}: review`
-          : courseLabel,
+          ? `${course.name}: review`
+          : course.name,
       techniqueId: primary.technique.id,
       supportingTechniqueIds: focusSupport ? [focusSupport.id] : [],
+      techniqueSource: primary.source,
+      addressedFrictionIds: [...addressed],
       intensity: isReview ? "review" : "deep",
-      note: focusSupport
-        ? `Use ${primary.technique.name} with ${focusSupport.name} for structure.`
-        : `Use ${primary.technique.name} and finish by identifying the next step.`,
+      note: [
+        focusSupport
+          ? `Use ${primary.technique.name} with ${focusSupport.name} for structure.`
+          : `Use ${primary.technique.name} and finish by identifying the next step.`,
+        ...instructions,
+      ].join(" "),
     });
+    for (const friction of addressed) resolvedFrictions.add(friction);
     usedTechniqueIds.add(primary.technique.id);
     if (focusSupport) usedTechniqueIds.add(focusSupport.id);
     if (course) {
@@ -687,8 +934,57 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
     contentIndex++;
   }
 
+  if (draftBlocks.length > 0) {
+    for (const friction of effectiveFrictions) {
+      if (
+        draftBlocks.some((block) =>
+          block.addressedFrictionIds.includes(friction),
+        )
+      ) {
+        continue;
+      }
+
+      const preferredCourseId =
+        friction === "reading-load" || friction === "math-heavy"
+          ? subjectFrictionCourseId
+          : friction === "test-anxiety"
+            ? assessmentFrictionCourseId
+            : undefined;
+      const targetBlock =
+        (friction === "retention"
+          ? draftBlocks.find((block, index) =>
+              draftBlocks
+                .slice(0, index)
+                .some((earlier) => earlier.courseId === block.courseId),
+            )
+          : undefined) ??
+        draftBlocks.find((block) => block.courseId === preferredCourseId) ??
+        draftBlocks[0];
+
+      targetBlock.addressedFrictionIds.push(friction);
+      targetBlock.note = `${targetBlock.note} ${FRICTION_BLOCK_INSTRUCTIONS[friction]}`;
+    }
+  }
+
+  const contentMinutes = draftBlocks.reduce(
+    (total, block) => total + block.minutes,
+    0,
+  );
+  const requiredCourseMinutes = Math.max(
+    90,
+    includedCourses.length * MIN_BLOCK_MINUTES,
+  );
+  const everyCourseCovered = includedCourses.every(
+    (course) => (allocatedByCourse.get(course.id) ?? 0) > 0,
+  );
+  const reviewSlot =
+    shouldAttemptReview &&
+    everyCourseCovered &&
+    contentMinutes >= requiredCourseMinutes
+      ? reserveWeeklyReview(workingWindows)
+      : null;
+
   if (reviewSlot) {
-    const assessment = hasAssessment(undefined, schedule, week);
     const planningSupport = selected.find(
       (technique) =>
         technique.id !== "weekly-review" &&
@@ -696,7 +992,7 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
           technique,
           "planning",
           WEEKLY_REVIEW_MINUTES,
-          assessment,
+          false,
         ),
     );
     const weeklyReview = TECHNIQUE_BY_ID["weekly-review"];
@@ -708,6 +1004,10 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
       label: "Weekly review",
       techniqueId: weeklyReview.id,
       supportingTechniqueIds: planningSupport ? [planningSupport.id] : [],
+      techniqueSource: selectedIds.has(weeklyReview.id)
+        ? "selected"
+        : "foundation",
+      addressedFrictionIds: [],
       intensity: "admin",
       note: planningSupport
         ? `Run the weekly review with ${planningSupport.name} to shape next week.`
@@ -799,9 +1099,7 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
 
   const rationale = [
     `The plan places ${formatDuration(totalMinutes)} inside ${formatDuration(capacity.availableMinutes)} of usable study availability.`,
-    schedule.mode === "by-course"
-      ? "Course time is distributed by priority after each included course gets a first block when capacity allows."
-      : "Study blocks stay general because course-level allocation is turned off.",
+    "Course time is distributed by priority after each included course gets a first block when capacity allows.",
     `Sessions use a ${cadence}-minute focus cadence and favor the time of day closest to your stated peak.`,
   ];
   if (reviewSlot) {
@@ -819,29 +1117,50 @@ export function buildSchedulePlan(input: BuildSchedulePlanInput): WeekPlan {
       `This week's ${week?.energy === "depleted" ? "lower energy" : "lighter workload"} reduced the active target to ${formatDuration(effectiveRequestedMinutes)} without changing recurring availability.`,
     );
   }
-  if (context.hasOutsideObligations) {
-    rationale.push(
-      "Only confirmed windows are used, so outside obligations are not treated as flexible time.",
+  const frictionResponses = effectiveFrictions.map((frictionId) => {
+    const matchingBlocks = blocks.filter((block) =>
+      block.addressedFrictionIds.includes(frictionId),
     );
-  }
+    const techniqueIds = uniqueTechniques(
+      matchingBlocks.flatMap((block) =>
+        [block.techniqueId, ...block.supportingTechniqueIds]
+          .map((id) => techniqueLookup.get(id))
+          .filter((technique): technique is Technique => {
+            if (!technique) return false;
+            return technique.fixes.includes(frictionId);
+          }),
+      ),
+    ).map((technique) => technique.id);
+    const source: "profile" | "week" | "both" =
+      profileFrictionSet.has(frictionId) && weekFrictionSet.has(frictionId)
+        ? "both"
+        : profileFrictionSet.has(frictionId)
+          ? "profile"
+          : "week";
 
-  const effectiveFrictions = new Set([
-    ...frictions,
-    ...(week?.focusFrictions ?? []),
-  ]);
+    return {
+      frictionId,
+      source,
+      strategy: FRICTION_STRATEGIES[frictionId],
+      blockIds: matchingBlocks.map((block) => block.id),
+      techniqueIds,
+    };
+  });
 
   return {
+    algorithmVersion: 2,
     blocks,
     flexible: axes.structure <= -25,
     totalMinutes,
     budgetMinutes: requestedMinutes,
     minimumEffectiveDose:
       week?.energy === "depleted" ||
-      (effectiveFrictions.has("time-scarcity") && requestedMinutes <= 480),
+      (effectiveFrictionSet.has("time-scarcity") && requestedMinutes <= 480),
     rationale,
     unallocatedMinutes,
     unassignedCourseIds,
     unusedTechniqueIds,
     warnings,
+    frictionResponses,
   };
 }

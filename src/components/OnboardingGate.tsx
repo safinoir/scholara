@@ -9,7 +9,7 @@ export function OnboardingGate({
 }: {
   title: string;
   body: string;
-  href: "/persona" | "/toolkit" | "/plan";
+  href: "/persona" | "/toolkit" | "/plan/setup" | "/plan";
   action: string;
 }) {
   return (

@@ -5,6 +5,7 @@ import {
   type ScheduleSetup,
   type StudyWindow,
 } from "@/lib/types";
+import { calculateScheduleCapacity } from "@/lib/engine";
 
 type MinuteRange = {
   startMinute: number;
@@ -12,7 +13,13 @@ type MinuteRange = {
 };
 
 export type CapacitySummary = {
+  /** Normalized confirmed availability before classes are subtracted. */
   availableMinutes: number;
+  /** Total recurring class time across the week. */
+  classMinutes: number;
+  /** Class time that overlaps the learner's confirmed study windows. */
+  classOverlapMinutes: number;
+  /** Engine-usable time after blocking and sub-30-minute fragments are removed. */
   usableMinutes: number;
   plannedMinutes: number;
   bufferMinutes: number;
@@ -199,38 +206,15 @@ export function sortStudyWindows(windows: StudyWindow[]): StudyWindow[] {
 }
 
 export function summarizeCapacity(schedule: ScheduleSetup): CapacitySummary {
-  const normalizedWindows = normalizeStudyWindows(schedule.studyWindows);
-  const windowsByDay = rangesByDay(normalizedWindows);
-  const classesByDay = rangesByDay(schedule.classMeetings);
-  let availableMinutes = 0;
-  let usableMinutes = 0;
-
-  for (const day of DAYS) {
-    const classRanges = classesByDay.get(day) ?? [];
-    for (const window of windowsByDay.get(day) ?? []) {
-      const windowMinutes = window.endMinute - window.startMinute;
-      availableMinutes += windowMinutes;
-
-      let blockedMinutes = 0;
-      for (const classRange of classRanges) {
-        const overlapStart = Math.max(window.startMinute, classRange.startMinute);
-        const overlapEnd = Math.min(window.endMinute, classRange.endMinute);
-        blockedMinutes += Math.max(0, overlapEnd - overlapStart);
-      }
-      usableMinutes += Math.max(0, windowMinutes - blockedMinutes);
-    }
-  }
-
-  const plannedMinutes = Math.min(
-    Math.max(0, schedule.targetStudyMinutes),
-    usableMinutes,
-  );
+  const capacity = calculateScheduleCapacity(schedule);
 
   return {
-    availableMinutes,
-    usableMinutes,
-    plannedMinutes,
-    bufferMinutes: Math.max(0, usableMinutes - plannedMinutes),
-    shortfallMinutes: Math.max(0, schedule.targetStudyMinutes - usableMinutes),
+    availableMinutes: capacity.rawWindowMinutes,
+    classMinutes: capacity.classMinutes,
+    classOverlapMinutes: capacity.classOverlapMinutes,
+    usableMinutes: capacity.availableMinutes,
+    plannedMinutes: capacity.plannedMinutes,
+    bufferMinutes: capacity.bufferMinutes,
+    shortfallMinutes: capacity.shortfallMinutes,
   };
 }

@@ -9,7 +9,6 @@ import {
 } from "@/lib/onboarding";
 import type {
   AxisScores,
-  LearnerContext,
   LearnerProfile,
   OnboardingStage,
 } from "@/lib/types";
@@ -23,14 +22,6 @@ const AXES: AxisScores = {
   clock: -40,
 };
 
-const CONTEXT: LearnerContext = {
-  year: "sophomore",
-  field: "stem",
-  courseLoad: 4,
-  hoursPerWeek: 10,
-  hasOutsideObligations: false,
-};
-
 function profileAt(
   onboardingStage: OnboardingStage,
   hasSelection = onboardingStage === "schedule" || onboardingStage === "complete",
@@ -38,7 +29,6 @@ function profileAt(
   const profile = generateProfile({
     axes: AXES,
     frictions: ["retention", "distraction"],
-    context: CONTEXT,
   });
 
   return {
@@ -71,7 +61,7 @@ describe("onboarding access", () => {
     expect(hasConfirmedToolkit(profile)).toBe(false);
     expect(resumeDestination(profile)).toEqual({
       href: "/toolkit",
-      label: "Choose your Study Toolkit",
+      label: "Choose your study methods",
     });
   });
 
@@ -81,19 +71,19 @@ describe("onboarding access", () => {
     expect(canAccessToolkit(profile)).toBe(true);
     expect(hasConfirmedToolkit(profile)).toBe(true);
     expect(resumeDestination(profile)).toEqual({
-      href: "/plan",
+      href: "/plan/setup",
       label: "Continue to weekly setup",
     });
   });
 
-  it("returns completed learners to their plan", () => {
+  it("does not unlock Plan from a stage flag without a valid schedule", () => {
     const profile = profileAt("complete");
 
     expect(canAccessToolkit(profile)).toBe(true);
     expect(hasConfirmedToolkit(profile)).toBe(true);
     expect(resumeDestination(profile)).toEqual({
-      href: "/plan",
-      label: "Back to your plan",
+      href: "/plan/setup",
+      label: "Continue to weekly setup",
     });
   });
 
@@ -103,7 +93,7 @@ describe("onboarding access", () => {
     expect(hasConfirmedToolkit(inconsistentProfile)).toBe(false);
     expect(resumeDestination(inconsistentProfile)).toEqual({
       href: "/toolkit",
-      label: "Choose your Study Toolkit",
+      label: "Choose your study methods",
     });
   });
 
@@ -112,16 +102,42 @@ describe("onboarding access", () => {
     const planned = {
       ...profile,
       plan: {
-        blocks: [],
+        algorithmVersion: 2 as const,
+        blocks: [
+          {
+            id: "block-01",
+            day: "Monday" as const,
+            start: 18,
+            startMinute: 18 * 60,
+            minutes: 60,
+            courseId: "history",
+            label: "History",
+            techniqueId: profile.selectedTechniqueIds[0],
+            supportingTechniqueIds: [],
+            techniqueSource: "selected" as const,
+            addressedFrictionIds: [],
+            intensity: "deep" as const,
+            note: "Use retrieval practice.",
+          },
+        ],
         flexible: false,
-        totalMinutes: 0,
-        budgetMinutes: 0,
+        totalMinutes: 60,
+        budgetMinutes: 120,
         minimumEffectiveDose: false,
         rationale: [],
+        frictionResponses: [],
       },
       schedule: {
-        mode: "general" as const,
-        courses: [],
+        mode: "by-course" as const,
+        courses: [
+          {
+            id: "history",
+            name: "History",
+            colorKey: "indigo" as const,
+            includedInPlan: true,
+            priority: "standard" as const,
+          },
+        ],
         classMeetings: [],
         studyWindows: [
           {
@@ -141,5 +157,8 @@ describe("onboarding access", () => {
     expect(
       hasCompletedSchedule({ ...planned, onboardingStage: "complete" }),
     ).toBe(true);
+    expect(
+      resumeDestination({ ...planned, onboardingStage: "complete" }),
+    ).toEqual({ href: "/plan", label: "Back to your plan" });
   });
 });

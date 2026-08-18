@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { PlanView } from "@/components/plan/PlanView";
+import { PlanSetupView } from "@/components/plan/PlanSetupView";
 
 export const metadata: Metadata = {
   title: "Weekly setup — Scholara",
 };
 
 export default function PlanSetupPage() {
-  return <PlanView setupOnly />;
+  return <PlanSetupView />;
 }

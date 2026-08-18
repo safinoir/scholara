@@ -1,27 +1,37 @@
 "use client";
 
-import { ArrowRight, Clock, Lock, Trash2, WalletMinimal } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowRight,
+  Clock,
+  Lock,
+  Trash2,
+  WalletMinimal,
+} from "lucide-react";
 import { ButtonLink } from "@/components/ui";
 import { useProfile } from "@/hooks/useProfile";
 import { ARCHETYPE_BY_ID } from "@/lib/data/archetypes";
 import { resumeDestination } from "@/lib/onboarding";
+import { effectiveArchetypeMatch } from "@/lib/persona";
 
 const PROMISES = [
   { icon: Clock, text: "About two minutes" },
-  { icon: Lock, text: "No account, nothing stored on a server" },
+  { icon: Lock, text: "Your profile stays in this browser" },
   { icon: WalletMinimal, text: "Free, and so is everything we recommend" },
 ];
 
 export function HomeHero() {
   const { profile, ready } = useProfile();
   const returning = ready && profile !== null;
-  const archetype = profile ? ARCHETYPE_BY_ID[profile.match.primary] : null;
+  const archetype = profile
+    ? ARCHETYPE_BY_ID[effectiveArchetypeMatch(profile).primary]
+    : null;
   const resume = profile ? resumeDestination(profile) : null;
 
   return (
-    <section className="mx-auto max-w-6xl px-5 pt-16 pb-14 sm:pt-24">
+    <section className="mx-auto max-w-6xl px-5 pt-10 pb-12 sm:pt-16 sm:pb-14">
       <div className="max-w-3xl">
-        <p className="mb-5 text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">
+        <p className="mb-4 text-base font-semibold uppercase tracking-[0.18em] text-brand-600">
           Scholara
         </p>
         <h1 className="text-4xl font-semibold leading-[1.08] sm:text-6xl">
@@ -29,9 +39,9 @@ export function HomeHero() {
           <span className="text-brand-600">how</span> to study.
         </h1>
         <p className="mt-6 max-w-2xl text-lg text-ink-soft sm:text-xl">
-          You were handed advice built for a student who has no job, no anxiety,
-          and forty free hours a week. Scholara starts from the schedule and the
-          obstacles you actually have, then builds a study plan around them.
+          College doesn&apos;t teach you how to study. Scholara helps you
+          discover a study approach that fits your personality and builds it
+          around your class schedule.
         </p>
 
         <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -53,8 +63,9 @@ export function HomeHero() {
                 Start the quiz
                 <ArrowRight className="size-4" aria-hidden />
               </ButtonLink>
-              <ButtonLink href="/about" variant="ghost" size="lg">
+              <ButtonLink href="#how-it-works" variant="ghost" size="lg">
                 How it works
+                <ArrowDown className="size-4" aria-hidden />
               </ButtonLink>
             </>
           )}

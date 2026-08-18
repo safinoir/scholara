@@ -233,5 +233,5 @@ export const FIELD_OPTIONS: { value: Field; label: string }[] = [
   { value: "undecided", label: "Undecided" },
 ];
 
-/** Total steps in the quiz: axis questions + friction step + context step. */
-export const TOTAL_STEPS = AXIS_QUESTIONS.length + 2;
+/** Total steps in the quiz: axis questions + the obstacle step. */
+export const TOTAL_STEPS = AXIS_QUESTIONS.length + 1;

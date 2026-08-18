@@ -63,6 +63,22 @@ describe("schedule setup schema", () => {
     expect(scheduleSetupSchema.safeParse(setup).success).toBe(false);
   });
 
+  it("rejects duplicate meeting and study-window ids", () => {
+    const duplicateMeeting = validSchedule();
+    duplicateMeeting.classMeetings.push({
+      ...duplicateMeeting.classMeetings[0],
+      days: ["Friday"],
+    });
+    expect(scheduleSetupSchema.safeParse(duplicateMeeting).success).toBe(false);
+
+    const duplicateWindow = validSchedule();
+    duplicateWindow.studyWindows.push({
+      ...duplicateWindow.studyWindows[0],
+      days: ["Friday"],
+    });
+    expect(scheduleSetupSchema.safeParse(duplicateWindow).success).toBe(false);
+  });
+
   it("rejects off-grid or missing study availability", () => {
     const offGrid = validSchedule();
     offGrid.studyWindows[0].startMinute += 7;

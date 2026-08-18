@@ -1,10 +1,42 @@
 import type { Resource, ResourceCategory } from "@/lib/types";
 
 /**
- * Every resource carries an explicit cost tag. Paid options are hidden by
- * default in the UI — students shouldn't have to pay to study effectively.
+ * Every resource carries an explicit cost tag. This catalog includes only
+ * resources a student can begin using without paying.
  */
+export const RESOURCE_CATALOG_REVIEWED = "August 2026";
+
 export const RESOURCES: Resource[] = [
+  // -------------------------------------------------------------------------
+  // Study skills
+  // -------------------------------------------------------------------------
+  {
+    id: "cornell-learning-strategies",
+    name: "Cornell Learning Strategies Center",
+    category: "study-skills",
+    cost: "free",
+    blurb:
+      "College-focused guides to retrieval practice, note-taking, reading, exam preparation, and building a study schedule.",
+    url: "https://lsc.cornell.edu/how-to-study/",
+    frictionFit: [
+      "retention",
+      "test-anxiety",
+      "overwhelm",
+      "time-scarcity",
+      "reading-load",
+    ],
+  },
+  {
+    id: "learning-scientists",
+    name: "The Learning Scientists",
+    category: "study-skills",
+    cost: "free",
+    blurb:
+      "Research-informed posters and guides to retrieval practice, spacing, interleaving, elaboration, and dual coding.",
+    url: "https://www.learningscientists.org/downloadable-materials",
+    frictionFit: ["retention", "time-scarcity", "math-heavy"],
+  },
+
   // -------------------------------------------------------------------------
   // Notes
   // -------------------------------------------------------------------------
@@ -25,8 +57,8 @@ export const RESOURCES: Resource[] = [
     category: "notes",
     cost: "free-tier",
     blurb:
-      "All-in-one notes, databases, and trackers. The free plan is generous, and students can verify for more.",
-    url: "https://www.notion.so",
+      "Notes, databases, and trackers in one workspace. Eligible college students can use a school email to get a free Plus plan for a one-member workspace.",
+    url: "https://www.notion.com/help/notion-for-education",
     axisFit: { structure: 45 },
     frictionFit: ["overwhelm", "time-scarcity"],
   },
@@ -60,9 +92,9 @@ export const RESOURCES: Resource[] = [
     id: "anki",
     name: "Anki",
     category: "recall",
-    cost: "free",
+    cost: "free-tier",
     blurb:
-      "The serious spaced-repetition tool. Free on desktop and Android, and it handles the review scheduling for you.",
+      "Spaced-repetition flashcards with automatic review scheduling. The desktop app and AnkiDroid are free; the official iOS app is paid.",
     url: "https://apps.ankiweb.net",
     axisFit: { structure: 35 },
     frictionFit: ["retention", "time-scarcity", "math-heavy"],
@@ -87,7 +119,7 @@ export const RESOURCES: Resource[] = [
     category: "scheduling",
     cost: "free",
     blurb:
-      "The simplest way to time-block. Free, and you almost certainly already have it through your school.",
+      "A free personal calendar for time-blocking classes, deadlines, and study sessions. Some schools also provide it through Google Workspace.",
     url: "https://calendar.google.com",
     axisFit: { structure: 50 },
     frictionFit: ["time-scarcity", "overwhelm", "procrastination"],
@@ -98,7 +130,7 @@ export const RESOURCES: Resource[] = [
     category: "scheduling",
     cost: "free-tier",
     blurb:
-      "Clean task capture with recurring due dates. The free tier covers everything a student needs.",
+      "Task capture, priorities, and recurring dates. The free Beginner plan supports up to five active personal projects; calendar layout and deadlines require Pro.",
     url: "https://todoist.com",
     axisFit: { structure: 40 },
     frictionFit: ["overwhelm", "procrastination"],
@@ -121,8 +153,9 @@ export const RESOURCES: Resource[] = [
     id: "pomofocus",
     name: "Pomofocus",
     category: "focus",
-    cost: "free",
-    blurb: "A browser Pomodoro timer with task tracking. No signup, no install.",
+    cost: "free-tier",
+    blurb:
+      "A customizable browser Pomodoro timer with free timing and task features. Projects, exports, integrations, and ad removal are premium.",
     url: "https://pomofocus.io",
     axisFit: { rhythm: -50 },
     frictionFit: ["procrastination", "distraction"],
@@ -133,7 +166,7 @@ export const RESOURCES: Resource[] = [
     category: "focus",
     cost: "free-tier",
     blurb:
-      "Plant a tree that dies if you leave your phone. Silly, and it works on a lot of people.",
+      "A gamified focus timer that grows a virtual forest while you stay on task. Access, pricing, and optional upgrades vary by platform.",
     url: "https://www.forestapp.cc",
     frictionFit: ["distraction"],
   },
@@ -143,7 +176,7 @@ export const RESOURCES: Resource[] = [
     category: "focus",
     cost: "free-tier",
     blurb:
-      "Blocks sites and apps hard enough that you can't easily talk yourself out of it. Free version is sufficient.",
+      "A desktop distraction blocker. The free edition blocks websites for timed sessions; app blocking, schedules, and advanced locks require Pro.",
     url: "https://getcoldturkey.com",
     axisFit: { rhythm: 30 },
     frictionFit: ["distraction", "procrastination"],
@@ -154,19 +187,19 @@ export const RESOURCES: Resource[] = [
     category: "focus",
     cost: "free-tier",
     blurb:
-      "Pairs you with a stranger for a silent 50-minute video work session. Free tier includes a few sessions per week.",
+      "Virtual body-doubling sessions with a matched partner. The free plan includes three sessions per week.",
     url: "https://www.focusmate.com",
     axisFit: { social: 60 },
     frictionFit: ["procrastination", "motivation", "no-quiet-space"],
   },
   {
     id: "study-together",
-    name: "Study Together",
+    name: "StudyStream",
     category: "focus",
-    cost: "free",
+    cost: "free-tier",
     blurb:
-      "Free Discord-based study rooms with timers, running around the clock. Good body-doubling at 2am.",
-    url: "https://www.studytogether.com",
+      "Live virtual focus rooms for studying alongside other students. Free access is available, with optional subscriptions for additional features.",
+    url: "https://www.studystream.live",
     axisFit: { social: 55 },
     frictionFit: ["motivation", "no-quiet-space", "procrastination"],
   },
@@ -191,7 +224,7 @@ export const RESOURCES: Resource[] = [
     category: "subject",
     cost: "free",
     blurb:
-      "Real MIT course materials, lectures, and problem sets with solutions. Free, no registration.",
+      "Free materials from thousands of MIT courses. What is included varies by course, and OCW does not provide enrollment, credit, or certificates.",
     url: "https://ocw.mit.edu",
     frictionFit: ["math-heavy"],
     fieldFit: ["stem", "business"],
@@ -202,19 +235,19 @@ export const RESOURCES: Resource[] = [
     category: "subject",
     cost: "free",
     blurb:
-      "The clearest free calculus and algebra notes on the internet, with worked practice problems.",
+      "Free notes, examples, and practice problems for algebra, Calculus I-III, and differential equations.",
     url: "https://tutorial.math.lamar.edu",
     frictionFit: ["math-heavy"],
     fieldFit: ["stem", "business"],
   },
   {
     id: "osmosis-anatomy",
-    name: "Osmosis / Ninja Nerd (YouTube)",
+    name: "Ninja Nerd",
     category: "subject",
-    cost: "free",
+    cost: "free-tier",
     blurb:
-      "Free video explanations of physiology and pathology that health students consistently rate highly.",
-    url: "https://www.youtube.com/@NinjaNerdOfficial",
+      "Detailed health-science video lectures and podcasts are available free; premium notes, illustrations, quizzes, and flashcards cost extra.",
+    url: "https://ninjanerd.org/",
     fieldFit: ["health"],
     frictionFit: ["retention"],
   },
@@ -224,7 +257,7 @@ export const RESOURCES: Resource[] = [
     category: "subject",
     cost: "free",
     blurb:
-      "Peer-reviewed college textbooks, genuinely free. Check here before buying any required text.",
+      "Peer-reviewed, openly licensed textbooks are free online. Printed copies are available separately at low cost.",
     url: "https://openstax.org",
     frictionFit: ["reading-load"],
     fieldFit: ["stem", "health", "business", "humanities", "undecided"],
@@ -273,8 +306,8 @@ export const RESOURCES: Resource[] = [
     category: "writing",
     cost: "free",
     blurb:
-      "Paste a draft in the browser and it flags dense, unclear sentences. Free, nothing to install.",
-    url: "https://hemingwayapp.com",
+      "Paste in a draft to get a free readability score and highlights for hard-to-read sentences. AI rewriting is a separate trial or paid feature.",
+    url: "https://hemingwayapp.com/readability-checker",
     fieldFit: ["humanities", "business", "arts"],
   },
 
@@ -296,8 +329,8 @@ export const RESOURCES: Resource[] = [
     category: "accessibility",
     cost: "free",
     blurb:
-      "Free, evidence-informed guidance on ADHD and learning differences, including how to ask for accommodations.",
-    url: "https://www.understood.org",
+      "Evidence-informed guidance on learning differences and the accommodations and services that may be available in college.",
+    url: "https://www.understood.org/en/articles/types-of-college-accommodations-and-services",
     frictionFit: ["distraction", "procrastination", "overwhelm"],
   },
   {
@@ -306,7 +339,7 @@ export const RESOURCES: Resource[] = [
     category: "accessibility",
     cost: "free-tier",
     blurb:
-      "Transcribes lectures so you can listen instead of frantically writing. Free tier covers several hours a month.",
+      "Live transcription with limited file imports. The free Basic plan includes 300 minutes per month plus conversation and history limits; follow class recording rules.",
     url: "https://otter.ai",
     frictionFit: ["reading-load", "distraction"],
   },
@@ -320,8 +353,8 @@ export const RESOURCES: Resource[] = [
     category: "basic-needs",
     cost: "free",
     blurb:
-      "Find campus food pantries and meal-swipe programs. Studying badly on an empty stomach isn't a discipline problem.",
-    url: "https://www.swipehunger.org",
+      "Browse its campus partner directory, then ask your school's basic-needs office about local pantry or meal-swipe support.",
+    url: "https://swipehunger.org/campus-partners/",
     frictionFit: ["time-scarcity", "motivation"],
   },
   {
@@ -330,8 +363,8 @@ export const RESOURCES: Resource[] = [
     category: "basic-needs",
     cost: "free",
     blurb:
-      "Filing is free, and aid offices can adjust awards mid-year if your circumstances change. Most students never ask.",
-    url: "https://studentaid.gov",
+      "Use the official federal site to apply for and manage aid. If your finances change, ask your school's aid office whether its policy allows an adjustment.",
+    url: "https://studentaid.gov/h/apply-for-aid/fafsa",
     frictionFit: ["time-scarcity"],
   },
   {
@@ -340,7 +373,7 @@ export const RESOURCES: Resource[] = [
     category: "basic-needs",
     cost: "free",
     blurb:
-      "Most required textbooks are on reserve at your library for free. Check before spending $300.",
+      "Many campus libraries lend some required texts through course reserves. Check the catalog early because titles, loan periods, and availability vary.",
     frictionFit: ["time-scarcity", "reading-load"],
   },
 
@@ -353,7 +386,8 @@ export const RESOURCES: Resource[] = [
     category: "wellbeing",
     cost: "free",
     blurb:
-      "Memory consolidation happens during sleep. An all-nighter trades away the exact process that stores what you studied.",
+      "Sleep supports learning, attention, and memory formation. Protecting sleep is part of studying, especially before high-stakes work.",
+    url: "https://www.nhlbi.nih.gov/health/sleep-deprivation/health-effects",
     frictionFit: ["retention", "motivation", "test-anxiety"],
   },
   {
@@ -386,8 +420,8 @@ export const RESOURCES: Resource[] = [
     category: "career",
     cost: "free",
     blurb:
-      "Situation, Task, Action, Result. The structure behind almost every behavioral interview answer.",
-    url: "https://www.themuse.com/advice/star-interview-method",
+      "Use Situation, Task, Action, and Result to structure a specific response to a behavioral interview question.",
+    url: "https://www.careercenter.illinois.edu/interviewingtips",
   },
   {
     id: "handshake",
@@ -395,8 +429,8 @@ export const RESOURCES: Resource[] = [
     category: "career",
     cost: "free",
     blurb:
-      "Free through most schools, and where a large share of internship postings actually live.",
-    url: "https://joinhandshake.com",
+      "Search jobs, internships, fairs, and career-center offerings. Available features depend on your school's connection and partnership with Handshake.",
+    url: "https://joinhandshake.com/students/",
   },
   {
     id: "linkedin-basics",
@@ -404,16 +438,16 @@ export const RESOURCES: Resource[] = [
     category: "career",
     cost: "free",
     blurb:
-      "A photo, a real headline, and your coursework. Takes an hour and recruiters do search it.",
-    url: "https://www.linkedin.com",
+      "LinkedIn's official guide to presenting your education, experience, skills, headline, and profile visibility.",
+    url: "https://www.linkedin.com/help/linkedin/answer/a554351/how-do-i-create-a-good-linkedin-profile-?lang=en",
   },
   {
     id: "levels-fyi",
-    name: "Levels.fyi / Glassdoor salary data",
+    name: "Levels.fyi",
     category: "career",
     cost: "free",
     blurb:
-      "Know the number before you're asked. Free salary data by role and location.",
+      "User-submitted compensation data by company, role, level, and location. Coverage varies, so compare more than one source before negotiating.",
     url: "https://www.levels.fyi",
     fieldFit: ["stem", "business"],
   },
@@ -427,7 +461,7 @@ export const RESOURCES: Resource[] = [
     category: "campus",
     cost: "free",
     blurb:
-      "Already included in your tuition. Peer and professional tutoring for exactly the courses that are hardest.",
+      "Many colleges include peer or professional tutoring at no extra charge. Course coverage, eligibility, and appointment formats vary by school.",
     campus: true,
     frictionFit: ["math-heavy", "retention", "motivation"],
   },
@@ -437,7 +471,7 @@ export const RESOURCES: Resource[] = [
     category: "campus",
     cost: "free",
     blurb:
-      "Free appointments to work through a draft with a trained reader. Bring an outline, not just a finished paper.",
+      "Many campuses offer writing consultations at no extra charge. Availability and policies vary; an outline or early draft is enough to bring.",
     campus: true,
     frictionFit: ["reading-load", "overwhelm"],
   },
@@ -447,7 +481,7 @@ export const RESOURCES: Resource[] = [
     category: "campus",
     cost: "free",
     blurb:
-      "The most underused resource in higher education. Most professors sit alone during them. Go with one specific question.",
+      "Instructor or teaching-assistant office hours are course support you can use for clarification and feedback. Bring one specific question.",
     campus: true,
     frictionFit: ["retention", "motivation", "math-heavy"],
   },
@@ -457,7 +491,7 @@ export const RESOURCES: Resource[] = [
     category: "campus",
     cost: "free",
     blurb:
-      "Formal accommodations — extra time, quiet rooms, note-takers — for ADHD, anxiety, learning disabilities, and chronic illness. You do not need a perfect diagnosis to start the conversation.",
+      "Ask about reasonable accommodations for disability or health-related barriers. Eligibility, documentation, and available services vary, so start early.",
     campus: true,
     frictionFit: ["distraction", "test-anxiety", "no-quiet-space", "reading-load"],
   },
@@ -467,7 +501,7 @@ export const RESOURCES: Resource[] = [
     category: "campus",
     cost: "free",
     blurb:
-      "Bookable quiet rooms, plus journal access worth thousands a year that you already paid for.",
+      "Your campus library may provide reservable study spaces, research help, databases, and course materials. Access and booking policies vary.",
     campus: true,
     frictionFit: ["no-quiet-space", "distraction", "reading-load"],
   },
@@ -477,7 +511,7 @@ export const RESOURCES: Resource[] = [
     category: "campus",
     cost: "free",
     blurb:
-      "Usually a set number of free sessions per year. Test anxiety and burnout are squarely within what they handle.",
+      "Many colleges provide short-term counseling or referrals. Session limits, fees, scope, and urgent-care options vary by institution.",
     campus: true,
     frictionFit: ["test-anxiety", "motivation", "overwhelm"],
   },
@@ -487,7 +521,7 @@ export const RESOURCES: Resource[] = [
     category: "campus",
     cost: "free",
     blurb:
-      "Free résumé reviews, mock interviews, and employer connections — and they're least busy in the fall.",
+      "Your career center may offer résumé reviews, mock interviews, job-search support, and employer events. Services and alumni access vary.",
     campus: true,
   },
   {
@@ -496,7 +530,7 @@ export const RESOURCES: Resource[] = [
     category: "campus",
     cost: "free",
     blurb:
-      "For degree requirements, course sequencing, and the paperwork nobody explains. Go before registration opens, not after.",
+      "Advising can help interpret degree requirements, course sequencing, academic policies, and registration choices. Book early around registration.",
     campus: true,
     frictionFit: ["overwhelm"],
   },
@@ -507,6 +541,7 @@ export const RESOURCE_BY_ID = Object.fromEntries(
 ) as Record<string, Resource>;
 
 export const CATEGORY_LABELS: Record<ResourceCategory, string> = {
+  "study-skills": "Study skills guides",
   notes: "Note-taking",
   recall: "Flashcards & recall",
   scheduling: "Scheduling",

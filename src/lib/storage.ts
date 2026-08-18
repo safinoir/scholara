@@ -2,7 +2,8 @@ import { parseProfile } from "@/lib/schema";
 import type { LearnerProfile, QuizAnswers, ScheduleSetup } from "@/lib/types";
 
 export const KEYS = {
-  profile: "scholara:profile:v2",
+  profile: "scholara:profile:v3",
+  previousProfile: "scholara:profile:v2",
   legacyProfile: "scholara:profile:v1",
   quizDraft: "scholara:quiz-draft:v1",
   scheduleDraft: "scholara:schedule-draft:v1",
@@ -41,19 +42,26 @@ export function loadProfile(): LearnerProfile | null {
   const current = parseProfile(read(KEYS.profile));
   if (current) return current;
 
-  const migrated = parseProfile(read(KEYS.legacyProfile));
+  const migrated =
+    parseProfile(read(KEYS.previousProfile)) ??
+    parseProfile(read(KEYS.legacyProfile));
   if (!migrated) return null;
 
   write(KEYS.profile, migrated);
   return migrated;
 }
 
-export function saveProfile(profile: LearnerProfile): void {
-  write(KEYS.profile, profile);
+/** Writes only profiles that survive the same validation used during loading. */
+export function saveProfile(profile: unknown): LearnerProfile | null {
+  const validated = parseProfile(profile);
+  if (!validated) return null;
+  write(KEYS.profile, validated);
+  return validated;
 }
 
 export function clearProfile(): void {
   remove(KEYS.profile);
+  remove(KEYS.previousProfile);
   remove(KEYS.legacyProfile);
   remove(KEYS.quizDraft);
   remove(KEYS.scheduleDraft);
@@ -73,6 +81,8 @@ export function clearQuizDraft(): void {
 }
 
 export type ScheduleDraft = {
+  /** Added when the setup wizard moved from three steps to two. */
+  version?: 2;
   step: 1 | 2 | 3;
   schedule: ScheduleSetup;
 };

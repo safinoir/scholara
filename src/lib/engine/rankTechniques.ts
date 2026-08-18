@@ -4,7 +4,6 @@ import {
   type ArchetypeId,
   type AxisScores,
   type Friction,
-  type LearnerContext,
   type ScoredTechnique,
   type Technique,
 } from "@/lib/types";
@@ -26,26 +25,13 @@ const EVIDENCE_BONUS: Record<Technique["evidence"], number> = {
 };
 
 /** 0 when the student has plenty of time, 1 when they're severely squeezed. */
-function timeScarcityFactor(
-  context: LearnerContext,
-  frictions: Friction[],
-): number {
-  let factor = 0;
-  if (frictions.includes("time-scarcity")) factor += 0.5;
-  if (context.hasOutsideObligations) factor += 0.25;
-
-  const hoursPerCourse =
-    context.courseLoad > 0 ? context.hoursPerWeek / context.courseLoad : 4;
-  if (hoursPerCourse < 2) factor += 0.35;
-  else if (hoursPerCourse < 4) factor += 0.15;
-
-  return Math.min(1, factor);
+function timeScarcityFactor(frictions: Friction[]): number {
+  return frictions.includes("time-scarcity") ? 1 : 0;
 }
 
 type ScoreInput = {
   axes: AxisScores;
   frictions: Friction[];
-  context: LearnerContext;
   primary: ArchetypeId;
 };
 
@@ -88,7 +74,7 @@ function scoreTechnique(
     reasons.push({ text: "Works well for your persona", weight: boost });
   }
 
-  const scarcity = timeScarcityFactor(input.context, input.frictions);
+  const scarcity = timeScarcityFactor(input.frictions);
   score -= TIME_COST_PENALTY[technique.timeCost] * scarcity;
 
   reasons.sort((a, b) => b.weight - a.weight);

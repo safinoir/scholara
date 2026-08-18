@@ -7,50 +7,49 @@ import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { AXIS_QUESTIONS, TOTAL_STEPS } from "@/lib/data/questions";
 import { FRICTION_META } from "@/lib/data/axes";
 import { generateProfileFromQuiz } from "@/lib/engine";
+import { confirmProfileReplacement } from "@/components/quiz/confirmProfileReplacement";
 import { useProfile } from "@/hooks/useProfile";
 import {
   clearQuizDraft,
   loadQuizDraft,
   saveQuizDraft,
 } from "@/lib/storage";
-import type { Friction, LearnerContext, QuizAnswers } from "@/lib/types";
+import type { Friction, QuizAnswers } from "@/lib/types";
 import { Button, Progress, cn } from "@/components/ui";
-import { ContextStep } from "./ContextStep";
-
-const DEFAULT_CONTEXT: LearnerContext = {
-  year: "freshman",
-  field: "undecided",
-  courseLoad: 4,
-  hoursPerWeek: 10,
-  hasOutsideObligations: false,
-};
 
 export function QuizFlow() {
   const router = useRouter();
-  const { setProfile } = useProfile();
+  const { profile, setProfile } = useProfile();
 
   const [step, setStep] = useState(0);
   const [axisAnswers, setAxisAnswers] = useState<Record<string, number>>({});
   const [frictions, setFrictions] = useState<Friction[]>([]);
-  const [context, setContext] = useState<LearnerContext>(DEFAULT_CONTEXT);
   const [hydrated, setHydrated] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
   // Restore an in-progress quiz so a refresh doesn't cost the user their answers.
   useEffect(() => {
-    const draft = loadQuizDraft();
-    if (draft) {
-      if (draft.axisAnswers) setAxisAnswers(draft.axisAnswers);
-      if (draft.frictions) setFrictions(draft.frictions);
-      if (draft.context) setContext({ ...DEFAULT_CONTEXT, ...draft.context });
-    }
-    setHydrated(true);
+    const restore = window.setTimeout(() => {
+      const draft = loadQuizDraft();
+      if (draft?.axisAnswers) {
+        setAxisAnswers(draft.axisAnswers);
+        const firstUnanswered = AXIS_QUESTIONS.findIndex(
+          (question) => draft.axisAnswers?.[question.id] === undefined,
+        );
+        setStep(
+          firstUnanswered === -1 ? AXIS_QUESTIONS.length : firstUnanswered,
+        );
+      }
+      if (draft?.frictions) setFrictions(draft.frictions);
+      setHydrated(true);
+    }, 0);
+    return () => window.clearTimeout(restore);
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    saveQuizDraft({ axisAnswers, frictions, context });
-  }, [hydrated, axisAnswers, frictions, context]);
+    saveQuizDraft({ axisAnswers, frictions });
+  }, [hydrated, axisAnswers, frictions]);
 
   // Move focus to the new question so keyboard and screen-reader users follow along.
   useEffect(() => {
@@ -59,7 +58,6 @@ export function QuizFlow() {
 
   const isAxisStep = step < AXIS_QUESTIONS.length;
   const isFrictionStep = step === AXIS_QUESTIONS.length;
-  const isContextStep = step === AXIS_QUESTIONS.length + 1;
   const question = isAxisStep ? AXIS_QUESTIONS[step] : null;
 
   const canAdvance = isAxisStep
@@ -74,14 +72,9 @@ export function QuizFlow() {
     setStep((s) => Math.max(0, s - 1));
   }, []);
 
-  const selectOption = useCallback(
-    (questionId: string, index: number) => {
-      setAxisAnswers((prev) => ({ ...prev, [questionId]: index }));
-      // Brief pause so the selection is visible before the screen changes.
-      window.setTimeout(goNext, 180);
-    },
-    [goNext],
-  );
+  const selectOption = useCallback((questionId: string, index: number) => {
+    setAxisAnswers((prev) => ({ ...prev, [questionId]: index }));
+  }, []);
 
   const toggleFriction = useCallback((friction: Friction) => {
     setFrictions((prev) =>
@@ -92,13 +85,15 @@ export function QuizFlow() {
   }, []);
 
   const finish = useCallback(() => {
-    const answers: QuizAnswers = { axisAnswers, frictions, context };
+    if (!confirmProfileReplacement(profile !== null)) return;
+    const answers: QuizAnswers = { axisAnswers, frictions };
     setProfile(generateProfileFromQuiz(answers));
     clearQuizDraft();
     router.push("/persona");
-  }, [axisAnswers, frictions, context, setProfile, router]);
+  }, [axisAnswers, frictions, profile, setProfile, router]);
 
-  // Number keys pick an option; arrows move between screens.
+  // Number keys pick an option. Moving between screens remains an explicit
+  // action through the Back and Next buttons.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -116,23 +111,15 @@ export function QuizFlow() {
         if (digit >= 1 && digit <= question.options.length) {
           event.preventDefault();
           selectOption(question.id, digit - 1);
+          goNext();
           return;
         }
-      }
-
-      if (event.key === "ArrowRight" && canAdvance && !isContextStep) {
-        event.preventDefault();
-        goNext();
-      }
-      if (event.key === "ArrowLeft" && step > 0) {
-        event.preventDefault();
-        goBack();
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [question, canAdvance, isContextStep, step, selectOption, goNext, goBack]);
+  }, [question, selectOption, goNext]);
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-2xl flex-col px-5 py-8">
@@ -214,8 +201,8 @@ export function QuizFlow() {
                 What actually gets in your way?
               </h1>
               <p className="mt-2 text-ink-soft">
-                Pick everything that applies, or none. This is the part that
-                changes your recommendations the most.
+                Pick everything that applies, or none. Scholara uses these
+                obstacles in both your method recommendations and weekly plan.
               </p>
             </legend>
 
@@ -263,34 +250,33 @@ export function QuizFlow() {
           </fieldset>
         )}
 
-        {isContextStep && (
-          <ContextStep
-            headingRef={headingRef}
-            context={context}
-            onChange={setContext}
-          />
-        )}
       </div>
 
-      <div className="sticky bottom-0 mt-10 flex items-center gap-3 border-t border-line bg-paper/90 py-4 backdrop-blur">
-        <Button variant="ghost" onClick={goBack} disabled={step === 0}>
+      <div className="sticky bottom-0 mt-10 flex flex-col-reverse gap-3 border-t border-line bg-paper/90 py-4 backdrop-blur sm:flex-row sm:items-center">
+        <Button
+          variant="secondary"
+          onClick={goBack}
+          disabled={step === 0}
+          className="w-full sm:w-auto"
+        >
           <ArrowLeft className="size-4" aria-hidden />
           Back
         </Button>
 
-        <div className="ml-auto">
-          {isContextStep ? (
-            <Button size="lg" onClick={finish}>
+        <div className="w-full sm:ml-auto sm:w-auto">
+          {isFrictionStep ? (
+            <Button size="lg" onClick={finish} className="w-full sm:w-auto">
               See my persona
               <ArrowRight className="size-4" aria-hidden />
             </Button>
           ) : (
             <Button
-              variant={isFrictionStep ? "primary" : "secondary"}
+              variant={canAdvance ? "primary" : "secondary"}
               onClick={goNext}
               disabled={!canAdvance}
+              className="w-full sm:w-auto"
             >
-              {isFrictionStep ? "Continue" : "Skip"}
+              Next
               <ArrowRight className="size-4" aria-hidden />
             </Button>
           )}

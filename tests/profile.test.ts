@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildWeeklyPlan, generateProfile, rankTechniques } from "@/lib/engine";
+import { buildSchedulePlan, generateProfile, rankTechniques } from "@/lib/engine";
 import { parseProfile, profileSchema } from "@/lib/schema";
-import { PROFILE_VERSION, type AxisScores, type LearnerContext } from "@/lib/types";
+import {
+  PROFILE_VERSION,
+  type AxisScores,
+  type LearnerContext,
+  type ScheduleSetup,
+} from "@/lib/types";
 
 const AXES: AxisScores = {
   rhythm: -30,
@@ -24,29 +29,45 @@ function makeProfile() {
   return generateProfile({
     axes: AXES,
     frictions: ["retention", "distraction"],
-    context: CONTEXT,
   });
 }
 
 function makePlan(profile: ReturnType<typeof makeProfile>) {
-  return buildWeeklyPlan({
+  return buildSchedulePlan({
     axes: profile.axes,
     frictions: profile.frictions,
-    context: profile.context,
+    schedule: makeSchedule(),
     techniques: rankTechniques({
       axes: profile.axes,
       frictions: profile.frictions,
-      context: profile.context,
       primary: profile.match.primary,
     }),
+    selectedTechniqueIds: [profile.recommendedTechniqueIds[0]],
   });
 }
 
 function makeSchedule() {
   return {
-    mode: "general" as const,
-    courses: [],
-    classMeetings: [],
+    mode: "by-course" as const,
+    courses: [
+      {
+        id: "history",
+        name: "History",
+        colorKey: "indigo" as const,
+        includedInPlan: true,
+        priority: "standard" as const,
+      },
+    ],
+    classMeetings: [
+      {
+        id: "history-class",
+        courseId: "history",
+        label: "History class",
+        days: ["Monday" as const],
+        startMinute: 10 * 60,
+        endMinute: 11 * 60,
+      },
+    ],
     studyWindows: [
       {
         id: "weeknights",
@@ -59,7 +80,29 @@ function makeSchedule() {
   };
 }
 
-describe("profile version 2", () => {
+function makeVersion2Profile(schedule: ScheduleSetup = makeSchedule()) {
+  const current = makeProfile();
+  const selectedTechniqueIds = [current.recommendedTechniqueIds[0]];
+  const stalePlan = makePlan(current);
+
+  return {
+    ...current,
+    version: 2 as const,
+    context: CONTEXT,
+    onboardingStage: "complete" as const,
+    selectedTechniqueIds,
+    schedule,
+    plan: {
+      ...stalePlan,
+      totalMinutes: 999,
+      blocks: stalePlan.blocks.map((block, index) =>
+        index === 0 ? { ...block, label: "Stale version 2 block" } : block,
+      ),
+    },
+  };
+}
+
+describe("profile version 3", () => {
   it("starts new profiles at the persona step with no claimed selections", () => {
     const profile = makeProfile();
 
@@ -67,17 +110,20 @@ describe("profile version 2", () => {
     expect(profile.onboardingStage).toBe("persona");
     expect(profile.recommendedTechniqueIds).toHaveLength(5);
     expect(profile.selectedTechniqueIds).toEqual([]);
+    expect("context" in profile).toBe(false);
+    expect(profile.educationContext).toBeUndefined();
     expect(profile.plan).toBeUndefined();
     expect(profileSchema.safeParse(profile).success).toBe(true);
   });
 
-  it("migrates a version 1 profile without losing its generated plan", () => {
+  it("migrates a version 1 profile and discards its stale generated plan", () => {
     const current = makeProfile();
     const legacyPlan = makePlan(current);
     const { recommendedTechniqueIds } = current;
     const legacy: Record<string, unknown> = {
       ...current,
       version: 1,
+      context: CONTEXT,
       plan: legacyPlan,
       techniqueIds: [
         recommendedTechniqueIds[0],
@@ -97,7 +143,77 @@ describe("profile version 2", () => {
     expect(migrated?.onboardingStage).toBe("toolkit");
     expect(migrated?.selectedTechniqueIds).toEqual([]);
     expect(migrated?.recommendedTechniqueIds).toEqual(recommendedTechniqueIds);
-    expect(migrated?.plan).toEqual(legacyPlan);
+    expect(migrated?.educationContext).toEqual({
+      year: CONTEXT.year,
+      field: CONTEXT.field,
+    });
+    expect(migrated?.plan).toBeUndefined();
+  });
+
+  it("rebuilds a complete course-based version 2 profile with the current scheduler", () => {
+    const migrated = parseProfile(makeVersion2Profile());
+
+    expect(migrated).not.toBeNull();
+    expect(migrated?.version).toBe(PROFILE_VERSION);
+    expect(migrated?.onboardingStage).toBe("complete");
+    expect(migrated?.educationContext).toEqual({
+      year: CONTEXT.year,
+      field: CONTEXT.field,
+    });
+    expect(migrated?.plan?.algorithmVersion).toBe(2);
+    expect(migrated?.plan?.totalMinutes).not.toBe(999);
+    expect(
+      migrated?.plan?.blocks.some(
+        (block) => block.label === "Stale version 2 block",
+      ),
+    ).toBe(false);
+    expect(migrated?.plan?.blocks.every((block) =>
+      block.intensity === "admin" ? true : block.courseId === "history",
+    )).toBe(true);
+    expect(profileSchema.safeParse(migrated).success).toBe(true);
+  });
+
+  it.each([
+    {
+      name: "a legacy general schedule",
+      schedule: {
+        ...makeSchedule(),
+        mode: "general" as const,
+        courses: [],
+        classMeetings: makeSchedule().classMeetings.map((meeting) => ({
+          id: meeting.id,
+          label: meeting.label,
+          days: meeting.days,
+          startMinute: meeting.startMinute,
+          endMinute: meeting.endMinute,
+        })),
+      },
+    },
+    {
+      name: "an unlinked class meeting",
+      schedule: {
+        ...makeSchedule(),
+        classMeetings: makeSchedule().classMeetings.map((meeting) => ({
+          id: meeting.id,
+          label: meeting.label,
+          days: meeting.days,
+          startMinute: meeting.startMinute,
+          endMinute: meeting.endMinute,
+        })),
+      },
+    },
+  ])("returns $name to schedule setup without its stale plan", ({ schedule }) => {
+    const migrated = parseProfile(makeVersion2Profile(schedule));
+
+    expect(migrated).not.toBeNull();
+    expect(migrated?.version).toBe(PROFILE_VERSION);
+    expect(migrated?.onboardingStage).toBe("schedule");
+    expect(migrated?.plan).toBeUndefined();
+    expect(migrated?.educationContext).toEqual({
+      year: CONTEXT.year,
+      field: CONTEXT.field,
+    });
+    expect(migrated?.schedule).toEqual(schedule);
   });
 
   it("requires at least one method after the toolkit stage", () => {
@@ -142,6 +258,15 @@ describe("profile version 2", () => {
         schedule: makeSchedule(),
       }).success,
     ).toBe(true);
+    expect(
+      profileSchema.safeParse({
+        ...profile,
+        onboardingStage: "complete",
+        selectedTechniqueIds,
+        plan: { ...makePlan(profile), blocks: [], totalMinutes: 0 },
+        schedule: makeSchedule(),
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects duplicate or unknown selected technique ids", () => {
