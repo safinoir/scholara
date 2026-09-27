@@ -110,7 +110,7 @@ academic advising; integration with those systems remains future work.
 | Backend | Next.js Route Handlers only |
 | Database/auth | None |
 | AI provider | OpenAI-compatible chat-completions endpoint |
-| Default AI configuration | `https://api.ai.it.ufl.edu`, model `llama-3.3-70b-instruct` |
+| Default AI configuration | `https://api.navigator.ai.ufl.edu/`, model `llama-3.3-70b-instruct` |
 | Tests | Vitest units, RTL/jsdom components, and Playwright/axe responsive smoke coverage |
 | Deployment target | Vercel; `main` is the intended production branch |
 

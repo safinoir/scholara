@@ -205,7 +205,7 @@ cp .env.example .env.local
 
 ```
 AI_API_KEY=...
-AI_BASE_URL=https://api.ai.it.ufl.edu
+AI_BASE_URL=https://api.navigator.ai.ufl.edu/
 AI_MODEL=llama-3.3-70b-instruct
 ```
 

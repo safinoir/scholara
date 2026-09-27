@@ -30,7 +30,7 @@ export type ChatOptions = {
 
 const DEFAULT_TIMEOUT_MS = 12_000;
 const DEFAULT_MODEL = "llama-3.3-70b-instruct";
-const DEFAULT_BASE_URL = "https://api.ai.it.ufl.edu";
+const DEFAULT_BASE_URL = "https://api.navigator.ai.ufl.edu/";
 
 function apiKey(): string | null {
   const key = process.env.AI_API_KEY ?? process.env.COACH_API_KEY;
